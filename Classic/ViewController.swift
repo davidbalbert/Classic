@@ -9,6 +9,9 @@
 import Cocoa
 
 class ViewController: NSViewController {
+    @IBOutlet var pathLabel: NSTextField!
+    @IBOutlet var loadAddressTextField: NSTextField!
+    @IBOutlet var disassembleButton: NSButton!
 
     override func viewDidLoad() {
         super.viewDidLoad()
