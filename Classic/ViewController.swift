@@ -13,7 +13,14 @@ class ViewController: NSViewController {
 
     var content: Content! {
         didSet {
-            textView.string = content.bytes.map { String(format: "%02x", $0) }.joined(separator: " ")
+            let data = content.data
+            let n = 16
+
+            let string = stride(from: data.startIndex, to: data.endIndex, by: n).map { i in
+                data[i..<i+n].map { String(format: "%02x", $0) }.joined(separator: " ")
+            }.joined(separator: "\n")
+
+            textView.string = string
             textView.textStorage?.font = NSFont(name: "Monaco", size: 11)
         }
     }

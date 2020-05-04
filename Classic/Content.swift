@@ -9,13 +9,13 @@
 import Cocoa
 
 class Content: NSObject {
-    var bytes: [UInt8]
+    var data: Data
 
     init(bytes: [UInt8]) {
-        self.bytes = bytes
+        data = Data(bytes)
     }
 
     func read(from data: Data) {
-        bytes = Array(data)
+        self.data = data
     }
 }
