@@ -8,16 +8,25 @@
 
 import Cocoa
 
+private extension Data {
+    func chunked(by count: Int) -> [Data] {
+        return stride(from: startIndex, to: endIndex, by: count).map { i in
+            self[i..<i+count]
+        }
+    }
+}
+
 class ViewController: NSViewController {
     @IBOutlet var textView: NSTextView!
 
     var content: Content! {
         didSet {
             let data = content.data
-            let n = 16
 
-            let string = stride(from: data.startIndex, to: data.endIndex, by: n).map { i in
-                data[i..<i+n].map { String(format: "%02x", $0) }.joined(separator: " ")
+            let string = data.chunked(by: 16).map { line in
+                line.chunked(by: 2).map { nibble in
+                    nibble.map { String(format: "%02x", $0) }.joined(separator: "")
+                }.joined(separator: " ")
             }.joined(separator: "\n")
 
             textView.string = string
