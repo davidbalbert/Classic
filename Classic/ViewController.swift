@@ -19,9 +19,12 @@ private extension Data {
 class ViewController: NSViewController {
     @IBOutlet var textView: NSTextView!
 
-    var content: Content! {
+    var content: Content? {
         didSet {
-            let data = content.data
+            guard let data = content?.data else {
+                textView.string = ""
+                return
+            }
 
             let string = data.chunked(by: 16).map { line in
                 line.chunked(by: 2).map { nibble in
