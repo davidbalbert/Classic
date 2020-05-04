@@ -9,7 +9,7 @@
 import Cocoa
 
 class Document: NSDocument {
-    var bytes: [UInt8] = []
+    var content = Content(bytes: [])
 
     override init() {
         super.init()
@@ -21,6 +21,10 @@ class Document: NSDocument {
         let storyboard = NSStoryboard(name: NSStoryboard.Name("Main"), bundle: nil)
         let windowController = storyboard.instantiateController(withIdentifier: NSStoryboard.SceneIdentifier("Document Window Controller")) as! NSWindowController
         self.addWindowController(windowController)
+
+        if let contentVC = windowController.contentViewController as? ViewController {
+            contentVC.content = content
+        }
     }
 
     override func data(ofType typeName: String) throws -> Data {
@@ -30,8 +34,7 @@ class Document: NSDocument {
     }
 
     override func read(from data: Data, ofType typeName: String) throws {
-        bytes = Array(data)
-        Swift.print(bytes.prefix(10).map { String(format: "0x%02x", $0) })
+        content.read(from: data)
     }
 }
 
