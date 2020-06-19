@@ -101,3 +101,13 @@ struct Registers {
     var d6: UInt32
     var d7: UInt32
 }
+
+struct Instruction {
+    var name: String
+    var mask: UInt16
+    var value: UInt16
+}
+
+let insns = [
+    Instruction(name: "exg", mask: 0xf130, value: 0xc100)
+]

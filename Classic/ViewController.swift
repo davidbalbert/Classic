@@ -11,7 +11,7 @@ import Cocoa
 private extension Data {
     func chunked(by count: Int) -> [Data] {
         return stride(from: startIndex, to: endIndex, by: count).map { i in
-            self[i..<i+count]
+            self[i..<Swift.min(i+count, endIndex)]
         }
     }
 }
@@ -21,14 +21,14 @@ class ViewController: NSViewController {
 
     var content: Content? {
         didSet {
-            guard let data = content?.data else {
+            guard let data = content?.data, let offset = content?.offset else {
                 textView.string = ""
                 return
             }
-
-            let string = data.chunked(by: 16).map { line in
-                line.chunked(by: 2).map { nibble in
-                    nibble.map { String(format: "%02x", $0) }.joined(separator: "")
+            
+            let string = data[offset..<data.count].chunked(by: 16).map { line in
+                line.chunked(by: 2).map { word in
+                    word.map { String(format: "%02x", $0) }.joined(separator: "")
                 }.joined(separator: " ")
             }.joined(separator: "\n")
 

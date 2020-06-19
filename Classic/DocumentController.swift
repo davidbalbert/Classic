@@ -22,4 +22,17 @@ class DocumentController: NSDocumentController {
 
         return super.beginOpenPanel(openPanel, forTypes: types, completionHandler: completionHandler)
     }
+    
+    override func makeDocument(withContentsOf url: URL, ofType typeName: String) throws -> NSDocument {
+        let document = try super.makeDocument(withContentsOf: url, ofType: typeName)
+        
+        if let document = document as? Document {
+            document.offset = accessoryViewController.offset
+            document.loadAddress = accessoryViewController.loadAddress
+        }
+        
+        accessoryViewController.reset()
+        
+        return document
+    }
 }

@@ -10,10 +10,19 @@ import Cocoa
 
 class Document: NSDocument {
     var content = Content(bytes: [])
+    var loadAddress = 0 {
+        didSet {
+            content.loadAddress = loadAddress
+        }
+    }
+    var offset = 0 {
+        didSet {
+            content.offset = offset
+        }
+    }
 
     override init() {
         super.init()
-        // Add your subclass-specific initialization here.
     }
 
     override func makeWindowControllers() {
