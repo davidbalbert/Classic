@@ -39,7 +39,11 @@ class ViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        if let scrollView = textView.enclosingScrollView {
+            scrollView.verticalRulerView = LineNumberRulerView()
+            scrollView.rulersVisible = true
+        }
     }
 }
 
