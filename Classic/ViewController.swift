@@ -32,17 +32,19 @@ class ViewController: NSViewController {
                 }.joined(separator: " ")
             }.joined(separator: "\n")
 
-            textView.string = string
+            textView.textStorage?.setAttributedString(NSAttributedString(string: string))
+            textView.font = NSFont(name: "Monaco", size: 11)
         }
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        textView.font = NSFont(name: "Monaco", size: 11)
-        
         if let scrollView = textView.enclosingScrollView {
-            scrollView.verticalRulerView = LineNumberRulerView(textView: textView)
+            let rulerView = LineNumberRulerView(scrollView: scrollView, orientation: .verticalRuler)
+            rulerView.clientView = textView
+            
+            scrollView.verticalRulerView = rulerView
             scrollView.rulersVisible = true
         }
     }

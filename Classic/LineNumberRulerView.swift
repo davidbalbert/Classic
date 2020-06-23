@@ -9,48 +9,60 @@
 import Cocoa
 
 class LineNumberRulerView: NSRulerView {
-    var trackingTextView: NSTextView
-    var textStorage: NSTextStorage
-    var layoutManager: NSLayoutManager
-    var textContainer: NSTextContainer
+    var lineInfoValid: Bool = false
+    var lineInfo: [String.Index] = []
+    
+    override var isFlipped: Bool {
+        true
+    }
 
-    init(textView trackingTextView: NSTextView) {
-        self.trackingTextView = trackingTextView
-        
-        textStorage = NSTextStorage(string: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10")
-        layoutManager = NSLayoutManager()
-        textContainer = NSTextContainer()
-        
-        super.init(scrollView: trackingTextView.enclosingScrollView!, orientation: .verticalRuler)
-        
-        layoutManager.addTextContainer(textContainer)
-        textStorage.addLayoutManager(layoutManager)
-        layoutManager.typesetterBehavior = trackingTextView.layoutManager!.typesetterBehavior
-        
-        // Maybe add this once things are working?
-        // layoutManager.allowsNonContiguousLayout = true
-        
+    var attributes: [NSAttributedString.Key : Any] {
+        if let textView = clientView as? NSTextView, let font = textView.font {
+            return [.font: font]
+        } else {
+            return [:]
+        }
     }
     
-    required init(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    override func viewWillDraw() {
+        super.viewWillDraw()
+        
+        if !lineInfoValid {
+            updateLineInfo()
+        }
+    }
+    
+    func updateLineInfo() {
+        guard let textView = clientView as? NSTextView else { return }
+        guard let s = textView.textStorage?.string else { return }
+        
+        s.enumerateSubstrings(in: s.startIndex..., options: [.substringNotRequired, .byLines]) { substring, range, enclosingRange, stop in
+            
+            self.lineInfo.append(range.lowerBound)
+        }
+        
+        lineInfoValid = true
+                
+        let last = max(lineInfo.count, 1)
+        let maxWidth = NSString(format: "%lu", last).size(withAttributes: attributes).width + 8
+        
+        ruleThickness = maxWidth
     }
     
     override func drawHashMarksAndLabels(in rect: NSRect) {
-        textStorage.font = trackingTextView.font
-        textStorage.setAlignment(.right, range: NSRange(location: 0, length: textStorage.length))
-        
-//        print(textStorage)
-        
-        let nGlyphs = layoutManager.numberOfGlyphs
-        
-        // assumes that the rendered width of line numbers is monitonicly increasing
-        let maxWidth = layoutManager.lineFragmentUsedRect(forGlyphAt: nGlyphs-1, effectiveRange: nil).width
-        
-        self.ruleThickness = maxWidth
+        guard let textView = clientView as? NSTextView else { return }
+        guard let layoutManager = textView.layoutManager else { return }
+        guard let font = textView.font else { return }
 
-        let glyphRange = layoutManager.glyphRange(for: textContainer)
-        layoutManager.drawBackground(forGlyphRange: glyphRange, at: bounds.origin)
-        layoutManager.drawGlyphs(forGlyphRange: glyphRange, at: bounds.origin)
+        let attrs = attributes
+        
+        let numbers = Array(1...10)
+                
+        for n in numbers {
+            let s = NSString(format: "%lu", n)
+            let size = s.size(withAttributes: attrs)
+            let rect = NSRect(x: bounds.maxX - size.width - 3, y: layoutManager.defaultLineHeight(for: font) * CGFloat(n-1), width: size.width, height: size.height)
+            s.draw(in: rect, withAttributes: attrs)
+        }
     }
 }
