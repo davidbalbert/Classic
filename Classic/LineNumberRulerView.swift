@@ -17,11 +17,13 @@ class LineNumberRulerView: NSRulerView {
     }
 
     var attributes: [NSAttributedString.Key : Any] {
+        var attrs: [NSAttributedString.Key : Any] = [.foregroundColor: NSColor.secondaryLabelColor]
+        
         if let textView = clientView as? NSTextView, let font = textView.font {
-            return [.font: font]
-        } else {
-            return [:]
+            attrs[.font] = font
         }
+        
+        return attrs
     }
     
     override func viewWillDraw() {

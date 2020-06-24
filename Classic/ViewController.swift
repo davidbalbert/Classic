@@ -32,7 +32,7 @@ class ViewController: NSViewController {
                 }.joined(separator: " ")
             }.joined(separator: "\n")
 
-            textView.textStorage?.setAttributedString(NSAttributedString(string: string))
+            textView.string = string
             textView.font = NSFont(name: "Monaco", size: 11)
         }
     }
