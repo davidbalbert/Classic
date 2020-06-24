@@ -33,8 +33,8 @@ class LineNumberRulerView: NSRulerView {
     }
     
     func updateLineInfo() {
-        guard let textView = clientView as? NSTextView else { return }
-        guard let s = textView.textStorage?.string as? NSString else { return }
+        guard let textStorage = (clientView as? NSTextView)?.textStorage else { return }
+        let s = textStorage.string as NSString
         
         s.enumerateSubstrings(in: NSRange(location: 0, length: s.length), options: [.byLines, .substringNotRequired]) { substring, range, enclosingRange, stop in
             
@@ -44,7 +44,7 @@ class LineNumberRulerView: NSRulerView {
         lineInfoValid = true
                 
         let last = max(lineInfo.count, 1)
-        let maxWidth = NSString(format: "%lu", last).size(withAttributes: attributes).width + 8
+        let maxWidth = NSString(format: "%lu", last).size(withAttributes: attributes).width + 6
         
         ruleThickness = maxWidth
     }
