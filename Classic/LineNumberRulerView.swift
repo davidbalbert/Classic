@@ -10,7 +10,7 @@ import Cocoa
 
 class LineNumberRulerView: NSRulerView {
     var lineInfoValid: Bool = false
-    var lineInfo: [String.Index] = []
+    var lineInfo: [Int] = []
     
     override var isFlipped: Bool {
         true
@@ -34,13 +34,13 @@ class LineNumberRulerView: NSRulerView {
     
     func updateLineInfo() {
         guard let textView = clientView as? NSTextView else { return }
-        guard let s = textView.textStorage?.string else { return }
+        guard let s = textView.textStorage?.string as? NSString else { return }
         
-        s.enumerateSubstrings(in: s.startIndex..., options: [.substringNotRequired, .byLines]) { substring, range, enclosingRange, stop in
+        s.enumerateSubstrings(in: NSRange(location: 0, length: s.length), options: [.byLines, .substringNotRequired]) { substring, range, enclosingRange, stop in
             
-            self.lineInfo.append(range.lowerBound)
+            self.lineInfo.append(NSMaxRange(range))
         }
-        
+                
         lineInfoValid = true
                 
         let last = max(lineInfo.count, 1)
@@ -49,20 +49,38 @@ class LineNumberRulerView: NSRulerView {
         ruleThickness = maxWidth
     }
     
+    func line(for characterIndex: Int) -> Int? {
+        lineInfo.firstIndex { $0 >= characterIndex } ?? 1
+    }
+    
     override func drawHashMarksAndLabels(in rect: NSRect) {
         guard let textView = clientView as? NSTextView else { return }
         guard let layoutManager = textView.layoutManager else { return }
-        guard let font = textView.font else { return }
+        guard let textStorage = textView.textStorage else { return }
+        guard let textContainer = textView.textContainer else { return }
+        guard let scrollView = scrollView else { return }
 
-        let attrs = attributes
+        let visibleRect = scrollView.contentView.bounds
+        let visibleGlyphs = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
+        let visibleChars = layoutManager.characterRange(forGlyphRange: visibleGlyphs, actualGlyphRange: nil)
         
-        let numbers = Array(1...10)
-                
-        for n in numbers {
-            let s = NSString(format: "%lu", n)
+        let attrs = attributes
+        let string = textStorage.string as NSString
+
+        var charIndex = visibleChars.location
+        
+        while charIndex < NSMaxRange(visibleChars) {
+            guard let lineno = line(for: charIndex) else { break }
+
+            let glyphIndex = layoutManager.characterIndexForGlyph(at: charIndex)
+            let fragment = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+            
+            let s = "\(lineno)" as NSString
             let size = s.size(withAttributes: attrs)
-            let rect = NSRect(x: bounds.maxX - size.width - 3, y: layoutManager.defaultLineHeight(for: font) * CGFloat(n-1), width: size.width, height: size.height)
+            let rect = NSRect(x: bounds.maxX - size.width - 3, y: fragment.minY - visibleRect.minY, width: size.width, height: size.height)
             s.draw(in: rect, withAttributes: attrs)
+            
+            string.getLineStart(nil, end: &charIndex, contentsEnd: nil, for: NSRange(location: charIndex, length: 0))
         }
     }
 }
