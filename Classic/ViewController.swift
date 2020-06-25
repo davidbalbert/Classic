@@ -36,7 +36,7 @@ class ViewController: NSViewController {
             textView.font = NSFont(name: "Monaco", size: 11)
         }
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         

@@ -9,13 +9,9 @@
 import Cocoa
 
 class Content: NSObject {
-    var data: Data
+    var data = Data([])
     var loadAddress = 0
     var offset = 0
-
-    init(bytes: [UInt8]) {
-        data = Data(bytes)
-    }
 
     func read(from data: Data) {
         self.data = data

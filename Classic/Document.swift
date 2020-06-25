@@ -9,15 +9,21 @@
 import Cocoa
 
 class Document: NSDocument {
-    var content = Content(bytes: [])
-    var loadAddress = 0 {
-        didSet {
-            content.loadAddress = loadAddress
+    var content = Content()
+    var loadAddress: Int {
+        get {
+            content.loadAddress
+        }
+        set {
+            content.loadAddress = newValue
         }
     }
-    var offset = 0 {
-        didSet {
-            content.offset = offset
+    var offset: Int {
+        get {
+            content.offset
+        }
+        set {
+            content.offset = newValue
         }
     }
 

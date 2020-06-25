@@ -18,28 +18,22 @@ class OpenPanelAccessoryViewController: NSViewController, NSOpenSavePanelDelegat
 
     @IBAction func loadAddressUpdated(_ sender: NSTextField) {
         let s = sender.stringValue
-        let i: Int?
 
-        if s.starts(with: "0x") {
-            i = Int(s.dropFirst(2), radix: 16)
-        } else {
-            i = Int(s)
-        }
-
-        loadAddress = i ?? 0
+        loadAddress = parseHex(s) ?? 0
     }
     
     @IBAction func offsetUpdated(_ sender: NSTextField) {
         let s = sender.stringValue
-        let i: Int?
-
+        
+        offset = parseHex(s) ?? 0
+    }
+    
+    func parseHex(_ s: String) -> Int? {
         if s.starts(with: "0x") {
-            i = Int(s.dropFirst(2), radix: 16)
+            return Int(s.dropFirst(2), radix: 16)
         } else {
-            i = Int(s)
+            return Int(s, radix: 16)
         }
-
-        offset = i ?? 0
     }
     
     func reset() {
