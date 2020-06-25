@@ -8,32 +8,20 @@
 
 import Cocoa
 
-private extension Data {
-    func chunked(by count: Int) -> [Data] {
-        return stride(from: startIndex, to: endIndex, by: count).map { i in
-            self[i..<Swift.min(i+count, endIndex)]
-        }
-    }
-}
-
 class ViewController: NSViewController {
     @IBOutlet var textView: NSTextView!
+    var rulerView: LineNumberRulerView?
 
     var content: Content? {
         didSet {
-            guard let data = content?.data, let offset = content?.offset else {
+            guard let content = content else {
                 textView.string = ""
                 return
             }
-            
-            let string = data[offset..<data.count].chunked(by: 16).map { line in
-                line.chunked(by: 2).map { word in
-                    word.map { String(format: "%02x", $0) }.joined(separator: "")
-                }.joined(separator: " ")
-            }.joined(separator: "\n")
 
-            textView.string = string
+            textView.string = content.hexDescription
             textView.font = NSFont(name: "Monaco", size: 11)
+            rulerView?.content = content
         }
     }
     
@@ -43,9 +31,12 @@ class ViewController: NSViewController {
         if let scrollView = textView.enclosingScrollView {
             let rulerView = LineNumberRulerView(scrollView: scrollView, orientation: .verticalRuler)
             rulerView.clientView = textView
+            rulerView.content = content
             
             scrollView.verticalRulerView = rulerView
             scrollView.rulersVisible = true
+            
+            self.rulerView = rulerView
         }
     }
 }

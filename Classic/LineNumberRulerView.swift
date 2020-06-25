@@ -11,11 +11,13 @@ import Cocoa
 class LineNumberRulerView: NSRulerView {
     var lineInfoValid: Bool = false
     var lineInfo: [Int : Int] = [:] // first character -> line
+    var content: Content?
+    var padding = 0
     
     override var isFlipped: Bool {
         true
     }
-
+    
     var attributes: [NSAttributedString.Key : Any] {
         var attrs: [NSAttributedString.Key : Any] = [.foregroundColor: NSColor.secondaryLabelColor]
         
@@ -36,6 +38,8 @@ class LineNumberRulerView: NSRulerView {
     
     func updateLineInfo() {
         guard let textStorage = (clientView as? NSTextView)?.textStorage else { return }
+        guard let content = content else { return }
+        
         let s = textStorage.string as NSString
         
         var line = 1
@@ -47,14 +51,17 @@ class LineNumberRulerView: NSRulerView {
                 
         lineInfoValid = true
                 
-        let last = max(lineInfo.count, 1)
-        let maxWidth = NSString(format: "%lu", last).size(withAttributes: attributes).width + 6
+        let last = content.address(for: lineInfo.count-1) ?? 0
+        let lastString = NSString(format: "%x", last)
+        let maxWidth = lastString.size(withAttributes: attributes).width + 6
         
         ruleThickness = maxWidth
+        padding = lastString.length
     }
     
-    func line(for characterIndex: Int) -> Int? {
-        lineInfo[characterIndex]
+    func address(for characterIndex: Int) -> Int? {
+        guard let lineno = lineInfo[characterIndex] else { return nil }
+        return content?.address(for: lineno)
     }
     
     override func drawHashMarksAndLabels(in rect: NSRect) {
@@ -74,7 +81,7 @@ class LineNumberRulerView: NSRulerView {
         var charIndex = visibleChars.location
         
         while charIndex < NSMaxRange(visibleChars) {
-            guard let lineno = line(for: charIndex) else {
+            guard let address = address(for: charIndex) else {
                 string.getLineStart(nil, end: &charIndex, contentsEnd: nil, for: NSRange(location: charIndex, length: 0))
                 continue
             }
@@ -82,7 +89,7 @@ class LineNumberRulerView: NSRulerView {
             let glyphIndex = layoutManager.characterIndexForGlyph(at: charIndex)
             let fragment = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
             
-            let s = "\(lineno)" as NSString
+            let s = NSString(format: "%0\(padding)x" as NSString, address)
             let size = s.size(withAttributes: attrs)
             let rect = NSRect(x: bounds.maxX - size.width - 3, y: fragment.minY - visibleRect.minY, width: size.width, height: size.height)
             s.draw(in: rect, withAttributes: attrs)
