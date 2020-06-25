@@ -10,7 +10,7 @@ import Cocoa
 
 class LineNumberRulerView: NSRulerView {
     var lineInfoValid: Bool = false
-    var lineInfo: [Int] = []
+    var lineInfo: [Int : Int] = [:] // first character -> line
     
     override var isFlipped: Bool {
         true
@@ -38,9 +38,11 @@ class LineNumberRulerView: NSRulerView {
         guard let textStorage = (clientView as? NSTextView)?.textStorage else { return }
         let s = textStorage.string as NSString
         
+        var line = 1
         s.enumerateSubstrings(in: NSRange(location: 0, length: s.length), options: [.byLines, .substringNotRequired]) { substring, range, enclosingRange, stop in
             
-            self.lineInfo.append(NSMaxRange(range))
+            self.lineInfo[range.lowerBound] = line
+            line += 1
         }
                 
         lineInfoValid = true
@@ -52,7 +54,7 @@ class LineNumberRulerView: NSRulerView {
     }
     
     func line(for characterIndex: Int) -> Int? {
-        lineInfo.firstIndex { $0 >= characterIndex } ?? 1
+        lineInfo[characterIndex]
     }
     
     override func drawHashMarksAndLabels(in rect: NSRect) {
@@ -72,7 +74,10 @@ class LineNumberRulerView: NSRulerView {
         var charIndex = visibleChars.location
         
         while charIndex < NSMaxRange(visibleChars) {
-            guard let lineno = line(for: charIndex) else { break }
+            guard let lineno = line(for: charIndex) else {
+                string.getLineStart(nil, end: &charIndex, contentsEnd: nil, for: NSRange(location: charIndex, length: 0))
+                continue
+            }
 
             let glyphIndex = layoutManager.characterIndexForGlyph(at: charIndex)
             let fragment = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
