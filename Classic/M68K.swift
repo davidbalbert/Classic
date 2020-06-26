@@ -1,5 +1,5 @@
 //
-//  M68000.swift
+//  M68K.swift
 //  Classic
 //
 //  Created by David Albert on 5/3/20.
@@ -102,12 +102,32 @@ struct Registers {
     var d7: UInt32
 }
 
-struct Instruction {
-    var name: String
-    var mask: UInt16
-    var value: UInt16
+struct M68K {
+    static func disassemble(data: Data, address: Int) -> [Instruction] {
+        [
+            Instruction(name: "braw", address: address, data: data),
+            Instruction(name: "moveb", address: address+4, data: data),
+            Instruction(name: "lea", address: address+6, data: data),
+        ]
+    }
 }
 
-let insns = [
-    Instruction(name: "exg", mask: 0xf130, value: 0xc100)
-]
+struct Instruction: CustomStringConvertible {
+    let name: String
+    let address: Int
+    let data: Data
+    
+    var description: String {
+        name
+    }
+}
+
+struct InstructionInfo {
+    let name: String
+    let mask: UInt16
+    let value: UInt16
+}
+
+//let insns = [
+//    Instruction(name: "exg", mask: 0xf130, value: 0xc100)
+//]

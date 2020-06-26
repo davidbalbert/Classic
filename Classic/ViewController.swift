@@ -19,7 +19,7 @@ class ViewController: NSViewController {
                 return
             }
 
-            textView.string = content.hexDescription
+            textView.string = content.assembly
             textView.font = NSFont(name: "Monaco", size: 11)
             rulerView?.content = content
         }

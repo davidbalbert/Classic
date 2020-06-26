@@ -19,17 +19,35 @@ private extension Data {
 class Content: NSObject {
     static let lineLength = 16
     
-    var data = Data([])
+    var _data = Data([])
     var loadAddress = 0
     var offset = 0
-
+        
+    var data: Data {
+        _data[offset...]
+    }
+    
+    lazy var instructions: [Instruction] = {
+        M68K.disassemble(data: data, address: offset+loadAddress)
+    }()
+    
+    var assembly: String {
+        instructions.map { String(describing: $0) }.joined(separator: "\n")
+    }
+    
     // lineno is 1 indexed
     func address(for lineno: Int) -> Int? {
-        loadAddress + offset + (lineno-1)*Content.lineLength
+        let i = lineno-1
+        
+        if i >= instructions.count {
+            return nil
+        } else {
+            return instructions[i].address
+        }
     }
     
     var hexDescription: String {
-        data[offset..<data.count].chunked(by: Content.lineLength).map { line in
+        data.chunked(by: Content.lineLength).map { line in
             line.chunked(by: 2).map { word in
                 word.map { String(format: "%02x", $0) }.joined(separator: "")
             }.joined(separator: " ")
@@ -37,6 +55,6 @@ class Content: NSObject {
     }
     
     func read(from data: Data) {
-        self.data = data
+        self._data = data
     }
 }

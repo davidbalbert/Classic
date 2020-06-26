@@ -50,8 +50,14 @@ class LineNumberRulerView: NSRulerView {
         }
                 
         lineInfoValid = true
-                
-        let last = content.address(for: lineInfo.count-1) ?? 0
+        
+        var last: Int
+        if lineInfo.count > 0 {
+            last = content.address(for: lineInfo.count) ?? 0
+        } else {
+            last = 0
+        }
+
         let lastString = NSString(format: "%x", last)
         let maxWidth = lastString.size(withAttributes: attributes).width + 6
         
