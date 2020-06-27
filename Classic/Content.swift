@@ -8,27 +8,21 @@
 
 import Cocoa
 
-private extension Data {
-    func chunked(by count: Int) -> [Data] {
-        return stride(from: startIndex, to: endIndex, by: count).map { i in
-            self[i..<Swift.min(i+count, endIndex)]
-        }
-    }
-}
-
 class Content: NSObject {
     static let lineLength = 16
     
     var _data = Data([])
-    var loadAddress = 0
-    var offset = 0
+    var loadAddress: UInt32 = 0
+    var offset: UInt32 = 0
         
     var data: Data {
         _data[offset...]
     }
     
     lazy var instructions: [Instruction] = {
-        M68K.disassemble(data: data, address: offset+loadAddress)
+        var d = Disassembler(data)
+            
+        return d.disassemble(loadAddress: loadAddress)
     }()
     
     var assembly: String {
@@ -36,7 +30,7 @@ class Content: NSObject {
     }
     
     // lineno is 1 indexed
-    func address(for lineno: Int) -> Int? {
+    func address(for lineno: Int) -> UInt32? {
         let i = lineno-1
         
         if i >= instructions.count {

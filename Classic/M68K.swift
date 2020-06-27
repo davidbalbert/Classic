@@ -8,6 +8,20 @@
 
 import Foundation
 
+extension Data {
+    func chunked(by count: Int) -> [Data] {
+        stride(from: startIndex, to: endIndex, by: count).map { i in
+            self[i..<Swift.min(i+count, endIndex)]
+        }
+    }
+
+    func hexDump() -> String {
+        chunked(by: 2).map { word in
+            word.map { String(format: "%02x", $0) }.joined(separator: "")
+        }.joined(separator: " ")
+    }
+}
+
 struct StatusRegister: OptionSet {
     let rawValue: UInt16
 
@@ -102,32 +116,113 @@ struct Registers {
     var d7: UInt32
 }
 
-struct M68K {
-    static func disassemble(data: Data, address: Int) -> [Instruction] {
-        [
-            Instruction(name: "braw", address: address, data: data),
-            Instruction(name: "moveb", address: address+4, data: data),
-            Instruction(name: "lea", address: address+6, data: data),
-        ]
-    }
+enum OpName: String {
+    case bra
 }
 
-struct Instruction: CustomStringConvertible {
-    let name: String
-    let address: Int
-    let data: Data
-    
-    var description: String {
-        name
-    }
-}
 
-struct InstructionInfo {
-    let name: String
+struct OpInfo {
+    let name: OpName
     let mask: UInt16
     let value: UInt16
 }
 
-//let insns = [
-//    Instruction(name: "exg", mask: 0xf130, value: 0xc100)
-//]
+enum Operation {
+    case bra(UInt32, UInt16)
+}
+
+extension Operation : CustomStringConvertible {
+    var description: String {
+        switch self {
+        case let .bra(address, displacement):
+            return "bra\t$\(String(address + 2 + UInt32(displacement), radix: 16))"
+        }
+    }
+}
+
+struct Instruction: CustomStringConvertible {
+    let op: Operation
+    let address: UInt32
+    let data: Data
+    
+    var description: String {
+        "\(data.hexDump())\t\(op)"
+    }
+}
+
+let ops = [
+    OpInfo(name: .bra, mask: 0xff00, value: 0x6000),
+//    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
+]
+
+let opTable: [OpName?] = Array(repeating: nil, count: Int(UInt16.max))
+
+struct Disassembler {
+    var opTable: [OpName?]
+    let data: Data
+    var offset: Data.Index
+    
+    init(_ data: Data) {
+        self.data = data
+        offset = data.startIndex
+        opTable = Array(repeating: nil, count: Int(UInt16.max))
+        
+        for i in 0...Int(UInt16.max) {
+            for opInfo in ops {
+                if UInt16(i) & opInfo.mask == opInfo.value {
+                    opTable[i] = opInfo.name
+                }
+            }
+        }
+    }
+    
+    mutating func disassemble(loadAddress: UInt32) -> [Instruction] {
+        var insns: [Instruction] = []
+        
+        while offset < data.endIndex {
+            let startOffset = offset
+            let instructionWord = readWord()
+            
+            guard let opName = opTable[Int(instructionWord)] else {
+                return insns
+            }
+            
+            switch opName {
+            case .bra:
+                // TODO: '20, '30, and '40 support 32 bit displacement
+                var displacement = instructionWord & 0xFF
+
+                if displacement == 0 {
+                    displacement = readWord()
+                }
+                
+                let op = Operation.bra(loadAddress+UInt32(startOffset), displacement)
+                
+                insns.append(Instruction(op: op, address: loadAddress+UInt32(startOffset), data: data[startOffset..<offset]))
+            }
+        }
+        
+        return insns
+    }
+    
+    mutating func readByte() -> UInt8 {
+        defer { offset += 1 }
+        return data[offset]
+    }
+    
+    mutating func readWord() -> UInt16 {
+        var w = UInt16(readByte()) << 8
+        w += UInt16(readByte())
+        
+        return w
+    }
+    
+    mutating func readLong() -> UInt32 {
+        var l = UInt32(readByte()) << 24
+        l += UInt32(readByte()) << 16
+        l += UInt32(readByte()) << 8
+        l += UInt32(readByte())
+        
+        return l
+    }
+}

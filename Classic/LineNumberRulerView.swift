@@ -51,7 +51,7 @@ class LineNumberRulerView: NSRulerView {
                 
         lineInfoValid = true
         
-        var last: Int
+        var last: UInt32
         if lineInfo.count > 0 {
             last = content.address(for: lineInfo.count) ?? 0
         } else {
@@ -65,7 +65,7 @@ class LineNumberRulerView: NSRulerView {
         padding = lastString.length
     }
     
-    func address(for characterIndex: Int) -> Int? {
+    func address(for characterIndex: Int) -> UInt32? {
         guard let lineno = lineInfo[characterIndex] else { return nil }
         return content?.address(for: lineno)
     }

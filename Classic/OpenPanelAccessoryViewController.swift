@@ -13,8 +13,8 @@ class OpenPanelAccessoryViewController: NSViewController, NSOpenSavePanelDelegat
     @IBOutlet var loadAddressField: NSTextField!
     @IBOutlet var offsetField: NSTextField!
     
-    var loadAddress = 0
-    var offset = 0
+    var loadAddress: UInt32 = 0
+    var offset: UInt32 = 0
 
     @IBAction func loadAddressUpdated(_ sender: NSTextField) {
         let s = sender.stringValue
@@ -28,11 +28,11 @@ class OpenPanelAccessoryViewController: NSViewController, NSOpenSavePanelDelegat
         offset = parseHex(s) ?? 0
     }
     
-    func parseHex(_ s: String) -> Int? {
+    func parseHex(_ s: String) -> UInt32? {
         if s.starts(with: "0x") {
-            return Int(s.dropFirst(2), radix: 16)
+            return UInt32(s.dropFirst(2), radix: 16)
         } else {
-            return Int(s, radix: 16)
+            return UInt32(s, radix: 16)
         }
     }
     

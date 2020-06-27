@@ -10,7 +10,7 @@ import Cocoa
 
 class Document: NSDocument {
     var content = Content()
-    var loadAddress: Int {
+    var loadAddress: UInt32 {
         get {
             content.loadAddress
         }
@@ -18,7 +18,7 @@ class Document: NSDocument {
             content.loadAddress = newValue
         }
     }
-    var offset: Int {
+    var offset: UInt32 {
         get {
             content.offset
         }
