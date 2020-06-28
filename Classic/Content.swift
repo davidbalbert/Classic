@@ -20,9 +20,8 @@ class Content: NSObject {
     }
     
     lazy var instructions: [Instruction] = {
-        var d = Disassembler(data)
-            
-        return d.disassemble(loadAddress: loadAddress)
+        var d = Disassembler(data, loadAddress: loadAddress)
+        return d.disassemble()
     }()
     
     var assembly: String {

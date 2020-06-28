@@ -274,9 +274,11 @@ struct Disassembler {
     var opTable: [OpClass?]
     let data: Data
     var offset: Data.Index
+    let loadAddress: UInt32
     
-    init(_ data: Data) {
+    init(_ data: Data, loadAddress: UInt32) {
         self.data = data
+        self.loadAddress = loadAddress
         offset = data.startIndex
         opTable = Array(repeating: nil, count: Int(UInt16.max))
         
@@ -289,7 +291,7 @@ struct Disassembler {
         }
     }
     
-    mutating func disassemble(loadAddress: UInt32) -> [Instruction] {
+    mutating func disassemble() -> [Instruction] {
         var insns: [Instruction] = []
         
         while offset < data.endIndex {
@@ -313,7 +315,7 @@ struct Disassembler {
                 
                 let op = Operation.bra(size, loadAddress+UInt32(startOffset), displacement)
                 
-                insns.append(Instruction(op: op, address: loadAddress+UInt32(startOffset), data: data[startOffset..<offset]))
+                insns.append(Instruction(op: op, address: address(of: startOffset), data: data(from: startOffset)))
                 
             case .move:
                 let w = Int(instructionWord)
@@ -330,11 +332,19 @@ struct Disassembler {
                 
                 let op = Operation.move(size, srcAddr, dstAddr)
                 
-                insns.append(Instruction(op: op, address: loadAddress+UInt32(startOffset), data: data[startOffset..<offset]))
+                insns.append(Instruction(op: op, address: address(of: startOffset), data: data(from: startOffset)))
             }
         }
         
         return insns
+    }
+    
+    func address(of offset: Int) -> UInt32 {
+        loadAddress + UInt32(offset)
+    }
+    
+    func data(from startOffset: Int) -> Data {
+        data[startOffset..<offset]
     }
     
     mutating func readByte() -> UInt8 {
