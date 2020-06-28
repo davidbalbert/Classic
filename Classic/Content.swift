@@ -40,14 +40,6 @@ class Content: NSObject {
         }
     }
     
-    var hexDescription: String {
-        data.chunked(by: Content.lineLength).map { line in
-            line.chunked(by: 2).map { word in
-                word.map { String(format: "%02x", $0) }.joined(separator: "")
-            }.joined(separator: " ")
-        }.joined(separator: "\n")
-    }
-    
     func read(from data: Data) {
         self._data = data
     }

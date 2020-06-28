@@ -36,11 +36,17 @@ class OpenPanelAccessoryViewController: NSViewController, NSOpenSavePanelDelegat
         }
     }
     
-    func reset() {
-        loadAddress = 0
-        loadAddressField.stringValue = "0x0"
+    override func viewDidLoad() {
+        super.viewDidLoad()
         
-        offset = 0
-        offsetField.stringValue = "0x0"
+        reset()
+    }
+    
+    func reset() {
+        loadAddress = 0x400000
+        loadAddressField.stringValue = "0x400000"
+        
+        offset = 0x2a
+        offsetField.stringValue = "0x2a"
     }
 }

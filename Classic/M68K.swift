@@ -8,7 +8,7 @@
 
 import Foundation
 
-extension Data {
+private extension Data {
     func chunked(by count: Int) -> [Data] {
         stride(from: startIndex, to: endIndex, by: count).map { i in
             self[i..<Swift.min(i+count, endIndex)]
@@ -118,27 +118,136 @@ struct Registers {
 
 enum OpName: String {
     case bra
+    case moveb
+    case movew
+    case movel
+}
+
+
+enum OpClass: String {
+    case bra
+    case move
 }
 
 
 struct OpInfo {
     let name: OpName
+    let opClass: OpClass
     let mask: UInt16
     let value: UInt16
 }
 
-enum Operation {
-    case bra(UInt32, UInt16)
+enum Size: Int {
+    case b = 1
+    case w = 3
+    case l = 2
 }
 
-extension Operation : CustomStringConvertible {
+enum DataRegister: Int, CustomStringConvertible {
+    case d0, d1, d2, d3, d4, d5, d6, d7
+    
+    var description: String {
+        "D\(rawValue)"
+    }
+}
+
+enum AddressRegister: Int, CustomStringConvertible {
+    case a0, a1, a2, a3, a4, a5, a6, a7
+    
+    var description: String {
+        "A\(rawValue)"
+    }
+}
+
+enum Register: CustomStringConvertible {
+    case a(AddressRegister)
+    case d(DataRegister)
+    
     var description: String {
         switch self {
-        case let .bra(address, displacement):
-            return "bra\t$\(String(address + 2 + UInt32(displacement), radix: 16))"
+        case let .a(An): return "\(An)"
+        case let .d(Dn): return "\(Dn)"
         }
     }
 }
+
+
+// List of instructions for the 68000 - p608
+
+
+// List of address modes for the 68000 - p612
+
+// Data Register Direct
+// Address Register Direct
+// Absolute Short
+// Absolute Long
+// PC Relative with Offset
+// PC Relative with Index and Offset
+// Register Indirect
+// Postincrement Register Indirect
+// Predecrement Register Indirect
+// Register Indirect with Offset
+// Indexed Register Indirect with Offse
+// Immediate
+// Quick Immediate
+// Implied Register
+
+
+enum AddressingMode: Int {
+    case dd
+    case ad
+    case ind
+    case postInc
+    case preDec
+    case d16An
+    case d8AnXn
+    
+    // TODO: these all have mode as 0b111
+    // case XXXw
+    // case XXXl
+    // case d16PC
+    // case d8PCXn
+    // case imm
+}
+
+enum EffectiveAddress: CustomStringConvertible {
+    case dd(DataRegister)
+    case ad(AddressRegister)
+    case ind(AddressRegister)
+    case postInc(AddressRegister)
+    case preDec(AddressRegister)
+    case d16An(Int16, AddressRegister)
+    case d8AnXn(Int8, AddressRegister, Register)
+    
+    var description: String {
+        switch self {
+        case let .dd(Dn):             return "\(Dn)"
+        case let .ad(An):             return "\(An)"
+        case let .ind(An):            return "(\(An))"
+        case let .postInc(An):        return "(\(An))+"
+        case let .preDec(An):         return "-(\(An))"
+        case let .d16An(d16, An):     return "$\(String(d16, radix: 16))(\(An))"
+        case let .d8AnXn(d8, An, Xn): return "$\(String(d8, radix: 16))(\(An),\(Xn))"
+        }
+    }
+}
+
+enum Operation {
+    case bra(Size, UInt32, UInt16)
+    case move(Size, EffectiveAddress, EffectiveAddress)
+}
+
+extension Operation: CustomStringConvertible {
+    var description: String {
+        switch self {
+        case let .bra(size, address, displacement):
+            return "bra.\(size) $\(String(address + 2 + UInt32(displacement), radix: 16))"
+        case let .move(size, from, to):
+            return "move.\(size) \(from), \(to)"
+        }
+    }
+}
+
 
 struct Instruction: CustomStringConvertible {
     let op: Operation
@@ -146,19 +255,23 @@ struct Instruction: CustomStringConvertible {
     let data: Data
     
     var description: String {
-        "\(data.hexDump())\t\(op)"
+        let hex = data.hexDump().padding(toLength: 16, withPad: " ", startingAt: 0)
+        
+        return "\(hex)\(op)"
     }
 }
 
 let ops = [
-    OpInfo(name: .bra, mask: 0xff00, value: 0x6000),
+    OpInfo(name: .bra,   opClass: .bra,  mask: 0xff00, value: 0x6000),
+    OpInfo(name: .moveb, opClass: .move, mask: 0xf000, value: 0x1000),
+    OpInfo(name: .movew, opClass: .move, mask: 0xf000, value: 0x3000),
+    OpInfo(name: .movel, opClass: .move, mask: 0xf000, value: 0x2000),
+
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
 ]
 
-let opTable: [OpName?] = Array(repeating: nil, count: Int(UInt16.max))
-
 struct Disassembler {
-    var opTable: [OpName?]
+    var opTable: [OpClass?]
     let data: Data
     var offset: Data.Index
     
@@ -170,7 +283,7 @@ struct Disassembler {
         for i in 0...Int(UInt16.max) {
             for opInfo in ops {
                 if UInt16(i) & opInfo.mask == opInfo.value {
-                    opTable[i] = opInfo.name
+                    opTable[i] = opInfo.opClass
                 }
             }
         }
@@ -183,20 +296,39 @@ struct Disassembler {
             let startOffset = offset
             let instructionWord = readWord()
             
-            guard let opName = opTable[Int(instructionWord)] else {
+            guard let opClass = opTable[Int(instructionWord)] else {
                 return insns
             }
             
-            switch opName {
+            switch opClass {
             case .bra:
                 // TODO: '20, '30, and '40 support 32 bit displacement
                 var displacement = instructionWord & 0xFF
-
+                var size = Size.b
+                
                 if displacement == 0 {
                     displacement = readWord()
+                    size = .w
                 }
                 
-                let op = Operation.bra(loadAddress+UInt32(startOffset), displacement)
+                let op = Operation.bra(size, loadAddress+UInt32(startOffset), displacement)
+                
+                insns.append(Instruction(op: op, address: loadAddress+UInt32(startOffset), data: data[startOffset..<offset]))
+                
+            case .move:
+                let w = Int(instructionWord)
+                
+                let size = Size(rawValue: (w >> 12) & 3)!
+                
+                let dstReg = (w >> 9) & 7
+                let dstMode = AddressingMode(rawValue: (w >> 6) & 7)!
+                let srcMode = AddressingMode(rawValue: (w >> 3) & 7)!
+                let srcReg = w & 7
+                
+                let dstAddr = readAddress(dstMode, dstReg)
+                let srcAddr = readAddress(srcMode, srcReg)
+                
+                let op = Operation.move(size, srcAddr, dstAddr)
                 
                 insns.append(Instruction(op: op, address: loadAddress+UInt32(startOffset), data: data[startOffset..<offset]))
             }
@@ -224,5 +356,17 @@ struct Disassembler {
         l += UInt32(readByte())
         
         return l
+    }
+    
+    mutating func readAddress(_ mode: AddressingMode, _ reg: Int) -> EffectiveAddress {
+        switch mode {
+        case .dd: return .dd(DataRegister(rawValue: reg)!)
+        case .ad: return .ad(AddressRegister(rawValue: reg)!)
+        case .ind: return .ind(AddressRegister(rawValue: reg)!)
+        case .postInc: return .postInc(AddressRegister(rawValue: reg)!)
+        case .preDec: return .preDec(AddressRegister(rawValue: reg)!)
+        case .d16An: fatalError("d16An not implemented")
+        case .d8AnXn: fatalError("d8AnXn not implemented")
+        }
     }
 }
