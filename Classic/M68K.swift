@@ -116,33 +116,6 @@ struct Registers {
     var d7: UInt32
 }
 
-enum OpName: String {
-    case bra
-    case moveb
-    case movew
-    case movel
-}
-
-
-enum OpClass: String {
-    case bra
-    case move
-}
-
-
-struct OpInfo {
-    let name: OpName
-    let opClass: OpClass
-    let mask: UInt16
-    let value: UInt16
-}
-
-enum Size: Int {
-    case b = 1
-    case w = 3
-    case l = 2
-}
-
 enum DataRegister: Int, CustomStringConvertible {
     case d0, d1, d2, d3, d4, d5, d6, d7
     
@@ -205,9 +178,17 @@ enum AddressingMode: Int {
     // TODO: these all have mode as 0b111
     // case XXXw
     // case XXXl
-    // case d16PC
+    case d16PC = 0x12
     // case d8PCXn
     // case imm
+    
+    static func mode(for mode: Int, reg: Int) -> AddressingMode? {
+        if mode == 0b111 {
+            return AddressingMode(rawValue: 0x10 + reg)
+        } else {
+            return AddressingMode(rawValue: mode)
+        }
+    }
 }
 
 enum EffectiveAddress: CustomStringConvertible {
@@ -218,6 +199,7 @@ enum EffectiveAddress: CustomStringConvertible {
     case preDec(AddressRegister)
     case d16An(Int16, AddressRegister)
     case d8AnXn(Int8, AddressRegister, Register)
+    case d16PC(UInt32, Int16)
     
     var description: String {
         switch self {
@@ -228,13 +210,46 @@ enum EffectiveAddress: CustomStringConvertible {
         case let .preDec(An):         return "-(\(An))"
         case let .d16An(d16, An):     return "$\(String(d16, radix: 16))(\(An))"
         case let .d8AnXn(d8, An, Xn): return "$\(String(d8, radix: 16))(\(An),\(Xn))"
+        case let .d16PC(pc, d16):         return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
         }
     }
+}
+
+struct ExtensionWord {
+    let displacement: Int8
+}
+
+enum Size: Int {
+    case b = 1
+    case w = 3
+    case l = 2
+}
+
+enum OpName: String {
+    case bra
+    case moveb
+    case movew
+    case movel
+    case lea
+}
+
+enum OpClass: String {
+    case bra
+    case move
+    case lea
+}
+
+struct OpInfo {
+    let name: OpName
+    let opClass: OpClass
+    let mask: UInt16
+    let value: UInt16
 }
 
 enum Operation {
     case bra(Size, UInt32, UInt16)
     case move(Size, EffectiveAddress, EffectiveAddress)
+    case lea(EffectiveAddress, AddressRegister)
 }
 
 extension Operation: CustomStringConvertible {
@@ -244,6 +259,8 @@ extension Operation: CustomStringConvertible {
             return "bra.\(size) $\(String(address + 2 + UInt32(displacement), radix: 16))"
         case let .move(size, from, to):
             return "move.\(size) \(from), \(to)"
+        case let .lea(address, register):
+            return "lea \(address), \(register)"
         }
     }
 }
@@ -266,6 +283,7 @@ let ops = [
     OpInfo(name: .moveb, opClass: .move, mask: 0xf000, value: 0x1000),
     OpInfo(name: .movew, opClass: .move, mask: 0xf000, value: 0x3000),
     OpInfo(name: .movel, opClass: .move, mask: 0xf000, value: 0x2000),
+    OpInfo(name: .lea,   opClass: .lea,  mask: 0xf1c0, value: 0x41c0)
 
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
 ]
@@ -333,10 +351,29 @@ struct Disassembler {
                 let op = Operation.move(size, srcAddr, dstAddr)
                 
                 insns.append(Instruction(op: op, address: address(of: startOffset), data: data(from: startOffset)))
+                
+            case .lea:
+                let w = Int(instructionWord)
+                
+                let dstReg = AddressRegister(rawValue: (w >> 9) & 7)!
+                
+                let srcModeNum = (w >> 3) & 7
+                let srcReg = w & 7
+                let srcMode = AddressingMode.mode(for: srcModeNum, reg: srcReg)!
+                
+                let srcAddr = readAddress(srcMode, srcReg)
+                
+                let op = Operation.lea(srcAddr, dstReg)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
         }
         
         return insns
+    }
+    
+    func makeInstruction(op: Operation, startOffset: Int) -> Instruction {
+        return Instruction(op: op, address: address(of: startOffset), data: data(from: startOffset))
     }
     
     func address(of offset: Int) -> UInt32 {
@@ -345,6 +382,34 @@ struct Disassembler {
     
     func data(from startOffset: Int) -> Data {
         data[startOffset..<offset]
+    }
+    
+    mutating func readAddress(_ mode: AddressingMode, _ reg: Int) -> EffectiveAddress {
+        switch mode {
+        case .dd: return .dd(DataRegister(rawValue: reg)!)
+        case .ad: return .ad(AddressRegister(rawValue: reg)!)
+        case .ind: return .ind(AddressRegister(rawValue: reg)!)
+        case .postInc: return .postInc(AddressRegister(rawValue: reg)!)
+        case .preDec: return .preDec(AddressRegister(rawValue: reg)!)
+        case .d16An: fatalError("d16An not implemented")
+        case .d8AnXn: fatalError("d8AnXn not implemented")
+        case .d16PC:
+            let exOffset = UInt32(offset)
+            let ex = readExtensionWord()
+            return .d16PC(loadAddress+exOffset, Int16(ex.displacement))
+        }
+    }
+
+    mutating func readExtensionWord() -> ExtensionWord {
+        let w = readWord()
+        
+        if (w & 0x100) == 0x100 {
+            fatalError("Full extension words are not yet supported")
+        }
+        
+        let displacement = Int8(w & 0xFF)
+        
+        return ExtensionWord(displacement: displacement)
     }
     
     mutating func readByte() -> UInt8 {
@@ -366,17 +431,5 @@ struct Disassembler {
         l += UInt32(readByte())
         
         return l
-    }
-    
-    mutating func readAddress(_ mode: AddressingMode, _ reg: Int) -> EffectiveAddress {
-        switch mode {
-        case .dd: return .dd(DataRegister(rawValue: reg)!)
-        case .ad: return .ad(AddressRegister(rawValue: reg)!)
-        case .ind: return .ind(AddressRegister(rawValue: reg)!)
-        case .postInc: return .postInc(AddressRegister(rawValue: reg)!)
-        case .preDec: return .preDec(AddressRegister(rawValue: reg)!)
-        case .d16An: fatalError("d16An not implemented")
-        case .d8AnXn: fatalError("d8AnXn not implemented")
-        }
     }
 }
