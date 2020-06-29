@@ -225,8 +225,28 @@ enum Size: Int {
     case l = 2
 }
 
+enum Condition: Int {
+    case t
+    case f
+    case hi
+    case ls
+    case cc
+    case cs
+    case ne
+    case eq
+    case vc
+    case vs
+    case pl
+    case mi
+    case ge
+    case lt
+    case gt
+    case le
+}
+
 enum OpName: String {
     case bra
+    case bcc
     case moveb
     case movew
     case movel
@@ -235,6 +255,7 @@ enum OpName: String {
 
 enum OpClass: String {
     case bra
+    case bcc
     case move
     case lea
 }
@@ -247,7 +268,8 @@ struct OpInfo {
 }
 
 enum Operation {
-    case bra(Size, UInt32, UInt16)
+    case bra(Size, UInt32, Int16)
+    case bcc(Size, Condition, UInt32, Int16)
     case move(Size, EffectiveAddress, EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
 }
@@ -257,6 +279,8 @@ extension Operation: CustomStringConvertible {
         switch self {
         case let .bra(size, address, displacement):
             return "bra.\(size) $\(String(address + 2 + UInt32(displacement), radix: 16))"
+        case let .bcc(size, condition, address, displacement):
+            return "b\(condition).\(size) $\(String(address + 2 + UInt32(displacement), radix: 16))"
         case let .move(size, from, to):
             return "move.\(size) \(from), \(to)"
         case let .lea(address, register):
@@ -280,6 +304,7 @@ struct Instruction: CustomStringConvertible {
 
 let ops = [
     OpInfo(name: .bra,   opClass: .bra,  mask: 0xff00, value: 0x6000),
+    OpInfo(name: .bcc,   opClass: .bcc,  mask: 0xf000, value: 0x6000),
     OpInfo(name: .moveb, opClass: .move, mask: 0xf000, value: 0x1000),
     OpInfo(name: .movew, opClass: .move, mask: 0xf000, value: 0x3000),
     OpInfo(name: .movel, opClass: .move, mask: 0xf000, value: 0x2000),
@@ -304,6 +329,7 @@ struct Disassembler {
             for opInfo in ops {
                 if UInt16(i) & opInfo.mask == opInfo.value {
                     opTable[i] = opInfo.opClass
+                    break
                 }
             }
         }
@@ -331,9 +357,23 @@ struct Disassembler {
                     size = .w
                 }
                 
-                let op = Operation.bra(size, loadAddress+UInt32(startOffset), displacement)
+                let op = Operation.bra(size, loadAddress+UInt32(startOffset), Int16(bitPattern: displacement))
                 
                 insns.append(Instruction(op: op, address: address(of: startOffset), data: data(from: startOffset)))
+            case .bcc:
+                // TODO: '20, '30, and '40 support 32 bit displacement
+                let condition = Condition(rawValue: Int((instructionWord >> 8) & 0xf))!
+                var displacement = instructionWord & 0xFF
+                var size = Size.b
+                
+                if displacement == 0 {
+                    displacement = readWord()
+                    size = .w
+                }
+
+                let op = Operation.bcc(size, condition, loadAddress+UInt32(startOffset), Int16(bitPattern: displacement))
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
                 
             case .move:
                 let w = Int(instructionWord)
