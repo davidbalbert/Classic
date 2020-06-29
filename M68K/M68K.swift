@@ -182,7 +182,7 @@ enum AddressingMode: Int {
     // case d8PCXn
     // case imm
     
-    static func mode(for mode: Int, reg: Int) -> AddressingMode? {
+    static func `for`(_ mode: Int, reg: Int) -> AddressingMode? {
         if mode == 0b111 {
             return AddressingMode(rawValue: 0x10 + reg)
         } else {
@@ -219,10 +219,10 @@ struct ExtensionWord {
     let displacement: Int8
 }
 
-enum Size: Int {
-    case b = 1
-    case w = 3
-    case l = 2
+enum Size {
+    case b
+    case w
+    case l
 }
 
 enum Condition: Int {
@@ -251,6 +251,9 @@ enum OpName: String {
     case movew
     case movel
     case lea
+    case subqb
+    case subqw
+    case subql
 }
 
 enum OpClass: String {
@@ -258,6 +261,7 @@ enum OpClass: String {
     case bcc
     case move
     case lea
+    case subq
 }
 
 struct OpInfo {
@@ -272,6 +276,7 @@ enum Operation {
     case bcc(Size, Condition, UInt32, Int16)
     case move(Size, EffectiveAddress, EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
+    case subq(Size, UInt8, EffectiveAddress)
 }
 
 extension Operation: CustomStringConvertible {
@@ -285,17 +290,19 @@ extension Operation: CustomStringConvertible {
             return "move.\(size) \(from), \(to)"
         case let .lea(address, register):
             return "lea \(address), \(register)"
+        case let .subq(size, data, address):
+            return "subq.\(size) #$\(String(data, radix: 16)), \(address)"
         }
     }
 }
 
 
-struct Instruction: CustomStringConvertible {
+public struct Instruction: CustomStringConvertible {
     let op: Operation
-    let address: UInt32
+    public let address: UInt32
     let data: Data
     
-    var description: String {
+    public var description: String {
         let hex = data.hexDump().padding(toLength: 16, withPad: " ", startingAt: 0)
         
         return "\(hex)\(op)"
@@ -308,18 +315,22 @@ let ops = [
     OpInfo(name: .moveb, opClass: .move, mask: 0xf000, value: 0x1000),
     OpInfo(name: .movew, opClass: .move, mask: 0xf000, value: 0x3000),
     OpInfo(name: .movel, opClass: .move, mask: 0xf000, value: 0x2000),
-    OpInfo(name: .lea,   opClass: .lea,  mask: 0xf1c0, value: 0x41c0)
+    OpInfo(name: .lea,   opClass: .lea,  mask: 0xf1c0, value: 0x41c0),
+    OpInfo(name: .subqb, opClass: .subq, mask: 0xf1c0, value: 0x5100),
+    OpInfo(name: .subqw, opClass: .subq, mask: 0xf1c0, value: 0x5140),
+    OpInfo(name: .subql, opClass: .subq, mask: 0xf1c0, value: 0x5180),
+
 
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
 ]
 
-struct Disassembler {
+public struct Disassembler {
     var opTable: [OpClass?]
     let data: Data
     var offset: Data.Index
     let loadAddress: UInt32
     
-    init(_ data: Data, loadAddress: UInt32) {
+    public init(_ data: Data, loadAddress: UInt32) {
         self.data = data
         self.loadAddress = loadAddress
         offset = data.startIndex
@@ -335,7 +346,7 @@ struct Disassembler {
         }
     }
     
-    mutating func disassemble() -> [Instruction] {
+    public mutating func disassemble() -> [Instruction] {
         var insns: [Instruction] = []
         
         while offset < data.endIndex {
@@ -359,7 +370,7 @@ struct Disassembler {
                 
                 let op = Operation.bra(size, loadAddress+UInt32(startOffset), Int16(bitPattern: displacement))
                 
-                insns.append(Instruction(op: op, address: address(of: startOffset), data: data(from: startOffset)))
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
             case .bcc:
                 // TODO: '20, '30, and '40 support 32 bit displacement
                 let condition = Condition(rawValue: Int((instructionWord >> 8) & 0xf))!
@@ -378,19 +389,32 @@ struct Disassembler {
             case .move:
                 let w = Int(instructionWord)
                 
-                let size = Size(rawValue: (w >> 12) & 3)!
+                let size0 = (w >> 12) & 3
+                
+                var size: Size?
+                if size0 == 1 {
+                    size = .b
+                } else if size0 == 3 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                }
                 
                 let dstReg = (w >> 9) & 7
-                let dstMode = AddressingMode(rawValue: (w >> 6) & 7)!
-                let srcMode = AddressingMode(rawValue: (w >> 3) & 7)!
+                let dstModeNum = (w >> 6) & 7
+                let dstMode = AddressingMode.for(dstModeNum, reg: dstReg)!
+                
+                
+                let srcModeNum = (w >> 3) & 7
                 let srcReg = w & 7
+                let srcMode = AddressingMode.for(srcModeNum, reg: srcReg)!
                 
                 let dstAddr = readAddress(dstMode, dstReg)
                 let srcAddr = readAddress(srcMode, srcReg)
                 
-                let op = Operation.move(size, srcAddr, dstAddr)
+                let op = Operation.move(size!, srcAddr, dstAddr)
                 
-                insns.append(Instruction(op: op, address: address(of: startOffset), data: data(from: startOffset)))
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
                 
             case .lea:
                 let w = Int(instructionWord)
@@ -399,11 +423,38 @@ struct Disassembler {
                 
                 let srcModeNum = (w >> 3) & 7
                 let srcReg = w & 7
-                let srcMode = AddressingMode.mode(for: srcModeNum, reg: srcReg)!
+                let srcMode = AddressingMode.for(srcModeNum, reg: srcReg)!
                 
                 let srcAddr = readAddress(srcMode, srcReg)
                 
                 let op = Operation.lea(srcAddr, dstReg)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .subq:
+                var data = UInt8((instructionWord >> 9) & 7)
+                if data == 0 {
+                    data = 8
+                }
+                
+                let size0 = (instructionWord >> 6) & 3
+                
+                var size: Size?
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                }
+
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let op = Operation.subq(size!, data, address)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             }

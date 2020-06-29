@@ -7,6 +7,7 @@
 //
 
 import Cocoa
+import M68K
 
 class Content: NSObject {
     static let lineLength = 16
