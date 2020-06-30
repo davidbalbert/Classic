@@ -116,7 +116,7 @@ struct Registers {
     var d7: UInt32
 }
 
-enum DataRegister: Int, CustomStringConvertible {
+enum DataRegister: Int, Equatable, CustomStringConvertible {
     case d0, d1, d2, d3, d4, d5, d6, d7
     
     var description: String {
@@ -124,7 +124,7 @@ enum DataRegister: Int, CustomStringConvertible {
     }
 }
 
-enum AddressRegister: Int, CustomStringConvertible {
+enum AddressRegister: Int, Equatable, CustomStringConvertible {
     case a0, a1, a2, a3, a4, a5, a6, a7
     
     var description: String {
@@ -132,7 +132,7 @@ enum AddressRegister: Int, CustomStringConvertible {
     }
 }
 
-enum Register: CustomStringConvertible {
+enum Register: Equatable, CustomStringConvertible {
     case a(AddressRegister)
     case d(DataRegister)
     
@@ -166,7 +166,7 @@ enum Register: CustomStringConvertible {
 // Implied Register
 
 
-enum AddressingMode: Int {
+enum AddressingMode: Int, Equatable {
     case dd
     case ad
     case ind
@@ -191,7 +191,7 @@ enum AddressingMode: Int {
     }
 }
 
-enum EffectiveAddress: CustomStringConvertible {
+enum EffectiveAddress: Equatable, CustomStringConvertible {
     case dd(DataRegister)
     case ad(AddressRegister)
     case ind(AddressRegister)
@@ -219,13 +219,13 @@ struct ExtensionWord {
     let displacement: Int8
 }
 
-enum Size {
+enum Size: Equatable {
     case b
     case w
     case l
 }
 
-enum Condition: Int {
+enum Condition: Int, Equatable {
     case t
     case f
     case hi
@@ -271,7 +271,7 @@ struct OpInfo {
     let value: UInt16
 }
 
-enum Operation {
+enum Operation: Equatable {
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
     case move(Size, EffectiveAddress, EffectiveAddress)
