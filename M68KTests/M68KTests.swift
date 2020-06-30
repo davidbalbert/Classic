@@ -23,13 +23,13 @@ class M68KTests: XCTestCase {
         var d = Disassembler(data, loadAddress: 0)
         var op = d.disassemble()[0].op
         
-        XCTAssertEqual(op, Operation.bra(.b, 0, 0x2))
+        XCTAssertEqual(op, Operation.bra(.b, 2, 0x2))
         
         data = Data([0x60, 0x00, 0x00, 0x16])
         d = Disassembler(data, loadAddress: 0)
         op = d.disassemble()[0].op
         
-        XCTAssertEqual(op, Operation.bra(.w, 0, 0x16))
+        XCTAssertEqual(op, Operation.bra(.w, 2, 0x16))
     }
     
     func testBne() throws {
@@ -37,13 +37,13 @@ class M68KTests: XCTestCase {
         var d = Disassembler(data, loadAddress: 0)
         var op = d.disassemble()[0].op
         
-        XCTAssertEqual(op, Operation.bcc(.w, .ne, 0, 0xfc))
+        XCTAssertEqual(op, Operation.bcc(.w, .ne, 2, 0xfc))
         
         data = Data([0x66, 0xee])
         d = Disassembler(data, loadAddress: 0)
         op = d.disassemble()[0].op
 
-        XCTAssertEqual(op, Operation.bcc(.b, .ne, 0, 0xee))
+        XCTAssertEqual(op, Operation.bcc(.b, .ne, 2, 0xee))
     }
 
     
@@ -67,5 +67,13 @@ class M68KTests: XCTestCase {
         let op = d.disassemble()[0].op
         
         XCTAssertEqual(op, Operation.lea(.d16PC(2, 0x6), .a6))
+    }
+    
+    func testSubq() throws {
+        let data = Data([0x53, 0x8f])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+        
+        XCTAssertEqual(op, Operation.subq(.l, 1, .ad(.a7)))
     }
 }

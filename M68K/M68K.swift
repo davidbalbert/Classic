@@ -282,10 +282,10 @@ enum Operation: Equatable {
 extension Operation: CustomStringConvertible {
     var description: String {
         switch self {
-        case let .bra(size, address, displacement):
-            return "bra.\(size) $\(String(address + 2 + UInt32(displacement), radix: 16))"
-        case let .bcc(size, condition, address, displacement):
-            return "b\(condition).\(size) $\(String(address + 2 + UInt32(displacement), radix: 16))"
+        case let .bra(size, pc, displacement):
+            return "bra.\(size) $\(String(pc + UInt32(displacement), radix: 16))"
+        case let .bcc(size, condition, pc, displacement):
+            return "b\(condition).\(size) $\(String(pc + UInt32(displacement), radix: 16))"
         case let .move(size, from, to):
             return "move.\(size) \(from), \(to)"
         case let .lea(address, register):
@@ -368,7 +368,7 @@ public struct Disassembler {
                     size = .w
                 }
                 
-                let op = Operation.bra(size, loadAddress+UInt32(startOffset), Int16(bitPattern: displacement))
+                let op = Operation.bra(size, loadAddress+UInt32(startOffset+2), Int16(bitPattern: displacement))
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             case .bcc:
@@ -382,7 +382,7 @@ public struct Disassembler {
                     size = .w
                 }
 
-                let op = Operation.bcc(size, condition, loadAddress+UInt32(startOffset), Int16(bitPattern: displacement))
+                let op = Operation.bcc(size, condition, loadAddress+UInt32(startOffset+2), Int16(bitPattern: displacement))
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
                 
