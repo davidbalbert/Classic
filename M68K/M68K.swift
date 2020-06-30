@@ -283,9 +283,9 @@ extension Operation: CustomStringConvertible {
     var description: String {
         switch self {
         case let .bra(size, pc, displacement):
-            return "bra.\(size) $\(String(pc + UInt32(displacement), radix: 16))"
+            return "bra.\(size) $\(String(Int64(pc) + Int64(displacement), radix: 16))"
         case let .bcc(size, condition, pc, displacement):
-            return "b\(condition).\(size) $\(String(pc + UInt32(displacement), radix: 16))"
+            return "b\(condition).\(size) $\(String(Int64(pc) + Int64(displacement), radix: 16))"
         case let .move(size, from, to):
             return "move.\(size) \(from), \(to)"
         case let .lea(address, register):
@@ -360,29 +360,29 @@ public struct Disassembler {
             switch opClass {
             case .bra:
                 // TODO: '20, '30, and '40 support 32 bit displacement
-                var displacement = instructionWord & 0xFF
+                var displacement = Int16(Int8(bitPattern: UInt8(instructionWord & 0xFF)))
                 var size = Size.b
                 
                 if displacement == 0 {
-                    displacement = readWord()
+                    displacement = Int16(bitPattern: readWord())
                     size = .w
                 }
                 
-                let op = Operation.bra(size, loadAddress+UInt32(startOffset+2), Int16(bitPattern: displacement))
+                let op = Operation.bra(size, loadAddress+UInt32(startOffset+2), displacement)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             case .bcc:
                 // TODO: '20, '30, and '40 support 32 bit displacement
                 let condition = Condition(rawValue: Int((instructionWord >> 8) & 0xf))!
-                var displacement = instructionWord & 0xFF
+                var displacement = Int16(Int8(bitPattern: UInt8(instructionWord & 0xFF)))
                 var size = Size.b
                 
                 if displacement == 0 {
-                    displacement = readWord()
+                    displacement = Int16(bitPattern: readWord())
                     size = .w
                 }
 
-                let op = Operation.bcc(size, condition, loadAddress+UInt32(startOffset+2), Int16(bitPattern: displacement))
+                let op = Operation.bcc(size, condition, loadAddress+UInt32(startOffset+2), displacement)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
                 

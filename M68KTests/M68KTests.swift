@@ -30,6 +30,12 @@ class M68KTests: XCTestCase {
         op = d.disassemble()[0].op
         
         XCTAssertEqual(op, Operation.bra(.w, 2, 0x16))
+        
+        data = Data([0x60, 0xee])
+        d = Disassembler(data, loadAddress: 0)
+        op = d.disassemble()[0].op
+        
+        XCTAssertEqual(op, Operation.bra(.b, 2, -18))
     }
     
     func testBne() throws {
@@ -40,10 +46,10 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.bcc(.w, .ne, 2, 0xfc))
         
         data = Data([0x66, 0xee])
-        d = Disassembler(data, loadAddress: 0)
+        d = Disassembler(data, loadAddress: 0x40)
         op = d.disassemble()[0].op
-
-        XCTAssertEqual(op, Operation.bcc(.b, .ne, 2, 0xee))
+        
+        XCTAssertEqual(op, Operation.bcc(.b, .ne, 0x42, -18))
     }
 
     
