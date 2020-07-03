@@ -23,7 +23,7 @@ class M68KTests: XCTestCase {
         var d = Disassembler(data, loadAddress: 0)
         let op = d.disassemble()[0].op
 
-        XCTAssertEqual(op, Operation.and(.w, .mToR(.dd(.d7), .d0)))
+        XCTAssertEqual(op, Operation.and(.w, .mToR, .dd(.d7), .d0))
     }
 
     func testBra() throws {
@@ -89,7 +89,7 @@ class M68KTests: XCTestCase {
         var d = Disassembler(data, loadAddress: 0)
         let op = d.disassemble()[0].op
         
-        XCTAssertEqual(op, Operation.movem(.l, .mToR(.XXXl(0xf80000), [.d0, .a0])))
+        XCTAssertEqual(op, Operation.movem(.l, .mToR, .XXXl(0xf80000), [.d0, .a0]))
     }
     
     func testLea() throws {
