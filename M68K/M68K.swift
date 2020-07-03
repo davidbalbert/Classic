@@ -22,6 +22,23 @@ private extension Data {
     }
 }
 
+private extension BinaryInteger {
+    var bitSwapped: Self {
+        var res: Self = 0
+        var v = self
+
+        for _ in 0..<bitWidth {
+            let b = v & 1
+            res <<= 1
+            res |= b
+            v >>= 1
+        }
+        
+        return res
+    }
+}
+
+
 struct StatusRegister: OptionSet {
     let rawValue: UInt16
 
@@ -176,9 +193,9 @@ enum AddressingMode: Int, Equatable {
     case d8AnXn
     
     // TODO: these all have mode as 0b111
-    // case XXXw
-    // case XXXl
-    case d16PC = 0x12
+    case XXXw = 0x10
+    case XXXl
+    case d16PC
     // case d8PCXn
     // case imm
     
@@ -199,6 +216,8 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
     case preDec(AddressRegister)
     case d16An(Int16, AddressRegister)
     case d8AnXn(Int8, AddressRegister, Register)
+    case XXXw(UInt32)
+    case XXXl(UInt32)
     case d16PC(UInt32, Int16)
     
     var description: String {
@@ -210,6 +229,8 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
         case let .preDec(An):         return "-(\(An))"
         case let .d16An(d16, An):     return "$\(String(d16, radix: 16))(\(An))"
         case let .d8AnXn(d8, An, Xn): return "$\(String(d8, radix: 16))(\(An),\(Xn))"
+        case let .XXXw(address):      return "$\(String(address, radix: 16))"
+        case let .XXXl(address):      return "$\(String(address, radix: 16))"
         case let .d16PC(pc, d16):         return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
         }
     }
@@ -244,6 +265,79 @@ enum Condition: Int, Equatable {
     case le
 }
 
+// Bitwise run-length encoding. Returns pairsof [firstIndex, lastIndex]
+// for runs of 1s.
+private func rle(_ x: UInt8) -> [[Int]] {
+    var res: [[Int]] = []
+    
+    var x0 = x
+    var start = 0
+    var end = 0
+    
+    while x0 > 0 {
+        let b = x0 & 1
+        
+        if b == 1 {
+            end += 1
+        } else if start != end {
+            res.append([start, end-1])
+            end += 1
+            start = end
+        } else {
+            start += 1
+            end += 1
+        }
+        
+        
+        x0 = x0 >> 1
+    }
+    
+    // deal with a run at the end
+    if start != end {
+        res.append([start, end-1])
+    }
+    
+    return res
+}
+
+struct RegisterList: OptionSet, CustomStringConvertible {
+    let rawValue: UInt16
+    
+    static let d0 = RegisterList(rawValue: 1 << 0)
+    static let d1 = RegisterList(rawValue: 1 << 1)
+    static let d2 = RegisterList(rawValue: 1 << 2)
+    static let d3 = RegisterList(rawValue: 1 << 3)
+    static let d4 = RegisterList(rawValue: 1 << 4)
+    static let d5 = RegisterList(rawValue: 1 << 5)
+    static let d6 = RegisterList(rawValue: 1 << 6)
+    static let d7 = RegisterList(rawValue: 1 << 7)
+
+    static let a0 = RegisterList(rawValue: 1 << 8)
+    static let a1 = RegisterList(rawValue: 1 << 9)
+    static let a2 = RegisterList(rawValue: 1 << 10)
+    static let a3 = RegisterList(rawValue: 1 << 11)
+    static let a4 = RegisterList(rawValue: 1 << 12)
+    static let a5 = RegisterList(rawValue: 1 << 13)
+    static let a6 = RegisterList(rawValue: 1 << 14)
+    static let a7 = RegisterList(rawValue: 1 << 15)
+    
+    var description: String {
+        let dataRegs = UInt8(rawValue & 0xff)
+        let addrRegs = UInt8(rawValue >> 8)
+
+        let d = rle(dataRegs).map { r in r[0] == r[1] ? "D\(r[0])" : "D\(r[0])-D\(r[1])"}.joined(separator: "/")
+        let a = rle(addrRegs).map { r in r[0] == r[1] ? "A\(r[0])" : "A\(r[0])-A\(r[1])"}.joined(separator: "/")
+        
+        if d.count > 0 && a.count > 0 {
+            return d + "/" + a
+        } else if d.count > 0 {
+            return d
+        } else {
+            return a
+        }
+    }
+}
+
 enum OpName: String {
     case bra
     case bcc
@@ -254,6 +348,7 @@ enum OpName: String {
     case subqb
     case subqw
     case subql
+    case movem
 }
 
 enum OpClass: String {
@@ -262,6 +357,7 @@ enum OpClass: String {
     case move
     case lea
     case subq
+    case movem
 }
 
 struct OpInfo {
@@ -271,12 +367,18 @@ struct OpInfo {
     let value: UInt16
 }
 
+enum MoveMOperands: Equatable {
+    case rToM(Size, RegisterList, EffectiveAddress)
+    case mToR(Size, EffectiveAddress, RegisterList)
+}
+
 enum Operation: Equatable {
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
     case move(Size, EffectiveAddress, EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
+    case movem(MoveMOperands)
 }
 
 extension Operation: CustomStringConvertible {
@@ -292,6 +394,10 @@ extension Operation: CustomStringConvertible {
             return "lea \(address), \(register)"
         case let .subq(size, data, address):
             return "subq.\(size) #$\(String(data, radix: 16)), \(address)"
+        case let .movem(.rToM(size, registers, address)):
+            return "movem.\(size) \(registers), \(address)"
+        case let .movem(.mToR(size, address, registers)):
+            return "movem.\(size) \(address), \(registers)"
         }
     }
 }
@@ -303,22 +409,23 @@ public struct Instruction: CustomStringConvertible {
     let data: Data
     
     public var description: String {
-        let hex = data.hexDump().padding(toLength: 16, withPad: " ", startingAt: 0)
+        let hex = data.hexDump().padding(toLength: 21, withPad: " ", startingAt: 0)
         
         return "\(hex)\(op)"
     }
 }
 
 let ops = [
-    OpInfo(name: .bra,   opClass: .bra,  mask: 0xff00, value: 0x6000),
-    OpInfo(name: .bcc,   opClass: .bcc,  mask: 0xf000, value: 0x6000),
-    OpInfo(name: .moveb, opClass: .move, mask: 0xf000, value: 0x1000),
-    OpInfo(name: .movew, opClass: .move, mask: 0xf000, value: 0x3000),
-    OpInfo(name: .movel, opClass: .move, mask: 0xf000, value: 0x2000),
-    OpInfo(name: .lea,   opClass: .lea,  mask: 0xf1c0, value: 0x41c0),
-    OpInfo(name: .subqb, opClass: .subq, mask: 0xf1c0, value: 0x5100),
-    OpInfo(name: .subqw, opClass: .subq, mask: 0xf1c0, value: 0x5140),
-    OpInfo(name: .subql, opClass: .subq, mask: 0xf1c0, value: 0x5180),
+    OpInfo(name: .bra,   opClass: .bra,   mask: 0xff00, value: 0x6000),
+    OpInfo(name: .bcc,   opClass: .bcc,   mask: 0xf000, value: 0x6000),
+    OpInfo(name: .moveb, opClass: .move,  mask: 0xf000, value: 0x1000),
+    OpInfo(name: .movew, opClass: .move,  mask: 0xf000, value: 0x3000),
+    OpInfo(name: .movel, opClass: .move,  mask: 0xf000, value: 0x2000),
+    OpInfo(name: .movem, opClass: .movem, mask: 0xfb80, value: 0x4880),
+    OpInfo(name: .lea,   opClass: .lea,   mask: 0xf1c0, value: 0x41c0),
+    OpInfo(name: .subqb, opClass: .subq,  mask: 0xf1c0, value: 0x5100),
+    OpInfo(name: .subqw, opClass: .subq,  mask: 0xf1c0, value: 0x5140),
+    OpInfo(name: .subql, opClass: .subq,  mask: 0xf1c0, value: 0x5180),
 
 
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
@@ -457,6 +564,36 @@ public struct Disassembler {
                 let op = Operation.subq(size!, data, address)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .movem:
+                let direction = (instructionWord >> 10) & 1
+                let size0 = (instructionWord >> 6) & 1
+                let size = size0 == 1 ? Size.l : Size.w
+                
+                let registers0 = readWord()
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                
+                let address = readAddress(eaMode, Int(eaReg))
+                
+                let registers: RegisterList
+                if case .preDec(_) = address {
+                    registers = RegisterList(rawValue: registers0.bitSwapped)
+                } else {
+                    registers = RegisterList(rawValue: registers0)
+                }
+                
+                let operands: MoveMOperands
+                if direction == 1 {
+                    operands = .mToR(size, address, registers)
+                } else {
+                    operands = .rToM(size, registers, address)
+                }
+                
+                let op = Operation.movem(operands)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
         }
         
@@ -484,6 +621,14 @@ public struct Disassembler {
         case .preDec: return .preDec(AddressRegister(rawValue: reg)!)
         case .d16An: fatalError("d16An not implemented")
         case .d8AnXn: fatalError("d8AnXn not implemented")
+        case .XXXw:
+            let val = UInt32(truncatingIfNeeded: Int16(bitPattern: readWord()))
+            
+            return .XXXw(val)
+        case .XXXl:
+            let val = readLong()
+            
+            return .XXXl(val)
         case .d16PC:
             let exOffset = UInt32(offset)
             let ex = readExtensionWord()
