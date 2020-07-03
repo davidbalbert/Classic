@@ -123,4 +123,12 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.moveToSR(.imm(.w(0x2700))))
     }
+    
+    func testTst() throws {
+        let data = Data([0x4a, 0x1e])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+        
+        XCTAssertEqual(op, Operation.tst(.b, .postInc(.a6)))
+    }
 }

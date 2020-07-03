@@ -373,6 +373,9 @@ enum OpName: String {
     case cmpiw
     case cmpil
     case jmp
+    case tstb
+    case tstw
+    case tstl
 }
 
 enum OpClass: String {
@@ -387,6 +390,7 @@ enum OpClass: String {
     case cmp
     case cmpi
     case jmp
+    case tst
 }
 
 struct OpInfo {
@@ -413,6 +417,7 @@ enum Operation: Equatable {
     case cmp(Size, EffectiveAddress, DataRegister)
     case cmpi(Size, UInt32, EffectiveAddress)
     case jmp(EffectiveAddress)
+    case tst(Size, EffectiveAddress)
 }
 
 extension Operation: CustomStringConvertible {
@@ -442,6 +447,8 @@ extension Operation: CustomStringConvertible {
             return "cmp.\(size) #$\(String(data, radix: 16)), \(address)"
         case let .jmp(address):
             return "jmp \(address)"
+        case let .tst(size, address):
+            return "tst.\(size) \(address)"
         }
     }
 }
@@ -479,6 +486,9 @@ let ops = [
     OpInfo(name: .cmpiw,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c40),
     OpInfo(name: .cmpil,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c80),
     OpInfo(name: .jmp,      opClass: .jmp,      mask: 0xffc0, value: 0x4ec0),
+    OpInfo(name: .tstb,     opClass: .tst,      mask: 0xffc0, value: 0x4a00),
+    OpInfo(name: .tstw,     opClass: .tst,      mask: 0xffc0, value: 0x4a40),
+    OpInfo(name: .tstl,     opClass: .tst,      mask: 0xffc0, value: 0x4a80),
 
 
 
@@ -657,10 +667,10 @@ public struct Disassembler {
 
                 let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))
                 
-                let size0 = (instructionWord >> 6) & 7
+                let opmode = (instructionWord >> 6) & 7
                 
                 let size: Size?
-                switch size0 {
+                switch opmode {
                 case 0: size = .b
                 case 1: size = .w
                 case 2: size = .l
@@ -722,6 +732,26 @@ public struct Disassembler {
                 let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
                 
                 let op = Operation.moveq(data, register)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .tst:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+
+                let address = readAddress(eaMode, Int(eaReg), size: .w)
+
+                
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size?
+                switch size0 {
+                case 0: size = .b
+                case 1: size = .w
+                case 2: size = .l
+                default: size = nil
+                }
+                
+                let op = Operation.tst(size!, address)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
