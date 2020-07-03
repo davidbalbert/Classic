@@ -161,6 +161,19 @@ enum Register: Equatable, CustomStringConvertible {
     }
 }
 
+enum ImmediateValue: Equatable, CustomStringConvertible {
+    case b(Int8)
+    case w(Int16)
+    case l(Int32)
+    
+    var description: String {
+        switch self {
+        case let .b(value): return "#$\(String(value, radix: 16))"
+        case let .w(value): return "#$\(String(value, radix: 16))"
+        case let .l(value): return "#$\(String(value, radix: 16))"
+        }
+    }
+}
 
 // List of instructions for the 68000 - p608
 
@@ -196,8 +209,8 @@ enum AddressingMode: Int, Equatable {
     case XXXw = 0x10
     case XXXl
     case d16PC
-    // case d8PCXn
-    // case imm
+    case d8PCXn
+    case imm
     
     static func `for`(_ mode: Int, reg: Int) -> AddressingMode? {
         if mode == 0b111 {
@@ -219,6 +232,7 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
     case XXXw(UInt32)
     case XXXl(UInt32)
     case d16PC(UInt32, Int16)
+    case imm(ImmediateValue)
     
     var description: String {
         switch self {
@@ -231,7 +245,8 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
         case let .d8AnXn(d8, An, Xn): return "$\(String(d8, radix: 16))(\(An),\(Xn))"
         case let .XXXw(address):      return "$\(String(address, radix: 16))"
         case let .XXXl(address):      return "$\(String(address, radix: 16))"
-        case let .d16PC(pc, d16):         return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
+        case let .d16PC(pc, d16):     return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
+        case let .imm(value):         return "\(value)"
         }
     }
 }
@@ -344,11 +359,12 @@ enum OpName: String {
     case moveb
     case movew
     case movel
+    case movem
+    case moveToSR
     case lea
     case subqb
     case subqw
     case subql
-    case movem
     case cmpb
     case cmpw
     case cmpl
@@ -362,9 +378,10 @@ enum OpClass: String {
     case bra
     case bcc
     case move
+    case movem
+    case moveToSR
     case lea
     case subq
-    case movem
     case cmp
     case cmpi
     case jmp
@@ -386,9 +403,10 @@ enum Operation: Equatable {
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
     case move(Size, EffectiveAddress, EffectiveAddress)
+    case movem(MoveMOperands)
+    case moveToSR(EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
-    case movem(MoveMOperands)
     case cmp(Size, EffectiveAddress, DataRegister)
     case cmpi(Size, UInt32, EffectiveAddress)
     case jmp(EffectiveAddress)
@@ -411,6 +429,8 @@ extension Operation: CustomStringConvertible {
             return "movem.\(size) \(registers), \(address)"
         case let .movem(.mToR(size, address, registers)):
             return "movem.\(size) \(address), \(registers)"
+        case let .moveToSR(address):
+            return "move \(address), SR"
         case let .cmp(size, address, register):
             return "cmp.\(size) \(address), \(register)"
         case let .cmpi(size, data, address):
@@ -435,23 +455,24 @@ public struct Instruction: CustomStringConvertible {
 }
 
 let ops = [
-    OpInfo(name: .bra,   opClass: .bra,   mask: 0xff00, value: 0x6000),
-    OpInfo(name: .bcc,   opClass: .bcc,   mask: 0xf000, value: 0x6000),
-    OpInfo(name: .moveb, opClass: .move,  mask: 0xf000, value: 0x1000),
-    OpInfo(name: .movew, opClass: .move,  mask: 0xf000, value: 0x3000),
-    OpInfo(name: .movel, opClass: .move,  mask: 0xf000, value: 0x2000),
-    OpInfo(name: .movem, opClass: .movem, mask: 0xfb80, value: 0x4880),
-    OpInfo(name: .lea,   opClass: .lea,   mask: 0xf1c0, value: 0x41c0),
-    OpInfo(name: .subqb, opClass: .subq,  mask: 0xf1c0, value: 0x5100),
-    OpInfo(name: .subqw, opClass: .subq,  mask: 0xf1c0, value: 0x5140),
-    OpInfo(name: .subql, opClass: .subq,  mask: 0xf1c0, value: 0x5180),
-    OpInfo(name: .cmpb,  opClass: .cmp,   mask: 0xf1c0, value: 0xb000),
-    OpInfo(name: .cmpw,  opClass: .cmp,   mask: 0xf1c0, value: 0xb040),
-    OpInfo(name: .cmpl,  opClass: .cmp,   mask: 0xf1c0, value: 0xb080),
-    OpInfo(name: .cmpib, opClass: .cmpi,  mask: 0xffc0, value: 0x0c00),
-    OpInfo(name: .cmpiw, opClass: .cmpi,  mask: 0xffc0, value: 0x0c40),
-    OpInfo(name: .cmpil, opClass: .cmpi,  mask: 0xffc0, value: 0x0c80),
-    OpInfo(name: .jmp,   opClass: .jmp,   mask: 0xffc0, value: 0x4ec0),
+    OpInfo(name: .bra,      opClass: .bra,      mask: 0xff00, value: 0x6000),
+    OpInfo(name: .bcc,      opClass: .bcc,      mask: 0xf000, value: 0x6000),
+    OpInfo(name: .moveb,    opClass: .move,     mask: 0xf000, value: 0x1000),
+    OpInfo(name: .movew,    opClass: .move,     mask: 0xf000, value: 0x3000),
+    OpInfo(name: .movel,    opClass: .move,     mask: 0xf000, value: 0x2000),
+    OpInfo(name: .movem,    opClass: .movem,    mask: 0xfb80, value: 0x4880),
+    OpInfo(name: .moveToSR, opClass: .moveToSR, mask: 0xffc0, value: 0x46c0),
+    OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
+    OpInfo(name: .subqb,    opClass: .subq,     mask: 0xf1c0, value: 0x5100),
+    OpInfo(name: .subqw,    opClass: .subq,     mask: 0xf1c0, value: 0x5140),
+    OpInfo(name: .subql,    opClass: .subq,     mask: 0xf1c0, value: 0x5180),
+    OpInfo(name: .cmpb,     opClass: .cmp,      mask: 0xf1c0, value: 0xb000),
+    OpInfo(name: .cmpw,     opClass: .cmp,      mask: 0xf1c0, value: 0xb040),
+    OpInfo(name: .cmpl,     opClass: .cmp,      mask: 0xf1c0, value: 0xb080),
+    OpInfo(name: .cmpib,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c00),
+    OpInfo(name: .cmpiw,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c40),
+    OpInfo(name: .cmpil,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c80),
+    OpInfo(name: .jmp,      opClass: .jmp,      mask: 0xffc0, value: 0x4ec0),
 
 
 
@@ -680,6 +701,16 @@ public struct Disassembler {
                 let op = Operation.jmp(address)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .moveToSR:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+
+                let address = readAddress(eaMode, Int(eaReg), size: .w)
+                
+                let op = Operation.moveToSR(address)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
         }
         
@@ -698,7 +729,7 @@ public struct Disassembler {
         data[startOffset..<offset]
     }
     
-    mutating func readAddress(_ mode: AddressingMode, _ reg: Int) -> EffectiveAddress {
+    mutating func readAddress(_ mode: AddressingMode, _ reg: Int, size: Size? = nil) -> EffectiveAddress {
         switch mode {
         case .dd: return .dd(DataRegister(rawValue: reg)!)
         case .ad: return .ad(AddressRegister(rawValue: reg)!)
@@ -719,6 +750,14 @@ public struct Disassembler {
             let exOffset = UInt32(offset)
             let ex = readExtensionWord()
             return .d16PC(loadAddress+exOffset, Int16(ex.displacement))
+        case .d8PCXn:
+            fatalError("d8PCXn not implemented")
+        case .imm:
+            switch size! {
+            case .b: return .imm(.b(Int8(truncatingIfNeeded: readWord())))
+            case .w: return .imm(.w(Int16(bitPattern: readWord())))
+            case .l: return .imm(.l(Int32(bitPattern: readLong())))
+            }
         }
     }
 
