@@ -349,6 +349,12 @@ enum OpName: String {
     case subqw
     case subql
     case movem
+    case cmpb
+    case cmpw
+    case cmpl
+    case cmpib
+    case cmpiw
+    case cmpil
 }
 
 enum OpClass: String {
@@ -358,6 +364,8 @@ enum OpClass: String {
     case lea
     case subq
     case movem
+    case cmp
+    case cmpi
 }
 
 struct OpInfo {
@@ -379,6 +387,8 @@ enum Operation: Equatable {
     case lea(EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
     case movem(MoveMOperands)
+    case cmp(Size, EffectiveAddress, DataRegister)
+    case cmpi(Size, UInt32, EffectiveAddress)
 }
 
 extension Operation: CustomStringConvertible {
@@ -398,6 +408,10 @@ extension Operation: CustomStringConvertible {
             return "movem.\(size) \(registers), \(address)"
         case let .movem(.mToR(size, address, registers)):
             return "movem.\(size) \(address), \(registers)"
+        case let .cmp(size, address, register):
+            return "cmp.\(size) \(address), \(register)"
+        case let .cmpi(size, data, address):
+            return "cmpi.\(size) #$\(String(data, radix: 16)), \(address)"
         }
     }
 }
@@ -426,6 +440,13 @@ let ops = [
     OpInfo(name: .subqb, opClass: .subq,  mask: 0xf1c0, value: 0x5100),
     OpInfo(name: .subqw, opClass: .subq,  mask: 0xf1c0, value: 0x5140),
     OpInfo(name: .subql, opClass: .subq,  mask: 0xf1c0, value: 0x5180),
+    OpInfo(name: .cmpb,  opClass: .cmp,   mask: 0xf1c0, value: 0xb000),
+    OpInfo(name: .cmpw,  opClass: .cmp,   mask: 0xf1c0, value: 0xb040),
+    OpInfo(name: .cmpl,  opClass: .cmp,   mask: 0xf1c0, value: 0xb080),
+    OpInfo(name: .cmpib, opClass: .cmpi,  mask: 0xffc0, value: 0x0c00),
+    OpInfo(name: .cmpiw, opClass: .cmpi,  mask: 0xffc0, value: 0x0c40),
+    OpInfo(name: .cmpil, opClass: .cmpi,  mask: 0xffc0, value: 0x0c80),
+
 
 
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
@@ -592,6 +613,55 @@ public struct Disassembler {
                 }
                 
                 let op = Operation.movem(operands)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .cmp:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))
+                
+                let size0 = (instructionWord >> 6) & 7
+                
+                let size: Size?
+                switch size0 {
+                case 0: size = .b
+                case 1: size = .w
+                case 2: size = .l
+                default: size = nil
+                }
+                
+                let op = Operation.cmp(size!, address, register!)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .cmpi:
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size
+                let data: UInt32
+                switch size0 {
+                case 0:
+                    size = .b
+                    data = UInt32(readWord() & 0xff)
+                case 1:
+                    size = .w
+                    data = UInt32(readWord())
+                case 2:
+                    size = .l
+                    data = readLong()
+                default:
+                    fatalError("unknown size")
+                }
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let op = Operation.cmpi(size, data, address)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
