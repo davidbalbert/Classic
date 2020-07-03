@@ -354,6 +354,9 @@ struct RegisterList: OptionSet, CustomStringConvertible {
 }
 
 enum OpName: String {
+    case andb
+    case andw
+    case andl
     case bra
     case bcc
     case moveb
@@ -379,6 +382,7 @@ enum OpName: String {
 }
 
 enum OpClass: String {
+    case and
     case bra
     case bcc
     case move
@@ -401,15 +405,21 @@ struct OpInfo {
 }
 
 enum MoveMOperands: Equatable {
-    case rToM(Size, RegisterList, EffectiveAddress)
-    case mToR(Size, EffectiveAddress, RegisterList)
+    case rToM(RegisterList, EffectiveAddress)
+    case mToR(EffectiveAddress, RegisterList)
+}
+
+enum AndOperands: Equatable {
+    case rToM(DataRegister, EffectiveAddress)
+    case mToR(EffectiveAddress, DataRegister)
 }
 
 enum Operation: Equatable {
+    case and(Size, AndOperands)
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
     case move(Size, EffectiveAddress, EffectiveAddress)
-    case movem(MoveMOperands)
+    case movem(Size, MoveMOperands)
     case moveq(Int8, DataRegister)
     case moveToSR(EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
@@ -423,6 +433,10 @@ enum Operation: Equatable {
 extension Operation: CustomStringConvertible {
     var description: String {
         switch self {
+        case let .and(size, .mToR(address, register)):
+            return "and.\(size) \(address), \(register)"
+        case let .and(size, .rToM(register, address)):
+            return "and.\(size) \(register), \(address)"
         case let .bra(size, pc, displacement):
             return "bra.\(size) $\(String(Int64(pc) + Int64(displacement), radix: 16))"
         case let .bcc(size, condition, pc, displacement):
@@ -433,9 +447,9 @@ extension Operation: CustomStringConvertible {
             return "lea \(address), \(register)"
         case let .subq(size, data, address):
             return "subq.\(size) #$\(String(data, radix: 16)), \(address)"
-        case let .movem(.rToM(size, registers, address)):
+        case let .movem(size, .rToM(registers, address)):
             return "movem.\(size) \(registers), \(address)"
-        case let .movem(.mToR(size, address, registers)):
+        case let .movem(size, .mToR(address, registers)):
             return "movem.\(size) \(address), \(registers)"
         case let .moveq(data, register):
             return "moveq #$\(String(data, radix: 16)), \(register)"
@@ -467,6 +481,9 @@ public struct Instruction: CustomStringConvertible {
 }
 
 let ops = [
+    OpInfo(name: .andb,     opClass: .and,      mask: 0xf0c0, value: 0xc000),
+    OpInfo(name: .andw,     opClass: .and,      mask: 0xf0c0, value: 0xc040),
+    OpInfo(name: .andl,     opClass: .and,      mask: 0xf0c0, value: 0xc080),
     OpInfo(name: .bra,      opClass: .bra,      mask: 0xff00, value: 0x6000),
     OpInfo(name: .bcc,      opClass: .bcc,      mask: 0xf000, value: 0x6000),
     OpInfo(name: .moveb,    opClass: .move,     mask: 0xf000, value: 0x1000),
@@ -529,6 +546,37 @@ public struct Disassembler {
             }
             
             switch opClass {
+            case .and:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                let address = readAddress(eaMode, Int(eaReg))
+
+                
+                let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7)!
+
+                let direction = (instructionWord >> 8) & 1
+                let size0 = (instructionWord >> 6) & 3
+                
+                let size: Size?
+                switch size0 {
+                case 0: size = .b
+                case 1: size = .w
+                case 2: size = .l
+                default: size = nil
+                }
+                
+                let operands: AndOperands
+                if direction == 1 {
+                    operands = .rToM(register, address)
+                } else {
+                    operands = .mToR(address, register)
+                }
+                
+                let op = Operation.and(size!, operands)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
             case .bra:
                 // TODO: '20, '30, and '40 support 32 bit displacement
                 var displacement = Int16(Int8(bitPattern: UInt8(instructionWord & 0xFF)))
@@ -650,12 +698,12 @@ public struct Disassembler {
                 
                 let operands: MoveMOperands
                 if direction == 1 {
-                    operands = .mToR(size, address, registers)
+                    operands = .mToR(address, registers)
                 } else {
-                    operands = .rToM(size, registers, address)
+                    operands = .rToM(registers, address)
                 }
                 
-                let op = Operation.movem(operands)
+                let op = Operation.movem(size, operands)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             case .cmp:

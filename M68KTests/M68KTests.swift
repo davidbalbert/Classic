@@ -17,6 +17,14 @@ class M68KTests: XCTestCase {
     override func tearDownWithError() throws {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
+    
+    func testAnd() throws {
+        let data = Data([0xc0, 0x47])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+
+        XCTAssertEqual(op, Operation.and(.w, .mToR(.dd(.d7), .d0)))
+    }
 
     func testBra() throws {
         var data = Data([0x60, 0x02])
@@ -81,7 +89,7 @@ class M68KTests: XCTestCase {
         var d = Disassembler(data, loadAddress: 0)
         let op = d.disassemble()[0].op
         
-        XCTAssertEqual(op, Operation.movem(.mToR(.l, .XXXl(0xf80000), [.d0, .a0])))
+        XCTAssertEqual(op, Operation.movem(.l, .mToR(.XXXl(0xf80000), [.d0, .a0])))
     }
     
     func testLea() throws {
