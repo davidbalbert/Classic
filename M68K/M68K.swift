@@ -243,8 +243,8 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
         case let .preDec(An):         return "-(\(An))"
         case let .d16An(d16, An):     return "$\(String(d16, radix: 16))(\(An))"
         case let .d8AnXn(d8, An, Xn): return "$\(String(d8, radix: 16))(\(An),\(Xn))"
-        case let .XXXw(address):      return "$\(String(address, radix: 16))"
-        case let .XXXl(address):      return "$\(String(address, radix: 16))"
+        case let .XXXw(address):      return "($\(String(address, radix: 16)))"
+        case let .XXXl(address):      return "($\(String(address, radix: 16)))"
         case let .d16PC(pc, d16):     return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
         case let .imm(value):         return "\(value)"
         }
@@ -360,6 +360,7 @@ enum OpName: String {
     case movew
     case movel
     case movem
+    case moveq
     case moveToSR
     case lea
     case subqb
@@ -379,6 +380,7 @@ enum OpClass: String {
     case bcc
     case move
     case movem
+    case moveq
     case moveToSR
     case lea
     case subq
@@ -404,6 +406,7 @@ enum Operation: Equatable {
     case bcc(Size, Condition, UInt32, Int16)
     case move(Size, EffectiveAddress, EffectiveAddress)
     case movem(MoveMOperands)
+    case moveq(Int8, DataRegister)
     case moveToSR(EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
@@ -429,6 +432,8 @@ extension Operation: CustomStringConvertible {
             return "movem.\(size) \(registers), \(address)"
         case let .movem(.mToR(size, address, registers)):
             return "movem.\(size) \(address), \(registers)"
+        case let .moveq(data, register):
+            return "moveq #$\(String(data, radix: 16)), \(register)"
         case let .moveToSR(address):
             return "move \(address), SR"
         case let .cmp(size, address, register):
@@ -461,6 +466,7 @@ let ops = [
     OpInfo(name: .movew,    opClass: .move,     mask: 0xf000, value: 0x3000),
     OpInfo(name: .movel,    opClass: .move,     mask: 0xf000, value: 0x2000),
     OpInfo(name: .movem,    opClass: .movem,    mask: 0xfb80, value: 0x4880),
+    OpInfo(name: .moveq,    opClass: .moveq,    mask: 0xf100, value: 0x7000),
     OpInfo(name: .moveToSR, opClass: .moveToSR, mask: 0xffc0, value: 0x46c0),
     OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
     OpInfo(name: .subqb,    opClass: .subq,     mask: 0xf1c0, value: 0x5100),
@@ -709,6 +715,13 @@ public struct Disassembler {
                 let address = readAddress(eaMode, Int(eaReg), size: .w)
                 
                 let op = Operation.moveToSR(address)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .moveq:
+                let data = Int8(truncatingIfNeeded: instructionWord)
+                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                
+                let op = Operation.moveq(data, register)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
