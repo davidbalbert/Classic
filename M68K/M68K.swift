@@ -354,27 +354,18 @@ struct RegisterList: OptionSet, CustomStringConvertible {
 }
 
 enum OpName: String {
-    case andb
-    case andw
-    case andl
+    case addb, addw, addl
+    case andb, andw, andl
     case bra
     case bcc
-    case moveb
-    case movew
-    case movel
+    case moveb, movew, movel
     case movem
     case moveq
     case moveToSR
     case lea
-    case subqb
-    case subqw
-    case subql
-    case cmpb
-    case cmpw
-    case cmpl
-    case cmpib
-    case cmpiw
-    case cmpil
+    case subqb, subqw, subql
+    case cmpb, cmpw, cmpl
+    case cmpib, cmpiw, cmpil
     case jmp
     case tstb
     case tstw
@@ -382,6 +373,7 @@ enum OpName: String {
 }
 
 enum OpClass: String {
+    case add
     case and
     case bra
     case bcc
@@ -410,6 +402,7 @@ enum Direction: Equatable {
 }
 
 enum Operation: Equatable {
+    case add(Size, Direction, EffectiveAddress, DataRegister)
     case and(Size, Direction, EffectiveAddress, DataRegister)
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
@@ -428,6 +421,10 @@ enum Operation: Equatable {
 extension Operation: CustomStringConvertible {
     var description: String {
         switch self {
+        case let .add(size, .mToR, address, register):
+            return "add.\(size) \(address), \(register)"
+        case let .add(size, .rToM, address, register):
+            return "add.\(size) \(register), \(address)"
         case let .and(size, .mToR, address, register):
             return "and.\(size) \(address), \(register)"
         case let .and(size, .rToM, address, register):
@@ -476,28 +473,40 @@ public struct Instruction: CustomStringConvertible {
 }
 
 let ops = [
+    OpInfo(name: .addb,     opClass: .add,      mask: 0xf0c0, value: 0xd000),
+    OpInfo(name: .addw,     opClass: .add,      mask: 0xf0c0, value: 0xd040),
+    OpInfo(name: .addl,     opClass: .add,      mask: 0xf0c0, value: 0xd080),
+
     OpInfo(name: .andb,     opClass: .and,      mask: 0xf0c0, value: 0xc000),
     OpInfo(name: .andw,     opClass: .and,      mask: 0xf0c0, value: 0xc040),
     OpInfo(name: .andl,     opClass: .and,      mask: 0xf0c0, value: 0xc080),
+    
     OpInfo(name: .bra,      opClass: .bra,      mask: 0xff00, value: 0x6000),
     OpInfo(name: .bcc,      opClass: .bcc,      mask: 0xf000, value: 0x6000),
+    
     OpInfo(name: .moveb,    opClass: .move,     mask: 0xf000, value: 0x1000),
     OpInfo(name: .movew,    opClass: .move,     mask: 0xf000, value: 0x3000),
     OpInfo(name: .movel,    opClass: .move,     mask: 0xf000, value: 0x2000),
+    
     OpInfo(name: .movem,    opClass: .movem,    mask: 0xfb80, value: 0x4880),
     OpInfo(name: .moveq,    opClass: .moveq,    mask: 0xf100, value: 0x7000),
     OpInfo(name: .moveToSR, opClass: .moveToSR, mask: 0xffc0, value: 0x46c0),
     OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
+    
     OpInfo(name: .subqb,    opClass: .subq,     mask: 0xf1c0, value: 0x5100),
     OpInfo(name: .subqw,    opClass: .subq,     mask: 0xf1c0, value: 0x5140),
     OpInfo(name: .subql,    opClass: .subq,     mask: 0xf1c0, value: 0x5180),
+    
     OpInfo(name: .cmpb,     opClass: .cmp,      mask: 0xf1c0, value: 0xb000),
     OpInfo(name: .cmpw,     opClass: .cmp,      mask: 0xf1c0, value: 0xb040),
     OpInfo(name: .cmpl,     opClass: .cmp,      mask: 0xf1c0, value: 0xb080),
+    
     OpInfo(name: .cmpib,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c00),
     OpInfo(name: .cmpiw,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c40),
     OpInfo(name: .cmpil,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c80),
+    
     OpInfo(name: .jmp,      opClass: .jmp,      mask: 0xffc0, value: 0x4ec0),
+    
     OpInfo(name: .tstb,     opClass: .tst,      mask: 0xffc0, value: 0x4a00),
     OpInfo(name: .tstw,     opClass: .tst,      mask: 0xffc0, value: 0x4a40),
     OpInfo(name: .tstl,     opClass: .tst,      mask: 0xffc0, value: 0x4a80),
@@ -541,6 +550,30 @@ public struct Disassembler {
             }
             
             switch opClass {
+            case .add:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7)!
+
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size?
+                switch size0 {
+                case 0: size = .b
+                case 1: size = .w
+                case 2: size = .l
+                default: size = nil
+                }
+
+                let direction0 = (instructionWord >> 8) & 1
+                let direction: Direction = direction0 == 1 ? .rToM : .mToR
+
+                let op = Operation.add(size!, direction, address, register)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
             case .and:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
@@ -551,9 +584,7 @@ public struct Disassembler {
                 
                 let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7)!
 
-                let direction0 = (instructionWord >> 8) & 1
                 let size0 = (instructionWord >> 6) & 3
-                
                 let size: Size?
                 switch size0 {
                 case 0: size = .b
@@ -562,6 +593,7 @@ public struct Disassembler {
                 default: size = nil
                 }
 
+                let direction0 = (instructionWord >> 8) & 1
                 let direction: Direction = direction0 == 1 ? .rToM : .mToR
                 
                 let op = Operation.and(size!, direction, address, register)

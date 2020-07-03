@@ -18,6 +18,14 @@ class M68KTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
     
+    func testAdd() throws {
+        let data = Data([0xd0, 0x42])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+
+        XCTAssertEqual(op, Operation.add(.w, .mToR, .dd(.d2), .d0))
+    }
+    
     func testAnd() throws {
         let data = Data([0xc0, 0x47])
         var d = Disassembler(data, loadAddress: 0)
