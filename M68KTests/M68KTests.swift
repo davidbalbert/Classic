@@ -67,6 +67,14 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.move(.l, .ad(.a7), .dd(.d0)))
     }
     
+    func testMoveM() throws {
+        let data = Data([0x4c, 0xf9, 0x01, 0x01, 0x00, 0xf8, 0x00, 0x00])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+        
+        XCTAssertEqual(op, Operation.movem(.mToR(.l, .XXXl(0xf80000), [.d0, .a0])))
+    }
+    
     func testLea() throws {
         let data = Data([0x4d, 0xfa, 0x00, 0x06])
         var d = Disassembler(data, loadAddress: 0)
