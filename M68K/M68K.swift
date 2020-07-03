@@ -355,6 +355,7 @@ enum OpName: String {
     case cmpib
     case cmpiw
     case cmpil
+    case jmp
 }
 
 enum OpClass: String {
@@ -366,6 +367,7 @@ enum OpClass: String {
     case movem
     case cmp
     case cmpi
+    case jmp
 }
 
 struct OpInfo {
@@ -389,6 +391,7 @@ enum Operation: Equatable {
     case movem(MoveMOperands)
     case cmp(Size, EffectiveAddress, DataRegister)
     case cmpi(Size, UInt32, EffectiveAddress)
+    case jmp(EffectiveAddress)
 }
 
 extension Operation: CustomStringConvertible {
@@ -412,6 +415,8 @@ extension Operation: CustomStringConvertible {
             return "cmp.\(size) \(address), \(register)"
         case let .cmpi(size, data, address):
             return "cmp.\(size) #$\(String(data, radix: 16)), \(address)"
+        case let .jmp(address):
+            return "jmp \(address)"
         }
     }
 }
@@ -446,6 +451,7 @@ let ops = [
     OpInfo(name: .cmpib, opClass: .cmpi,  mask: 0xffc0, value: 0x0c00),
     OpInfo(name: .cmpiw, opClass: .cmpi,  mask: 0xffc0, value: 0x0c40),
     OpInfo(name: .cmpil, opClass: .cmpi,  mask: 0xffc0, value: 0x0c80),
+    OpInfo(name: .jmp,   opClass: .jmp,   mask: 0xffc0, value: 0x4ec0),
 
 
 
@@ -662,6 +668,16 @@ public struct Disassembler {
                 let address = readAddress(eaMode, Int(eaReg))
 
                 let op = Operation.cmpi(size, data, address)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .jmp:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let op = Operation.jmp(address)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             }

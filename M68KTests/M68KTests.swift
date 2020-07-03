@@ -98,4 +98,12 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.cmpi(.l, 0x55aaaa55, .dd(.d0)))
     }
+    
+    func testJmp() throws {
+        let data = Data([0x4e, 0xd0])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+        
+        XCTAssertEqual(op, Operation.jmp(.ind(.a0)))
+    }
 }
