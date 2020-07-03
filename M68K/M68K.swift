@@ -411,7 +411,7 @@ extension Operation: CustomStringConvertible {
         case let .cmp(size, address, register):
             return "cmp.\(size) \(address), \(register)"
         case let .cmpi(size, data, address):
-            return "cmpi.\(size) #$\(String(data, radix: 16)), \(address)"
+            return "cmp.\(size) #$\(String(data, radix: 16)), \(address)"
         }
     }
 }

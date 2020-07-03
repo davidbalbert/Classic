@@ -90,4 +90,12 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.subq(.l, 1, .ad(.a7)))
     }
+    
+    func testCmpi() throws {
+        let data = Data([0x0c, 0x80, 0x55, 0xaa, 0xaa, 0x55])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+        
+        XCTAssertEqual(op, Operation.cmpi(.l, 0x55aaaa55, .dd(.d0)))
+    }
 }
