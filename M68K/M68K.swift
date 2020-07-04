@@ -416,7 +416,7 @@ enum Operation: Equatable {
     case suba(Size, EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
     case cmp(Size, EffectiveAddress, DataRegister)
-    case cmpi(Size, UInt32, EffectiveAddress)
+    case cmpi(Size, Int32, EffectiveAddress)
     case jmp(EffectiveAddress)
     case tst(Size, EffectiveAddress)
 }
@@ -636,8 +636,6 @@ public struct Disassembler {
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
                 
             case .move:
-//                let w = Int(instructionWord)
-                
                 let size0 = (instructionWord >> 12) & 3
                 
                 var size: Size?
@@ -771,17 +769,17 @@ public struct Disassembler {
             case .cmpi:
                 let size0 = (instructionWord >> 6) & 3
                 let size: Size
-                let data: UInt32
+                let data: Int32
                 switch size0 {
                 case 0:
                     size = .b
-                    data = UInt32(readWord() & 0xff)
+                    data = Int32(Int8(truncatingIfNeeded: readWord()))
                 case 1:
                     size = .w
-                    data = UInt32(readWord())
+                    data = Int32(Int16(bitPattern: readWord()))
                 case 2:
                     size = .l
-                    data = readLong()
+                    data = Int32(bitPattern: readLong())
                 default:
                     fatalError("unknown size")
                 }
