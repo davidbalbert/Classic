@@ -363,6 +363,7 @@ enum OpName: String {
     case moveq
     case moveToSR
     case lea
+    case subaw, subal
     case subqb, subqw, subql
     case cmpb, cmpw, cmpl
     case cmpib, cmpiw, cmpil
@@ -382,6 +383,7 @@ enum OpClass: String {
     case moveq
     case moveToSR
     case lea
+    case suba
     case subq
     case cmp
     case cmpi
@@ -411,6 +413,7 @@ enum Operation: Equatable {
     case moveq(Int8, DataRegister)
     case moveToSR(EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
+    case suba(Size, EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
     case cmp(Size, EffectiveAddress, DataRegister)
     case cmpi(Size, UInt32, EffectiveAddress)
@@ -437,6 +440,8 @@ extension Operation: CustomStringConvertible {
             return "move.\(size) \(from), \(to)"
         case let .lea(address, register):
             return "lea \(address), \(register)"
+        case let .suba(size, address, register):
+            return "suba.\(size) \(address), \(register)"
         case let .subq(size, data, address):
             return "subq.\(size) #$\(String(data, radix: 16)), \(address)"
         case let .movem(size, .rToM, address, registers):
@@ -493,6 +498,9 @@ let ops = [
     OpInfo(name: .moveToSR, opClass: .moveToSR, mask: 0xffc0, value: 0x46c0),
     OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
     
+    OpInfo(name: .subaw,    opClass: .suba,     mask: 0xf1c0, value: 0x90c0),
+    OpInfo(name: .subal,    opClass: .suba,     mask: 0xf1c0, value: 0x91c0),
+
     OpInfo(name: .subqb,    opClass: .subq,     mask: 0xf1c0, value: 0x5100),
     OpInfo(name: .subqw,    opClass: .subq,     mask: 0xf1c0, value: 0x5140),
     OpInfo(name: .subql,    opClass: .subq,     mask: 0xf1c0, value: 0x5180),
@@ -628,9 +636,9 @@ public struct Disassembler {
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
                 
             case .move:
-                let w = Int(instructionWord)
+//                let w = Int(instructionWord)
                 
-                let size0 = (w >> 12) & 3
+                let size0 = (instructionWord >> 12) & 3
                 
                 var size: Size?
                 if size0 == 1 {
@@ -641,17 +649,17 @@ public struct Disassembler {
                     size = .l
                 }
                 
-                let dstReg = (w >> 9) & 7
-                let dstModeNum = (w >> 6) & 7
-                let dstMode = AddressingMode.for(dstModeNum, reg: dstReg)!
+                let dstReg = (instructionWord >> 9) & 7
+                let dstModeNum = (instructionWord >> 6) & 7
+                let dstMode = AddressingMode.for(Int(dstModeNum), reg: Int(dstReg))!
                 
                 
-                let srcModeNum = (w >> 3) & 7
-                let srcReg = w & 7
-                let srcMode = AddressingMode.for(srcModeNum, reg: srcReg)!
+                let srcModeNum = (instructionWord >> 3) & 7
+                let srcReg = instructionWord & 7
+                let srcMode = AddressingMode.for(Int(srcModeNum), reg: Int(srcReg))!
                 
-                let dstAddr = readAddress(dstMode, dstReg)
-                let srcAddr = readAddress(srcMode, srcReg)
+                let srcAddr = readAddress(srcMode, Int(srcReg), size: size!)
+                let dstAddr = readAddress(dstMode, Int(dstReg), size: size!)
                 
                 let op = Operation.move(size!, srcAddr, dstAddr)
                 
@@ -669,6 +677,21 @@ public struct Disassembler {
                 let srcAddr = readAddress(srcMode, srcReg)
                 
                 let op = Operation.lea(srcAddr, dstReg)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .suba:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let register = AddressRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                
+                let opmode = (instructionWord >> 6) & 7
+                let size: Size = opmode == 7 ? .l : .w
+                
+                let op = Operation.suba(size, address, register)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             case .subq:
@@ -844,7 +867,10 @@ public struct Disassembler {
         case .ind: return .ind(AddressRegister(rawValue: reg)!)
         case .postInc: return .postInc(AddressRegister(rawValue: reg)!)
         case .preDec: return .preDec(AddressRegister(rawValue: reg)!)
-        case .d16An: fatalError("d16An not implemented")
+        case .d16An:
+            let val = Int16(bitPattern: readWord())
+            
+            return .d16An(val, AddressRegister(rawValue: reg)!)
         case .d8AnXn: fatalError("d8AnXn not implemented")
         case .XXXw:
             let val = UInt32(truncatingIfNeeded: Int16(bitPattern: readWord()))
