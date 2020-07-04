@@ -205,7 +205,7 @@ enum AddressingMode: Int, Equatable {
     case d16An
     case d8AnXn
     
-    // TODO: these all have mode as 0b111
+    // These all have mode as 0b111
     case XXXw = 0x10
     case XXXl
     case d16PC
@@ -353,6 +353,16 @@ struct RegisterList: OptionSet, CustomStringConvertible {
     }
 }
 
+enum ShiftCount: Equatable {
+    case r(DataRegister)
+    case imm(UInt8)
+}
+
+enum Direction: Equatable {
+    case rToM
+    case mToR
+}
+
 enum OpName: String {
     case addb, addw, addl
     case andb, andw, andl
@@ -371,6 +381,8 @@ enum OpName: String {
     case jmp
     case tstb, tstw, tstl
     case orb, orw, orl
+    case lslb, lslw, lsll, lslm
+    case lsrb, lsrw, lsrl, lsrm
 }
 
 enum OpClass: String {
@@ -391,6 +403,8 @@ enum OpClass: String {
     case jmp
     case tst
     case or
+    case ls
+    case lsm
 }
 
 struct OpInfo {
@@ -398,11 +412,6 @@ struct OpInfo {
     let opClass: OpClass
     let mask: UInt16
     let value: UInt16
-}
-
-enum Direction: Equatable {
-    case rToM
-    case mToR
 }
 
 enum Operation: Equatable {
@@ -423,6 +432,10 @@ enum Operation: Equatable {
     case jmp(EffectiveAddress)
     case tst(Size, EffectiveAddress)
     case or(Size, Direction, EffectiveAddress, DataRegister)
+    case lsl(Size, ShiftCount, DataRegister)
+    case lsr(Size, ShiftCount, DataRegister)
+    case lslm(EffectiveAddress)
+    case lsrm(EffectiveAddress)
 }
 
 extension Operation: CustomStringConvertible {
@@ -470,6 +483,18 @@ extension Operation: CustomStringConvertible {
             return "or.\(size) \(address), \(register)"
         case let .or(size, .rToM, address, register):
             return "or.\(size) \(register), \(address)"
+        case let .lsl(size, .r(countRegister), register):
+            return "lsl.\(size) \(countRegister), \(register)"
+        case let .lsl(size, .imm(count), register):
+            return "lsl.\(size) #$\(String(count, radix: 16)), \(register)"
+        case let .lsr(size, .r(countRegister), register):
+            return "lsr.\(size) \(countRegister), \(register)"
+        case let .lsr(size, .imm(count), register):
+            return "lsr.\(size) #$\(String(count, radix: 16)), \(register)"
+        case let .lslm(address):
+            return "lsl \(address)"
+        case let .lsrm(address):
+            return "lsr \(address)"
         }
     }
 }
@@ -537,6 +562,17 @@ let ops = [
     OpInfo(name: .orw,     opClass: .or,        mask: 0xf0c0, value: 0x8040),
     OpInfo(name: .orl,     opClass: .or,        mask: 0xf0c0, value: 0x8080),
 
+    OpInfo(name: .lslb,     opClass: .ls,      mask: 0xf1d8, value: 0xe108),
+    OpInfo(name: .lslw,     opClass: .ls,      mask: 0xf1d8, value: 0xe148),
+    OpInfo(name: .lsll,     opClass: .ls,      mask: 0xf1d8, value: 0xe188),
+    OpInfo(name: .lslm,     opClass: .lsm,     mask: 0xffc0, value: 0xe3c0),
+
+    OpInfo(name: .lsrb,     opClass: .ls,      mask: 0xf1d8, value: 0xe008),
+    OpInfo(name: .lsrw,     opClass: .ls,      mask: 0xf1d8, value: 0xe048),
+    OpInfo(name: .lsrl,     opClass: .ls,      mask: 0xf1d8, value: 0xe088),
+    OpInfo(name: .lsrm,     opClass: .lsm,     mask: 0xffc0, value: 0xe2c0),
+
+    
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
 ]
 
@@ -909,6 +945,38 @@ public struct Disassembler {
                 let op = Operation.or(size!, direction, address, register)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .ls:
+                let countOrRegister = (instructionWord >> 9) & 7
+                let direction = (instructionWord >> 8) & 1
+                let size0 = (instructionWord >> 6) & 3
+                let immOrReg = (instructionWord >> 5) & 1
+                let register = DataRegister(rawValue: Int(instructionWord & 7))!
+                
+                let count: ShiftCount
+                if immOrReg == 1 {
+                    count = .r(DataRegister(rawValue: Int(countOrRegister))!)
+                } else {
+                    count = .imm(UInt8(countOrRegister == 0 ? 8 : countOrRegister))
+                }
+                
+                let size: Size?
+                switch size0 {
+                case 0: size = .b
+                case 1: size = .w
+                case 2: size = .l
+                default: size = nil
+                }
+                
+                let op: Operation
+                if (direction == 1) {
+                    op = .lsl(size!, count, register)
+                } else {
+                    op = .lsr(size!, count, register)
+                }
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .lsm:
+                return insns
             }
         }
         

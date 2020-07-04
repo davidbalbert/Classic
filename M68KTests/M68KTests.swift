@@ -178,4 +178,34 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.or(.b, .mToR, .dd(.d4), .d2))
     }
+    
+    func testLogicalShiftImmediate() throws {
+        var data = Data([0xe9, 0x0e])
+        var d = Disassembler(data, loadAddress: 0)
+        var op = d.disassemble()[0].op
+        
+        XCTAssertEqual(op, Operation.lsl(.b, .imm(4), .d6))
+        
+        data = Data([0xe1, 0x0e])
+        d = Disassembler(data, loadAddress: 0)
+        op = d.disassemble()[0].op
+
+        XCTAssertEqual(op, Operation.lsl(.b, .imm(8), .d6))
+    }
+    
+    func testLogicalShiftRegister() throws {
+        let data = Data([0xe9, 0x2e])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+        
+        XCTAssertEqual(op, Operation.lsl(.b, .r(.d4), .d6))
+    }
+    
+    func testLogicalShiftRight() throws {
+        let data = Data([0xe8, 0x2e])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+        
+        XCTAssertEqual(op, Operation.lsr(.b, .r(.d4), .d6))
+    }
 }
