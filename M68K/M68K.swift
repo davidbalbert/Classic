@@ -358,6 +358,11 @@ enum ShiftCount: Equatable {
     case imm(UInt8)
 }
 
+enum BitNumber: Equatable {
+    case r(DataRegister)
+    case imm(UInt8)
+}
+
 enum Direction: Equatable {
     case rToM
     case mToR
@@ -384,6 +389,7 @@ enum OpName: String {
     case lslb, lslw, lsll, lslm
     case lsrb, lsrw, lsrl, lsrm
     case clrb, clrw, clrl
+    case bseti, bsetr
 }
 
 enum OpClass: String {
@@ -407,6 +413,7 @@ enum OpClass: String {
     case ls
     case lsm
     case clr
+    case bseti, bsetr
 }
 
 struct OpInfo {
@@ -439,6 +446,7 @@ enum Operation: Equatable {
     case lslm(EffectiveAddress)
     case lsrm(EffectiveAddress)
     case clr(Size, EffectiveAddress)
+    case bset(BitNumber, EffectiveAddress)
 }
 
 extension Operation: CustomStringConvertible {
@@ -500,6 +508,10 @@ extension Operation: CustomStringConvertible {
             return "lsr \(address)"
         case let .clr(size, address):
             return "clr.\(size) \(address)"
+        case let .bset(.imm(bitNumber), address):
+            return "bset #$\(String(bitNumber, radix: 16)), \(address)"
+        case let .bset(.r(register), address):
+            return "bset \(register), \(address)"
         }
     }
 }
@@ -581,7 +593,9 @@ let ops = [
     OpInfo(name: .clrw,     opClass: .clr,     mask: 0xffc0, value: 0x4240),
     OpInfo(name: .clrl,     opClass: .clr,     mask: 0xffc0, value: 0x4280),
 
-    
+    OpInfo(name: .bseti,    opClass: .bseti,   mask: 0xffc0, value: 0x08c0),
+    OpInfo(name: .bsetr,    opClass: .bsetr,   mask: 0xf1c0, value: 0x01c0),
+
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
 ]
 
@@ -1005,6 +1019,30 @@ public struct Disassembler {
                 }
 
                 let op = Operation.clr(size!, address)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .bseti:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                
+                let bitNumber = UInt8(truncatingIfNeeded: readWord())
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let op = Operation.bset(.imm(bitNumber), address)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .bsetr:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                
+                let op = Operation.bset(.r(register), address)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
