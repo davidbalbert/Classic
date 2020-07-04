@@ -356,6 +356,7 @@ struct RegisterList: OptionSet, CustomStringConvertible {
 enum OpName: String {
     case addb, addw, addl
     case andb, andw, andl
+    case andib, andiw, andil
     case bra
     case bcc
     case moveb, movew, movel
@@ -376,6 +377,7 @@ enum OpName: String {
 enum OpClass: String {
     case add
     case and
+    case andi
     case bra
     case bcc
     case move
@@ -406,6 +408,7 @@ enum Direction: Equatable {
 enum Operation: Equatable {
     case add(Size, Direction, EffectiveAddress, DataRegister)
     case and(Size, Direction, EffectiveAddress, DataRegister)
+    case andi(Size, Int32, EffectiveAddress)
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
     case move(Size, EffectiveAddress, EffectiveAddress)
@@ -432,6 +435,8 @@ extension Operation: CustomStringConvertible {
             return "and.\(size) \(address), \(register)"
         case let .and(size, .rToM, address, register):
             return "and.\(size) \(register), \(address)"
+        case let .andi(size, data, address):
+            return "and.\(size) #$\(String(data, radix: 16)), \(address)"
         case let .bra(size, pc, displacement):
             return "bra.\(size) $\(String(Int64(pc) + Int64(displacement), radix: 16))"
         case let .bcc(size, condition, pc, displacement):
@@ -485,6 +490,10 @@ let ops = [
     OpInfo(name: .andb,     opClass: .and,      mask: 0xf0c0, value: 0xc000),
     OpInfo(name: .andw,     opClass: .and,      mask: 0xf0c0, value: 0xc040),
     OpInfo(name: .andl,     opClass: .and,      mask: 0xf0c0, value: 0xc080),
+    
+    OpInfo(name: .andib,    opClass: .andi,     mask: 0xffc0, value: 0x0200),
+    OpInfo(name: .andiw,    opClass: .andi,     mask: 0xffc0, value: 0x0240),
+    OpInfo(name: .andil,    opClass: .andi,     mask: 0xffc0, value: 0x0280),
     
     OpInfo(name: .bra,      opClass: .bra,      mask: 0xff00, value: 0x6000),
     OpInfo(name: .bcc,      opClass: .bcc,      mask: 0xf000, value: 0x6000),
@@ -607,6 +616,34 @@ public struct Disassembler {
                 let op = Operation.and(size!, direction, address, register)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .andi:
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size
+                let data: Int32
+                switch size0 {
+                case 0:
+                    size = .b
+                    data = Int32(Int8(truncatingIfNeeded: readWord()))
+                case 1:
+                    size = .w
+                    data = Int32(Int16(bitPattern: readWord()))
+                case 2:
+                    size = .l
+                    data = Int32(bitPattern: readLong())
+                default:
+                    fatalError("unknown size")
+                }
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let op = Operation.andi(size, data, address)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+
             case .bra:
                 // TODO: '20, '30, and '40 support 32 bit displacement
                 var displacement = Int16(Int8(bitPattern: UInt8(instructionWord & 0xFF)))

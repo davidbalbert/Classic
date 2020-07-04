@@ -33,6 +33,14 @@ class M68KTests: XCTestCase {
 
         XCTAssertEqual(op, Operation.and(.w, .mToR, .dd(.d7), .d0))
     }
+    
+    func testAndi() throws {
+        let data = Data([0x02, 0x02, 0x00, 0x6b])
+        var d = Disassembler(data, loadAddress: 0)
+        let op = d.disassemble()[0].op
+
+        XCTAssertEqual(op, Operation.andi(.b, 0x6b, .dd(.d2)))
+    }
 
     func testBra() throws {
         var data = Data([0x60, 0x02])
