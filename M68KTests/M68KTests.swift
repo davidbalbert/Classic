@@ -10,6 +10,8 @@ import XCTest
 @testable import M68K
 
 class M68KTests: XCTestCase {
+    var d = Disassembler()
+    
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
     }
@@ -20,58 +22,50 @@ class M68KTests: XCTestCase {
     
     func testAdd() throws {
         let data = Data([0xd0, 0x42])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
 
         XCTAssertEqual(op, Operation.add(.w, .mToR, .dd(.d2), .d0))
     }
     
     func testAnd() throws {
         let data = Data([0xc0, 0x47])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
 
         XCTAssertEqual(op, Operation.and(.w, .mToR, .dd(.d7), .d0))
     }
     
     func testAndi() throws {
         let data = Data([0x02, 0x02, 0x00, 0x6b])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
 
         XCTAssertEqual(op, Operation.andi(.b, 0x6b, .dd(.d2)))
     }
 
     func testBra() throws {
         var data = Data([0x60, 0x02])
-        var d = Disassembler(data, loadAddress: 0)
-        var op = d.disassemble()[0].op
+        var op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.bra(.b, 2, 0x2))
         
         data = Data([0x60, 0x00, 0x00, 0x16])
-        d = Disassembler(data, loadAddress: 0)
-        op = d.disassemble()[0].op
+        op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.bra(.w, 2, 0x16))
         
         data = Data([0x60, 0xee])
-        d = Disassembler(data, loadAddress: 0)
-        op = d.disassemble()[0].op
+        op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.bra(.b, 2, -18))
     }
     
     func testBne() throws {
         var data = Data([0x66, 0x00, 0x00, 0xfc])
-        var d = Disassembler(data, loadAddress: 0)
-        var op = d.disassemble()[0].op
+        var op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.bcc(.w, .ne, 2, 0xfc))
         
         data = Data([0x66, 0xee])
-        d = Disassembler(data, loadAddress: 0x40)
-        op = d.disassemble()[0].op
+        op = d.disassemble(data, loadAddress: 0x40)[0].op
         
         XCTAssertEqual(op, Operation.bcc(.b, .ne, 0x42, -18))
     }
@@ -79,28 +73,24 @@ class M68KTests: XCTestCase {
     
     func testMove() throws {
         var data = Data([0x10, 0x80])
-        var d = Disassembler(data, loadAddress: 0)
-        var op = d.disassemble()[0].op
+        var op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.move(.b, .dd(.d0), .ind(.a0)))
         
         data = Data([0x20, 0x0f])
-        d = Disassembler(data, loadAddress: 0)
-        op = d.disassemble()[0].op
+        op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.move(.l, .ad(.a7), .dd(.d0)))
 
         data = Data([0x1b, 0x7c, 0x00, 0x87, 0x04, 0x00])
-        d = Disassembler(data, loadAddress: 0)
-        op = d.disassemble()[0].op
+        op = d.disassemble(data, loadAddress: 0)[0].op
 
         XCTAssertEqual(op, Operation.move(.b, .imm(.b(-0x79)), .d16An(0x400, .a5)))
     }
     
     func testMoveQ() throws {
         let data = Data([0x7e, 0x01])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.moveq(1, .d7))
 
@@ -108,24 +98,21 @@ class M68KTests: XCTestCase {
     
     func testMoveM() throws {
         let data = Data([0x4c, 0xf9, 0x01, 0x01, 0x00, 0xf8, 0x00, 0x00])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.movem(.l, .mToR, .XXXl(0xf80000), [.d0, .a0]))
     }
     
     func testLea() throws {
         let data = Data([0x4d, 0xfa, 0x00, 0x06])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.lea(.d16PC(2, 0x6), .a6))
     }
     
     func testSuba() throws {
         let data = Data([0x97, 0xcb])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.suba(.l, .ad(.a3), .a3))
     }
@@ -133,78 +120,68 @@ class M68KTests: XCTestCase {
     
     func testSubq() throws {
         let data = Data([0x53, 0x8f])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.subq(.l, 1, .ad(.a7)))
     }
     
     func testCmpi() throws {
         let data = Data([0x0c, 0x80, 0x55, 0xaa, 0xaa, 0x55])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.cmpi(.l, 0x55aaaa55, .dd(.d0)))
     }
     
     func testJmp() throws {
         let data = Data([0x4e, 0xd0])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.jmp(.ind(.a0)))
     }
     
     func testMoveToSR() throws {
         let data = Data([0x46, 0xfc, 0x27, 0x00])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.moveToSR(.imm(.w(0x2700))))
     }
     
     func testTst() throws {
         let data = Data([0x4a, 0x1e])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.tst(.b, .postInc(.a6)))
     }
     
     func testOr() throws {
         let data = Data([0x84, 0x04])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.or(.b, .mToR, .dd(.d4), .d2))
     }
     
     func testLogicalShiftImmediate() throws {
         var data = Data([0xe9, 0x0e])
-        var d = Disassembler(data, loadAddress: 0)
-        var op = d.disassemble()[0].op
+        var op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.lsl(.b, .imm(4), .d6))
         
         data = Data([0xe1, 0x0e])
-        d = Disassembler(data, loadAddress: 0)
-        op = d.disassemble()[0].op
+        op = d.disassemble(data, loadAddress: 0)[0].op
 
         XCTAssertEqual(op, Operation.lsl(.b, .imm(8), .d6))
     }
     
     func testLogicalShiftRegister() throws {
         let data = Data([0xe9, 0x2e])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.lsl(.b, .r(.d4), .d6))
     }
     
     func testLogicalShiftRight() throws {
         let data = Data([0xe8, 0x2e])
-        var d = Disassembler(data, loadAddress: 0)
-        let op = d.disassemble()[0].op
+        let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.lsr(.b, .r(.d4), .d6))
     }

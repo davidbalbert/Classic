@@ -578,14 +578,11 @@ let ops = [
 
 public struct Disassembler {
     var opTable: [OpClass?]
-    let data: Data
-    var offset: Data.Index
-    let loadAddress: UInt32
+    var data = Data()
+    var offset: Data.Index = 0
+    var loadAddress: UInt32 = 0
     
-    public init(_ data: Data, loadAddress: UInt32) {
-        self.data = data
-        self.loadAddress = loadAddress
-        offset = data.startIndex
+    public init() {
         opTable = Array(repeating: nil, count: Int(UInt16.max))
         
         for i in 0...Int(UInt16.max) {
@@ -598,8 +595,12 @@ public struct Disassembler {
         }
     }
     
-    public mutating func disassemble() -> [Instruction] {
+    public mutating func disassemble(_ data: Data, loadAddress: UInt32) -> [Instruction] {
         var insns: [Instruction] = []
+        
+        self.data = data
+        self.loadAddress = loadAddress
+        offset = data.startIndex
         
         while offset < data.endIndex {
             let startOffset = offset
