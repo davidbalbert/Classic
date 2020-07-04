@@ -383,6 +383,7 @@ enum OpName: String {
     case orb, orw, orl
     case lslb, lslw, lsll, lslm
     case lsrb, lsrw, lsrl, lsrm
+    case clrb, clrw, clrl
 }
 
 enum OpClass: String {
@@ -405,6 +406,7 @@ enum OpClass: String {
     case or
     case ls
     case lsm
+    case clr
 }
 
 struct OpInfo {
@@ -436,6 +438,7 @@ enum Operation: Equatable {
     case lsr(Size, ShiftCount, DataRegister)
     case lslm(EffectiveAddress)
     case lsrm(EffectiveAddress)
+    case clr(Size, EffectiveAddress)
 }
 
 extension Operation: CustomStringConvertible {
@@ -495,6 +498,8 @@ extension Operation: CustomStringConvertible {
             return "lsl \(address)"
         case let .lsrm(address):
             return "lsr \(address)"
+        case let .clr(size, address):
+            return "clr.\(size) \(address)"
         }
     }
 }
@@ -571,6 +576,10 @@ let ops = [
     OpInfo(name: .lsrw,     opClass: .ls,      mask: 0xf1d8, value: 0xe048),
     OpInfo(name: .lsrl,     opClass: .ls,      mask: 0xf1d8, value: 0xe088),
     OpInfo(name: .lsrm,     opClass: .lsm,     mask: 0xffc0, value: 0xe2c0),
+
+    OpInfo(name: .clrb,     opClass: .clr,     mask: 0xffc0, value: 0x4200),
+    OpInfo(name: .clrw,     opClass: .clr,     mask: 0xffc0, value: 0x4240),
+    OpInfo(name: .clrl,     opClass: .clr,     mask: 0xffc0, value: 0x4280),
 
     
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
@@ -977,7 +986,27 @@ public struct Disassembler {
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             case .lsm:
+                // TODO
                 return insns
+            case .clr:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                let address = readAddress(eaMode, Int(eaReg))
+
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size?
+                switch size0 {
+                case 0: size = .b
+                case 1: size = .w
+                case 2: size = .l
+                default: size = nil
+                }
+
+                let op = Operation.clr(size!, address)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
         }
         

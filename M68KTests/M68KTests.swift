@@ -185,4 +185,11 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.lsr(.b, .r(.d4), .d6))
     }
+    
+    func testClr() throws {
+        let data = Data([0x42, 0x2d, 0x18, 0x00])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.clr(.b, .d16An(0x1800, .a5)))
+    }
 }
