@@ -220,4 +220,11 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.btst(.r(.d0), .ind(.a5)))
     }
+    
+    func testSwap() throws {
+        let data = Data([0x48, 0x40])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.swap(.d0))
+    }
 }

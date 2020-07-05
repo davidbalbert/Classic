@@ -391,6 +391,7 @@ enum OpName: String {
     case clrb, clrw, clrl
     case bseti, bsetr
     case btsti, btstr
+    case swap
 }
 
 enum OpClass: String {
@@ -416,6 +417,7 @@ enum OpClass: String {
     case clr
     case bseti, bsetr
     case btsti, btstr
+    case swap
 }
 
 struct OpInfo {
@@ -450,6 +452,7 @@ enum Operation: Equatable {
     case clr(Size, EffectiveAddress)
     case bset(BitNumber, EffectiveAddress)
     case btst(BitNumber, EffectiveAddress)
+    case swap(DataRegister)
 }
 
 extension Operation: CustomStringConvertible {
@@ -519,6 +522,8 @@ extension Operation: CustomStringConvertible {
             return "btst #$\(String(bitNumber, radix: 16)), \(address)"
         case let .btst(.r(register), address):
             return "btst \(register), \(address)"
+        case let .swap(register):
+            return "swap \(register)"
         }
     }
 }
@@ -606,6 +611,7 @@ let ops = [
     OpInfo(name: .btsti,    opClass: .btsti,   mask: 0xffc0, value: 0x0800),
     OpInfo(name: .btstr,    opClass: .btstr,   mask: 0xf1c0, value: 0x0100),
     
+    OpInfo(name: .swap,     opClass: .swap,    mask: 0xfff8, value: 0x4840)
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
 ]
 
@@ -1077,6 +1083,12 @@ public struct Disassembler {
                 let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
                 
                 let op = Operation.btst(.r(register), address)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .swap:
+                let register = DataRegister(rawValue: Int(instructionWord & 7))!
+                
+                let op = Operation.swap(register)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
