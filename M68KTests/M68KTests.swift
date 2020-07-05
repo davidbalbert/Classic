@@ -201,9 +201,23 @@ class M68KTests: XCTestCase {
     }
     
     func testBsetRegister() throws {
-        let data = Data([0x01, 0xd5, 0x00, 0x07])
+        let data = Data([0x01, 0xd5])
         let op = d.disassemble(data, loadAddress: 0)[0].op
         
         XCTAssertEqual(op, Operation.bset(.r(.d0), .ind(.a5)))
+    }
+    
+    func testBtstImmediate() throws {
+        let data = Data([0x08, 0x15, 0x00, 0x07])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.btst(.imm(7), .ind(.a5)))
+    }
+    
+    func testBtstRegister() throws {
+        let data = Data([0x01, 0x15])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.btst(.r(.d0), .ind(.a5)))
     }
 }
