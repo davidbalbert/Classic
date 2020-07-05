@@ -358,6 +358,11 @@ enum ShiftCount: Equatable {
     case imm(UInt8)
 }
 
+enum RotateCount: Equatable {
+    case r(DataRegister)
+    case imm(UInt8)
+}
+
 enum BitNumber: Equatable {
     case r(DataRegister)
     case imm(UInt8)
@@ -392,6 +397,8 @@ enum OpName: String {
     case bseti, bsetr
     case btsti, btstr
     case swap
+    case rolb, rolw, roll, rolm
+    case rorb, rorw, rorl, rorm
 }
 
 enum OpClass: String {
@@ -412,12 +419,12 @@ enum OpClass: String {
     case jmp
     case tst
     case or
-    case ls
-    case lsm
+    case lslr, lslrm
     case clr
     case bseti, bsetr
     case btsti, btstr
     case swap
+    case rolr, rolrm
 }
 
 struct OpInfo {
@@ -453,6 +460,10 @@ enum Operation: Equatable {
     case bset(BitNumber, EffectiveAddress)
     case btst(BitNumber, EffectiveAddress)
     case swap(DataRegister)
+    case rol(Size, RotateCount, DataRegister)
+    case ror(Size, RotateCount, DataRegister)
+    case rolm(EffectiveAddress)
+    case rorm(EffectiveAddress)
 }
 
 extension Operation: CustomStringConvertible {
@@ -524,6 +535,18 @@ extension Operation: CustomStringConvertible {
             return "btst \(register), \(address)"
         case let .swap(register):
             return "swap \(register)"
+        case let .rol(size, .r(countRegister), register):
+            return "rol.\(size) \(countRegister), \(register)"
+        case let .rol(size, .imm(count), register):
+            return "rol.\(size) #$\(String(count, radix: 16)), \(register)"
+        case let .ror(size, .r(countRegister), register):
+            return "ror.\(size) \(countRegister), \(register)"
+        case let .ror(size, .imm(count), register):
+            return "ror.\(size) #$\(String(count, radix: 16)), \(register)"
+        case let .rolm(address):
+            return "rol \(address)"
+        case let .rorm(address):
+            return "ror \(address)"
         }
     }
 }
@@ -587,31 +610,41 @@ let ops = [
     OpInfo(name: .tstw,     opClass: .tst,      mask: 0xffc0, value: 0x4a40),
     OpInfo(name: .tstl,     opClass: .tst,      mask: 0xffc0, value: 0x4a80),
 
-    OpInfo(name: .orb,     opClass: .or,        mask: 0xf0c0, value: 0x8000),
-    OpInfo(name: .orw,     opClass: .or,        mask: 0xf0c0, value: 0x8040),
-    OpInfo(name: .orl,     opClass: .or,        mask: 0xf0c0, value: 0x8080),
+    OpInfo(name: .orb,      opClass: .or,       mask: 0xf0c0, value: 0x8000),
+    OpInfo(name: .orw,      opClass: .or,       mask: 0xf0c0, value: 0x8040),
+    OpInfo(name: .orl,      opClass: .or,       mask: 0xf0c0, value: 0x8080),
 
-    OpInfo(name: .lslb,     opClass: .ls,      mask: 0xf1d8, value: 0xe108),
-    OpInfo(name: .lslw,     opClass: .ls,      mask: 0xf1d8, value: 0xe148),
-    OpInfo(name: .lsll,     opClass: .ls,      mask: 0xf1d8, value: 0xe188),
-    OpInfo(name: .lslm,     opClass: .lsm,     mask: 0xffc0, value: 0xe3c0),
+    OpInfo(name: .lsrb,     opClass: .lslr,     mask: 0xf1d8, value: 0xe008),
+    OpInfo(name: .lsrw,     opClass: .lslr,     mask: 0xf1d8, value: 0xe048),
+    OpInfo(name: .lsrl,     opClass: .lslr,     mask: 0xf1d8, value: 0xe088),
+    OpInfo(name: .lsrm,     opClass: .lslrm,    mask: 0xffc0, value: 0xe2c0),
 
-    OpInfo(name: .lsrb,     opClass: .ls,      mask: 0xf1d8, value: 0xe008),
-    OpInfo(name: .lsrw,     opClass: .ls,      mask: 0xf1d8, value: 0xe048),
-    OpInfo(name: .lsrl,     opClass: .ls,      mask: 0xf1d8, value: 0xe088),
-    OpInfo(name: .lsrm,     opClass: .lsm,     mask: 0xffc0, value: 0xe2c0),
+    OpInfo(name: .lslb,     opClass: .lslr,     mask: 0xf1d8, value: 0xe108),
+    OpInfo(name: .lslw,     opClass: .lslr,     mask: 0xf1d8, value: 0xe148),
+    OpInfo(name: .lsll,     opClass: .lslr,     mask: 0xf1d8, value: 0xe188),
+    OpInfo(name: .lslm,     opClass: .lslrm,    mask: 0xffc0, value: 0xe3c0),
 
-    OpInfo(name: .clrb,     opClass: .clr,     mask: 0xffc0, value: 0x4200),
-    OpInfo(name: .clrw,     opClass: .clr,     mask: 0xffc0, value: 0x4240),
-    OpInfo(name: .clrl,     opClass: .clr,     mask: 0xffc0, value: 0x4280),
-
-    OpInfo(name: .bseti,    opClass: .bseti,   mask: 0xffc0, value: 0x08c0),
-    OpInfo(name: .bsetr,    opClass: .bsetr,   mask: 0xf1c0, value: 0x01c0),
-
-    OpInfo(name: .btsti,    opClass: .btsti,   mask: 0xffc0, value: 0x0800),
-    OpInfo(name: .btstr,    opClass: .btstr,   mask: 0xf1c0, value: 0x0100),
+    OpInfo(name: .rorb,     opClass: .rolr,     mask: 0xf1d8, value: 0xe018),
+    OpInfo(name: .rorw,     opClass: .rolr,     mask: 0xf1d8, value: 0xe058),
+    OpInfo(name: .rorl,     opClass: .rolr,     mask: 0xf1d8, value: 0xe098),
+    OpInfo(name: .rorm,     opClass: .rolrm,    mask: 0xffc0, value: 0xe6c0),
     
-    OpInfo(name: .swap,     opClass: .swap,    mask: 0xfff8, value: 0x4840)
+    OpInfo(name: .rolb,     opClass: .rolr,     mask: 0xf1d8, value: 0xe118),
+    OpInfo(name: .rolw,     opClass: .rolr,     mask: 0xf1d8, value: 0xe158),
+    OpInfo(name: .roll,     opClass: .rolr,     mask: 0xf1d8, value: 0xe198),
+    OpInfo(name: .rolm,     opClass: .rolrm,    mask: 0xffc0, value: 0xe7c0),
+    
+    OpInfo(name: .clrb,     opClass: .clr,      mask: 0xffc0, value: 0x4200),
+    OpInfo(name: .clrw,     opClass: .clr,      mask: 0xffc0, value: 0x4240),
+    OpInfo(name: .clrl,     opClass: .clr,      mask: 0xffc0, value: 0x4280),
+
+    OpInfo(name: .bseti,    opClass: .bseti,    mask: 0xffc0, value: 0x08c0),
+    OpInfo(name: .bsetr,    opClass: .bsetr,    mask: 0xf1c0, value: 0x01c0),
+
+    OpInfo(name: .btsti,    opClass: .btsti,    mask: 0xffc0, value: 0x0800),
+    OpInfo(name: .btstr,    opClass: .btstr,    mask: 0xf1c0, value: 0x0100),
+    
+    OpInfo(name: .swap,     opClass: .swap,     mask: 0xfff8, value: 0x4840)
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
 ]
 
@@ -985,7 +1018,7 @@ public struct Disassembler {
                 let op = Operation.or(size!, direction, address, register)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
-            case .ls:
+            case .lslr:
                 let countOrRegister = (instructionWord >> 9) & 7
                 let direction = (instructionWord >> 8) & 1
                 let size0 = (instructionWord >> 6) & 3
@@ -1015,7 +1048,7 @@ public struct Disassembler {
                 }
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
-            case .lsm:
+            case .lslrm:
                 // TODO
                 return insns
             case .clr:
@@ -1091,6 +1124,39 @@ public struct Disassembler {
                 let op = Operation.swap(register)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .rolr:
+                let countOrRegister = (instructionWord >> 9) & 7
+                let direction = (instructionWord >> 8) & 1
+                let size0 = (instructionWord >> 6) & 3
+                let immOrReg = (instructionWord >> 5) & 1
+                let register = DataRegister(rawValue: Int(instructionWord & 7))!
+                
+                let count: RotateCount
+                if immOrReg == 1 {
+                    count = .r(DataRegister(rawValue: Int(countOrRegister))!)
+                } else {
+                    count = .imm(UInt8(countOrRegister == 0 ? 8 : countOrRegister))
+                }
+                
+                let size: Size?
+                switch size0 {
+                case 0: size = .b
+                case 1: size = .w
+                case 2: size = .l
+                default: size = nil
+                }
+                
+                let op: Operation
+                if (direction == 1) {
+                    op = .rol(size!, count, register)
+                } else {
+                    op = .ror(size!, count, register)
+                }
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .rolrm:
+                // TODO
+                return insns
             }
         }
         

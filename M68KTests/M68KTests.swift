@@ -186,6 +186,47 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.lsr(.b, .r(.d4), .d6))
     }
     
+    func testRotateImmediate() throws {
+        var data = Data([0xe9, 0x98])
+        var op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.rol(.l, .imm(4), .d0))
+        
+        data = Data([0xe1, 0x98])
+        op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.rol(.l, .imm(8), .d0))
+    }
+    
+    func testRotateRegister() throws {
+        let data = Data([0xe3, 0xb8])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.rol(.l, .r(.d1), .d0))
+    }
+    
+    func testRotateRight() throws {
+        let data = Data([0xe2, 0xb8])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.ror(.l, .r(.d1), .d0))
+    }
+    
+    func testRotateByte() throws {
+        let data = Data([0xe3, 0x38])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.rol(.b, .r(.d1), .d0))
+    }
+    
+    func testRotateWord() throws {
+        let data = Data([0xe3, 0x78])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.rol(.w, .r(.d1), .d0))
+    }
+
+    
     func testClr() throws {
         let data = Data([0x42, 0x2d, 0x18, 0x00])
         let op = d.disassemble(data, loadAddress: 0)[0].op
