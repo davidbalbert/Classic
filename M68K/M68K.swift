@@ -228,10 +228,11 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
     case postInc(AddressRegister)
     case preDec(AddressRegister)
     case d16An(Int16, AddressRegister)
-    case d8AnXn(Int8, AddressRegister, Register)
+    case d8AnXn(Int8, AddressRegister, Register, Size)
     case XXXw(UInt32)
     case XXXl(UInt32)
     case d16PC(UInt32, Int16)
+    case d8PCXn(UInt32, Int8, Register, Size)
     case imm(ImmediateValue)
     
     var description: String {
@@ -242,16 +243,19 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
         case let .postInc(An):        return "(\(An))+"
         case let .preDec(An):         return "-(\(An))"
         case let .d16An(d16, An):     return "$\(String(d16, radix: 16))(\(An))"
-        case let .d8AnXn(d8, An, Xn): return "$\(String(d8, radix: 16))(\(An),\(Xn))"
+        case let .d8AnXn(d8, An, Xn, size): return "$\(String(d8, radix: 16))(\(An), \(Xn).\(size))"
         case let .XXXw(address):      return "($\(String(address, radix: 16)))"
         case let .XXXl(address):      return "($\(String(address, radix: 16)))"
         case let .d16PC(pc, d16):     return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
+        case let .d8PCXn(pc, d8, Xn, size): return "$\(String(Int(pc) + Int(d8), radix: 16))(PC, \(Xn).\(size))"
         case let .imm(value):         return "\(value)"
         }
     }
 }
 
 struct ExtensionWord {
+    let indexRegister: Register
+    let indexSize: Size
     let displacement: Int8
 }
 
@@ -399,6 +403,7 @@ enum OpName: String {
     case swap
     case rolb, rolw, roll, rolm
     case rorb, rorw, rorl, rorm
+    case mulu
 }
 
 enum OpClass: String {
@@ -425,6 +430,7 @@ enum OpClass: String {
     case btsti, btstr
     case swap
     case rolr, rolrm
+    case mulu
 }
 
 struct OpInfo {
@@ -464,6 +470,7 @@ enum Operation: Equatable {
     case ror(Size, RotateCount, DataRegister)
     case rolm(EffectiveAddress)
     case rorm(EffectiveAddress)
+    case mulu(EffectiveAddress, DataRegister)
 }
 
 extension Operation: CustomStringConvertible {
@@ -547,6 +554,8 @@ extension Operation: CustomStringConvertible {
             return "rol \(address)"
         case let .rorm(address):
             return "ror \(address)"
+        case let .mulu(address, register):
+            return "mulu.w \(address), \(register)"
         }
     }
 }
@@ -644,7 +653,8 @@ let ops = [
     OpInfo(name: .btsti,    opClass: .btsti,    mask: 0xffc0, value: 0x0800),
     OpInfo(name: .btstr,    opClass: .btstr,    mask: 0xf1c0, value: 0x0100),
     
-    OpInfo(name: .swap,     opClass: .swap,     mask: 0xfff8, value: 0x4840)
+    OpInfo(name: .swap,     opClass: .swap,     mask: 0xfff8, value: 0x4840),
+    OpInfo(name: .mulu,     opClass: .mulu,     mask: 0xf1c0, value: 0xc0c0),
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
 ]
 
@@ -1157,6 +1167,18 @@ public struct Disassembler {
             case .rolrm:
                 // TODO
                 return insns
+            case .mulu:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                let address = readAddress(eaMode, Int(eaReg), size: .w)
+
+                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                
+                let op = Operation.mulu(address, register)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
             }
         }
         
@@ -1186,7 +1208,11 @@ public struct Disassembler {
             let val = Int16(bitPattern: readWord())
             
             return .d16An(val, AddressRegister(rawValue: reg)!)
-        case .d8AnXn: fatalError("d8AnXn not implemented")
+        case .d8AnXn:
+            let ex = readExtensionWord()
+            let register = AddressRegister(rawValue: reg)!
+            
+            return .d8AnXn(ex.displacement, register, ex.indexRegister, ex.indexSize)
         case .XXXw:
             let val = UInt32(truncatingIfNeeded: Int16(bitPattern: readWord()))
             
@@ -1200,7 +1226,10 @@ public struct Disassembler {
             let ex = readExtensionWord()
             return .d16PC(loadAddress+exOffset, Int16(ex.displacement))
         case .d8PCXn:
-            fatalError("d8PCXn not implemented")
+            let exOffset = UInt32(offset)
+            let ex = readExtensionWord()
+            
+            return .d8PCXn(loadAddress+exOffset, ex.displacement, ex.indexRegister, ex.indexSize)
         case .imm:
             switch size! {
             case .b: return .imm(.b(Int8(truncatingIfNeeded: readWord())))
@@ -1217,9 +1246,26 @@ public struct Disassembler {
             fatalError("Full extension words are not yet supported")
         }
         
-        let displacement = Int8(w & 0xFF)
+        let displacement = Int8(truncatingIfNeeded: w)
         
-        return ExtensionWord(displacement: displacement)
+        let isAddressRegister = ((w >> 15) & 1) == 1
+        let regNum = (w >> 12) & 7
+        
+        let indexRegister: Register
+        if isAddressRegister {
+            indexRegister = .a(AddressRegister(rawValue: Int(regNum))!)
+        } else {
+            indexRegister = .d(DataRegister(rawValue: Int(regNum))!)
+        }
+        
+        let size: Size
+        if ((w >> 11) & 1) == 1 {
+            size = .l
+        } else {
+            size = .w
+        }
+        
+        return ExtensionWord(indexRegister: indexRegister, indexSize: size, displacement: displacement)
     }
     
     mutating func readByte() -> UInt8 {
