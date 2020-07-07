@@ -379,6 +379,7 @@ enum Direction: Equatable {
 
 enum OpName: String {
     case addb, addw, addl
+    case adda
     case andb, andw, andl
     case andib, andiw, andil
     case bra
@@ -408,6 +409,7 @@ enum OpName: String {
 
 enum OpClass: String {
     case add
+    case adda
     case and
     case andi
     case bra
@@ -442,6 +444,7 @@ struct OpInfo {
 
 enum Operation: Equatable {
     case add(Size, Direction, EffectiveAddress, DataRegister)
+    case adda(Size, EffectiveAddress, AddressRegister)
     case and(Size, Direction, EffectiveAddress, DataRegister)
     case andi(Size, Int32, EffectiveAddress)
     case bra(Size, UInt32, Int16)
@@ -480,6 +483,8 @@ extension Operation: CustomStringConvertible {
             return "add.\(size) \(address), \(register)"
         case let .add(size, .rToM, address, register):
             return "add.\(size) \(register), \(address)"
+        case let .adda(size, address, register):
+            return "adda.\(size) \(address), \(register)"
         case let .and(size, .mToR, address, register):
             return "and.\(size) \(address), \(register)"
         case let .and(size, .rToM, address, register):
@@ -577,6 +582,8 @@ let ops = [
     OpInfo(name: .addb,     opClass: .add,      mask: 0xf0c0, value: 0xd000),
     OpInfo(name: .addw,     opClass: .add,      mask: 0xf0c0, value: 0xd040),
     OpInfo(name: .addl,     opClass: .add,      mask: 0xf0c0, value: 0xd080),
+    
+    OpInfo(name: .adda,     opClass: .adda,     mask: 0xf0c0, value: 0xd0c0),
 
     OpInfo(name: .andb,     opClass: .and,      mask: 0xf0c0, value: 0xc000),
     OpInfo(name: .andw,     opClass: .and,      mask: 0xf0c0, value: 0xc040),
@@ -715,6 +722,29 @@ public struct Disassembler {
                 let direction: Direction = direction0 == 1 ? .rToM : .mToR
 
                 let op = Operation.add(size!, direction, address, register)
+                
+                insns.append(makeInstruction(op: op, startOffset: startOffset))
+            case .adda:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+
+                let register = AddressRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                
+                let opmode = (instructionWord >> 6) & 7
+                let size: Size
+                if opmode == 0b11 {
+                    size = .w
+                } else if opmode == 0b111 {
+                    size = .l
+                } else {
+                    fatalError("addi: invalid opmode")
+                }
+                
+                let address = readAddress(eaMode, Int(eaReg), size: size)
+
+                let op = Operation.adda(size, address, register)
                 
                 insns.append(makeInstruction(op: op, startOffset: startOffset))
             case .and:
