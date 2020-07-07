@@ -40,7 +40,6 @@ class M68KTests: XCTestCase {
 
         XCTAssertEqual(op, Operation.adda(.l, .dd(.d1), .a2))
     }
-
     
     func testAnd() throws {
         let data = Data([0xc0, 0x47])
@@ -83,6 +82,13 @@ class M68KTests: XCTestCase {
         op = d.disassemble(data, loadAddress: 0x40)[0].op
         
         XCTAssertEqual(op, Operation.bcc(.b, .ne, 0x42, -18))
+    }
+    
+    func testDbf() throws {
+        let data = Data([0x51, 0xcb, 0xff, 0xe6])
+        let op = d.disassemble(data, loadAddress: 0x196)[0].op
+        
+        XCTAssertEqual(op, Operation.dbcc(.f, .d3, 0x198, -26))
     }
 
     
