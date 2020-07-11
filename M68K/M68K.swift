@@ -1303,8 +1303,8 @@ public struct Disassembler {
             return .XXXl(val)
         case .d16PC:
             let exOffset = UInt32(offset)
-            let ex = readExtensionWord()
-            return .d16PC(loadAddress+exOffset, Int16(ex.displacement))
+            let ex = readWord()
+            return .d16PC(loadAddress+exOffset, Int16(bitPattern: ex))
         case .d8PCXn:
             let exOffset = UInt32(offset)
             let ex = readExtensionWord()
