@@ -437,6 +437,8 @@ enum OpClass: String {
     case swap
     case rolr, rolrm
     case mulu
+    
+    case unknown
 }
 
 struct OpInfo {
@@ -480,6 +482,8 @@ enum Operation: Equatable {
     case rolm(EffectiveAddress)
     case rorm(EffectiveAddress)
     case mulu(EffectiveAddress, DataRegister)
+    
+    case unknown(UInt16)
 }
 
 extension Operation: CustomStringConvertible {
@@ -571,6 +575,9 @@ extension Operation: CustomStringConvertible {
             return "ror \(address)"
         case let .mulu(address, register):
             return "mulu.w \(address), \(register)"
+            
+        case let .unknown(word):
+            return "dc.w $\(String(word, radix: 16))"
         }
     }
 }
@@ -682,13 +689,13 @@ let ops = [
 ]
 
 public struct Disassembler {
-    var opTable: [OpClass?]
+    var opTable: [OpClass]
     var data = Data()
     var offset: Data.Index = 0
     var loadAddress: UInt32 = 0
     
     public init() {
-        opTable = Array(repeating: nil, count: Int(UInt16.max))
+        opTable = Array(repeating: .unknown, count: Int(UInt16.max) + 1)
         
         for i in 0...Int(UInt16.max) {
             for opInfo in ops {
@@ -709,44 +716,69 @@ public struct Disassembler {
         
         while offset < data.endIndex {
             let startOffset = offset
-            let instructionWord = readWord()
             
-            guard let opClass = opTable[Int(instructionWord)] else {
-                return insns
+            guard let instructionWord = readWord() else {
+                break
             }
             
+            let idx = Int(instructionWord)
+            
+            let opClass = opTable[idx]
+            
+            let op: Operation
+            
             switch opClass {
+            case .unknown:
+                op = .unknown(instructionWord)
             case .add:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
-                let address = readAddress(eaMode, Int(eaReg))
-
-                let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7)!
-
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
                 let size0 = (instructionWord >> 6) & 3
-                let size: Size?
-                switch size0 {
-                case 0: size = .b
-                case 1: size = .w
-                case 2: size = .l
-                default: size = nil
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
                 }
 
                 let direction0 = (instructionWord >> 8) & 1
                 let direction: Direction = direction0 == 1 ? .rToM : .mToR
 
-                let op = Operation.add(size!, direction, address, register)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .add(size, direction, address, register)
             case .adda:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let register = AddressRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                guard let register = AddressRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
                 let opmode = (instructionWord >> 6) & 7
                 let size: Size
@@ -755,14 +787,16 @@ public struct Disassembler {
                 } else if opmode == 0b111 {
                     size = .l
                 } else {
-                    fatalError("addi: invalid opmode")
+                    op = .unknown(instructionWord)
+                    break
                 }
                 
-                let address = readAddress(eaMode, Int(eaReg), size: size)
+                guard let address = readAddress(eaMode, Int(eaReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let op = Operation.adda(size, address, register)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .adda(size, address, register)
             case .addq:
                 var data = UInt8((instructionWord >> 9) & 7)
                 if data == 0 {
@@ -771,170 +805,253 @@ public struct Disassembler {
                 
                 let size0 = (instructionWord >> 6) & 3
                 let size: Size
-                switch size0 {
-                case 0: size = .b
-                case 1: size = .w
-                case 2: size = .l
-                default: fatalError("addq: invalid size")
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
                 }
                 
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let address = readAddress(eaMode, Int(eaReg), size: size)
+                guard let address = readAddress(eaMode, Int(eaReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let op = Operation.addq(size, data, address)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .addq(size, data, address)
             case .and:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
-                let address = readAddress(eaMode, Int(eaReg))
-
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7)!
-
+                guard let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
                 let size0 = (instructionWord >> 6) & 3
-                let size: Size?
-                switch size0 {
-                case 0: size = .b
-                case 1: size = .w
-                case 2: size = .l
-                default: size = nil
+                let size: Size
+                
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
                 }
 
                 let direction0 = (instructionWord >> 8) & 1
                 let direction: Direction = direction0 == 1 ? .rToM : .mToR
                 
-                let op = Operation.and(size!, direction, address, register)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .and(size, direction, address, register)
             case .andi:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
                 let size0 = (instructionWord >> 6) & 3
                 let size: Size
                 let data: Int32
-                switch size0 {
-                case 0:
+
+                if size0 == 0 {
+                    guard let w = readWord() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
                     size = .b
-                    data = Int32(Int8(truncatingIfNeeded: readWord()))
-                case 1:
+                    data = Int32(Int8(truncatingIfNeeded: w))
+                } else if size0 == 1 {
+                    guard let w = readWord() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
                     size = .w
-                    data = Int32(Int16(bitPattern: readWord()))
-                case 2:
+                    data = Int32(Int16(bitPattern: w))
+                } else if size0 == 2 {
+                    guard let l = readLong() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
                     size = .l
-                    data = Int32(bitPattern: readLong())
-                default:
-                    fatalError("unknown size")
+                    data = Int32(bitPattern: l)
+                } else {
+                    op = .unknown(instructionWord)
+                    break
                 }
                 
-                let eaModeNum = (instructionWord >> 3) & 7
-                let eaReg = instructionWord & 7
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let address = readAddress(eaMode, Int(eaReg))
-
-                let op = Operation.andi(size, data, address)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
-
+                op = .andi(size, data, address)
             case .bra:
                 // TODO: '20, '30, and '40 support 32 bit displacement
                 var displacement = Int16(Int8(bitPattern: UInt8(instructionWord & 0xFF)))
                 var size = Size.b
                 
                 if displacement == 0 {
-                    displacement = Int16(bitPattern: readWord())
+                    guard let w = readWord() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
+                    displacement = Int16(bitPattern: w)
                     size = .w
                 }
                 
-                let op = Operation.bra(size, loadAddress+UInt32(startOffset+2), displacement)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .bra(size, loadAddress+UInt32(startOffset+2), displacement)
             case .bcc:
                 // TODO: '20, '30, and '40 support 32 bit displacement
-                let condition = Condition(rawValue: Int((instructionWord >> 8) & 0xf))!
+                guard let condition = Condition(rawValue: Int((instructionWord >> 8) & 0xf)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
                 var displacement = Int16(Int8(bitPattern: UInt8(instructionWord & 0xFF)))
                 var size = Size.b
                 
                 if displacement == 0 {
-                    displacement = Int16(bitPattern: readWord())
+                    guard let w = readWord() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
+                    displacement = Int16(bitPattern: w)
                     size = .w
                 }
 
-                let op = Operation.bcc(size, condition, loadAddress+UInt32(startOffset+2), displacement)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .bcc(size, condition, loadAddress+UInt32(startOffset+2), displacement)
             case .dbcc:
-                let condition = Condition(rawValue: Int((instructionWord >> 8) & 0xf))!
-                let register = DataRegister(rawValue: Int(instructionWord & 7))!
+                guard let condition = Condition(rawValue: Int((instructionWord >> 8) & 0xf)),
+                      let register = DataRegister(rawValue: Int(instructionWord & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let displacement = Int16(bitPattern: readWord())
+                guard let w = readWord() else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
                 
-                let op = Operation.dbcc(condition, register, loadAddress+UInt32(startOffset+2), displacement)
+                let displacement = Int16(bitPattern: w)
                 
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .dbcc(condition, register, loadAddress+UInt32(startOffset+2), displacement)
             case .move:
                 let size0 = (instructionWord >> 12) & 3
                 
-                var size: Size?
+                var size: Size
                 if size0 == 1 {
                     size = .b
                 } else if size0 == 3 {
                     size = .w
                 } else if size0 == 2 {
                     size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
                 }
                 
                 let dstReg = (instructionWord >> 9) & 7
                 let dstModeNum = (instructionWord >> 6) & 7
-                let dstMode = AddressingMode.for(Int(dstModeNum), reg: Int(dstReg))!
+                guard let dstMode = AddressingMode.for(Int(dstModeNum), reg: Int(dstReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
                 
                 let srcModeNum = (instructionWord >> 3) & 7
                 let srcReg = instructionWord & 7
-                let srcMode = AddressingMode.for(Int(srcModeNum), reg: Int(srcReg))!
+                guard let srcMode = AddressingMode.for(Int(srcModeNum), reg: Int(srcReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+
+                }
                 
-                let srcAddr = readAddress(srcMode, Int(srcReg), size: size!)
-                let dstAddr = readAddress(dstMode, Int(dstReg), size: size!)
+                guard let srcAddr = readAddress(srcMode, Int(srcReg), size: size),
+                      let dstAddr = readAddress(dstMode, Int(dstReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let op = Operation.move(size!, srcAddr, dstAddr)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
-                
+                op = .move(size, srcAddr, dstAddr)
             case .lea:
-                let w = Int(instructionWord)
+                guard let dstReg = AddressRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let dstReg = AddressRegister(rawValue: (w >> 9) & 7)!
+                let srcModeNum = (instructionWord >> 3) & 7
+                let srcReg = instructionWord & 7
+                guard let srcMode = AddressingMode.for(Int(srcModeNum), reg: Int(srcReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let srcModeNum = (w >> 3) & 7
-                let srcReg = w & 7
-                let srcMode = AddressingMode.for(srcModeNum, reg: srcReg)!
+                guard let srcAddr = readAddress(srcMode, Int(srcReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let srcAddr = readAddress(srcMode, srcReg)
-                
-                let op = Operation.lea(srcAddr, dstReg)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .lea(srcAddr, dstReg)
             case .suba:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
-
-                let register = AddressRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)),
+                      let register = AddressRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
                 let opmode = (instructionWord >> 6) & 7
-                let size: Size = opmode == 7 ? .l : .w
+                let size: Size
+                if opmode == 7 {
+                    size = .l
+                } else if opmode == 3 {
+                    size = .w
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let address = readAddress(eaMode, Int(eaReg), size: size)
+                guard let address = readAddress(eaMode, Int(eaReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let op = Operation.suba(size, address, register)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .suba(size, address, register)
             case .subq:
                 var data = UInt8((instructionWord >> 9) & 7)
                 if data == 0 {
@@ -943,37 +1060,54 @@ public struct Disassembler {
                 
                 let size0 = (instructionWord >> 6) & 3
                 
-                var size: Size?
+                var size: Size
                 if size0 == 0 {
                     size = .b
                 } else if size0 == 1 {
                     size = .w
                 } else if size0 == 2 {
                     size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
                 }
 
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let address = readAddress(eaMode, Int(eaReg))
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let op = Operation.subq(size!, data, address)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .subq(size, data, address)
             case .movem:
                 let direction0 = (instructionWord >> 10) & 1
                 let size0 = (instructionWord >> 6) & 1
                 let size = size0 == 1 ? Size.l : Size.w
                 
-                let registers0 = readWord()
-                
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let address = readAddress(eaMode, Int(eaReg))
+                guard let registers0 = readWord() else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    unreadWord() // registers0
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
                 let registers: RegisterList
                 if case .preDec(_) = address {
@@ -984,282 +1118,410 @@ public struct Disassembler {
 
                 let direction: Direction = direction0 == 1 ? .mToR : .rToM
                 
-                let op = Operation.movem(size, direction, address, registers)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .movem(size, direction, address, registers)
             case .cmp:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
                 
-                let address = readAddress(eaMode, Int(eaReg))
-
-                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
                 let opmode = (instructionWord >> 6) & 7
                 
-                let size: Size?
-                switch opmode {
-                case 0: size = .b
-                case 1: size = .w
-                case 2: size = .l
-                default: size = nil
+                let size: Size
+                if opmode == 0 {
+                    size = .b
+                } else if opmode == 1 {
+                    size = .w
+                } else if opmode == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .cmp(size, address, register)
+            case .cmpi:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
                 }
                 
-                let op = Operation.cmp(size!, address, register!)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
-            case .cmpi:
                 let size0 = (instructionWord >> 6) & 3
                 let size: Size
                 let data: Int32
-                switch size0 {
-                case 0:
+                if size0 == 0 {
+                    guard let w = readWord() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
                     size = .b
-                    data = Int32(Int8(truncatingIfNeeded: readWord()))
-                case 1:
+                    data = Int32(Int8(truncatingIfNeeded: w))
+                } else if size0 == 1 {
+                    guard let w = readWord() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
                     size = .w
-                    data = Int32(Int16(bitPattern: readWord()))
-                case 2:
+                    data = Int32(Int16(bitPattern: w))
+                } else if size0 == 2 {
+                    guard let l = readLong() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
                     size = .l
-                    data = Int32(bitPattern: readLong())
-                default:
-                    fatalError("unknown size")
+                    data = Int32(bitPattern: l)
+                } else {
+                    op = .unknown(instructionWord)
+                    break
                 }
-                
-                let eaModeNum = (instructionWord >> 3) & 7
-                let eaReg = instructionWord & 7
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
 
-                let address = readAddress(eaMode, Int(eaReg))
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let op = Operation.cmpi(size, data, address)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .cmpi(size, data, address)
             case .jmp:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let address = readAddress(eaMode, Int(eaReg))
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let op = Operation.jmp(address)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .jmp(address)
             case .moveToSR:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let address = readAddress(eaMode, Int(eaReg), size: .w)
-                
-                let op = Operation.moveToSR(address)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
-            case .moveq:
-                let data = Int8(truncatingIfNeeded: instructionWord)
-                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
-                
-                let op = Operation.moveq(data, register)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
-            case .tst:
-                let eaModeNum = (instructionWord >> 3) & 7
-                let eaReg = instructionWord & 7
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
-
-                let address = readAddress(eaMode, Int(eaReg), size: .w)
-
-                
-                let size0 = (instructionWord >> 6) & 3
-                let size: Size?
-                switch size0 {
-                case 0: size = .b
-                case 1: size = .w
-                case 2: size = .l
-                default: size = nil
+                guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+                    op = .unknown(instructionWord)
+                    break
                 }
                 
-                let op = Operation.tst(size!, address)
+                op = .moveToSR(address)
+            case .moveq:
+                let data = Int8(truncatingIfNeeded: instructionWord)
+                guard let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
-            case .or:
+                op = .moveq(data, register)
+            case .tst:
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
-                
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
-                let address = readAddress(eaMode, Int(eaReg))
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
+                guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                op = .tst(size, address)
+            case .or:
                 
                 let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7)!
 
                 let size0 = (instructionWord >> 6) & 3
-                let size: Size?
-                switch size0 {
-                case 0: size = .b
-                case 1: size = .w
-                case 2: size = .l
-                default: size = nil
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
                 }
 
                 let direction0 = (instructionWord >> 8) & 1
                 let direction: Direction = direction0 == 1 ? .rToM : .mToR
                 
-                let op = Operation.or(size!, direction, address, register)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .or(size, direction, address, register)
             case .lslr:
                 let countOrRegister = (instructionWord >> 9) & 7
                 let direction = (instructionWord >> 8) & 1
                 let size0 = (instructionWord >> 6) & 3
                 let immOrReg = (instructionWord >> 5) & 1
-                let register = DataRegister(rawValue: Int(instructionWord & 7))!
+                
+                guard let register = DataRegister(rawValue: Int(instructionWord & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
                 let count: ShiftCount
                 if immOrReg == 1 {
-                    count = .r(DataRegister(rawValue: Int(countOrRegister))!)
+                    guard let r = DataRegister(rawValue: Int(countOrRegister)) else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+                    count = .r(r)
                 } else {
                     count = .imm(UInt8(countOrRegister == 0 ? 8 : countOrRegister))
                 }
                 
-                let size: Size?
-                switch size0 {
-                case 0: size = .b
-                case 1: size = .w
-                case 2: size = .l
-                default: size = nil
-                }
-                
-                let op: Operation
-                if (direction == 1) {
-                    op = .lsl(size!, count, register)
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
                 } else {
-                    op = .lsr(size!, count, register)
+                    op = .unknown(instructionWord)
+                    break
                 }
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                    
+                if (direction == 1) {
+                    op = .lsl(size, count, register)
+                } else {
+                    op = .lsr(size, count, register)
+                }
             case .lslrm:
                 // TODO
-                return insns
+                op = .unknown(instructionWord)
             case .clr:
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
-                let address = readAddress(eaMode, Int(eaReg))
-
-                let size0 = (instructionWord >> 6) & 3
-                let size: Size?
-                switch size0 {
-                case 0: size = .b
-                case 1: size = .w
-                case 2: size = .l
-                default: size = nil
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
                 }
-
-                let op = Operation.clr(size!, address)
                 
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                op = .clr(size, address)
             case .bseti:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let bitNumber = UInt8(truncatingIfNeeded: readWord())
-                let address = readAddress(eaMode, Int(eaReg))
+                guard let w = readWord() else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let bitNumber = UInt8(truncatingIfNeeded: w)
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    unreadWord() // bitNumber
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let op = Operation.bset(.imm(bitNumber), address)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .bset(.imm(bitNumber), address)
             case .bsetr:
+                guard let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
-                let address = readAddress(eaMode, Int(eaReg))
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
-                
-                let op = Operation.bset(.r(register), address)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .bset(.r(register), address)
             case .btsti:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let bitNumber = UInt8(truncatingIfNeeded: readWord())
-                let address = readAddress(eaMode, Int(eaReg))
+                guard let w = readWord() else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let bitNumber = UInt8(truncatingIfNeeded: w)
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    unreadWord() // bitNumber
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let op = Operation.btst(.imm(bitNumber), address)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .btst(.imm(bitNumber), address)
             case .btstr:
+                guard let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
-                let address = readAddress(eaMode, Int(eaReg))
-
-                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let op = Operation.btst(.r(register), address)
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .btst(.r(register), address)
             case .swap:
-                let register = DataRegister(rawValue: Int(instructionWord & 7))!
+                guard let register = DataRegister(rawValue: Int(instructionWord & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
-                let op = Operation.swap(register)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .swap(register)
             case .rolr:
                 let countOrRegister = (instructionWord >> 9) & 7
                 let direction = (instructionWord >> 8) & 1
                 let size0 = (instructionWord >> 6) & 3
                 let immOrReg = (instructionWord >> 5) & 1
-                let register = DataRegister(rawValue: Int(instructionWord & 7))!
+                guard let register = DataRegister(rawValue: Int(instructionWord & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
                 
                 let count: RotateCount
                 if immOrReg == 1 {
-                    count = .r(DataRegister(rawValue: Int(countOrRegister))!)
+                    guard let r = DataRegister(rawValue: Int(countOrRegister)) else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+                    count = .r(r)
                 } else {
                     count = .imm(UInt8(countOrRegister == 0 ? 8 : countOrRegister))
                 }
                 
-                let size: Size?
-                switch size0 {
-                case 0: size = .b
-                case 1: size = .w
-                case 2: size = .l
-                default: size = nil
-                }
-                
-                let op: Operation
-                if (direction == 1) {
-                    op = .rol(size!, count, register)
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
                 } else {
-                    op = .ror(size!, count, register)
+                    op = .unknown(instructionWord)
+                    break
                 }
                 
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                if (direction == 1) {
+                    op = .rol(size, count, register)
+                } else {
+                    op = .ror(size, count, register)
+                }
             case .rolrm:
                 // TODO
-                return insns
+                op = .unknown(instructionWord)
             case .mulu:
+                guard let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
                 
-                let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg))!
-                let address = readAddress(eaMode, Int(eaReg), size: .w)
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
-                
-                let op = Operation.mulu(address, register)
-                
-                insns.append(makeInstruction(op: op, startOffset: startOffset))
+                op = .mulu(address, register)
             }
+            
+            insns.append(makeInstruction(op: op, startOffset: startOffset))
         }
         
         return insns
@@ -1277,7 +1539,7 @@ public struct Disassembler {
         data[startOffset..<offset]
     }
     
-    mutating func readAddress(_ mode: AddressingMode, _ reg: Int, size: Size? = nil) -> EffectiveAddress {
+    mutating func readAddress(_ mode: AddressingMode, _ reg: Int, size: Size? = nil) -> EffectiveAddress? {
         switch mode {
         case .dd: return .dd(DataRegister(rawValue: reg)!)
         case .ad: return .ad(AddressRegister(rawValue: reg)!)
@@ -1285,45 +1547,61 @@ public struct Disassembler {
         case .postInc: return .postInc(AddressRegister(rawValue: reg)!)
         case .preDec: return .preDec(AddressRegister(rawValue: reg)!)
         case .d16An:
-            let val = Int16(bitPattern: readWord())
+            guard let w = readWord() else { return nil }
+            
+            let val = Int16(bitPattern: w)
             
             return .d16An(val, AddressRegister(rawValue: reg)!)
         case .d8AnXn:
-            let ex = readExtensionWord()
+            guard let ex = readExtensionWord() else { return nil }
             let register = AddressRegister(rawValue: reg)!
             
             return .d8AnXn(ex.displacement, register, ex.indexRegister, ex.indexSize)
         case .XXXw:
-            let val = UInt32(truncatingIfNeeded: Int16(bitPattern: readWord()))
+            guard let w = readWord() else { return nil }
+
+            let val = UInt32(truncatingIfNeeded: Int16(bitPattern: w))
             
             return .XXXw(val)
         case .XXXl:
-            let val = readLong()
+            guard let val = readLong() else { return nil }
             
             return .XXXl(val)
         case .d16PC:
             let exOffset = UInt32(offset)
-            let ex = readWord()
+            guard let ex = readWord() else { return nil }
             return .d16PC(loadAddress+exOffset, Int16(bitPattern: ex))
         case .d8PCXn:
             let exOffset = UInt32(offset)
-            let ex = readExtensionWord()
+            guard let ex = readExtensionWord() else { return nil }
             
             return .d8PCXn(loadAddress+exOffset, ex.displacement, ex.indexRegister, ex.indexSize)
         case .imm:
-            switch size! {
-            case .b: return .imm(.b(Int8(truncatingIfNeeded: readWord())))
-            case .w: return .imm(.w(Int16(bitPattern: readWord())))
-            case .l: return .imm(.l(Int32(bitPattern: readLong())))
+            guard let size = size else { return nil }
+            
+            switch size {
+            case .b:
+                guard let w = readWord() else { return nil }
+                return .imm(.b(Int8(truncatingIfNeeded: w)))
+            case .w:
+                guard let w = readWord() else { return nil }
+                return .imm(.w(Int16(bitPattern: w)))
+            case .l:
+                guard let l = readLong() else { return nil }
+                return .imm(.l(Int32(bitPattern: l)))
             }
         }
     }
 
-    mutating func readExtensionWord() -> ExtensionWord {
-        let w = readWord()
+    mutating func readExtensionWord() -> ExtensionWord? {
+        guard let w = readWord() else {
+            return nil
+        }
         
         if (w & 0x100) == 0x100 {
-            fatalError("Full extension words are not yet supported")
+            // TODO: full extension words are not yet supported
+            unreadWord() // w
+            return nil
         }
         
         let displacement = Int8(truncatingIfNeeded: w)
@@ -1348,24 +1626,44 @@ public struct Disassembler {
         return ExtensionWord(indexRegister: indexRegister, indexSize: size, displacement: displacement)
     }
     
-    mutating func readByte() -> UInt8 {
+    mutating func readByte() -> UInt8? {
+        if offset >= data.count {
+            return nil
+        }
+        
         defer { offset += 1 }
         return data[offset]
     }
     
-    mutating func readWord() -> UInt16 {
-        var w = UInt16(readByte()) << 8
-        w += UInt16(readByte())
+    mutating func readWord() -> UInt16? {
+        guard let b1 = readByte() else { return nil }
+        guard let b2 = readByte() else {
+            unreadByte() // b1
+            return nil
+        }
         
-        return w
+        return (UInt16(b1) << 8) + UInt16(b2)
     }
     
-    mutating func readLong() -> UInt32 {
-        var l = UInt32(readByte()) << 24
-        l += UInt32(readByte()) << 16
-        l += UInt32(readByte()) << 8
-        l += UInt32(readByte())
+    mutating func readLong() -> UInt32? {
+        guard let w1 = readWord() else { return nil }
+        guard let w2 = readWord() else {
+            unreadWord() // w1
+            return nil
+        }
         
-        return l
+        return (UInt32(w1) << 16) + UInt32(w2)
+    }
+    
+    mutating func unreadByte() {
+        offset -= 1
+    }
+    
+    mutating func unreadWord() {
+        offset -= 2
+    }
+    
+    mutating func unreadLong() {
+        offset -= 4
     }
 }
