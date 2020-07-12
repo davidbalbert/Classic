@@ -389,7 +389,7 @@ enum OpName: String {
     case moveb, movew, movel
     case movem
     case moveq
-    case moveToSR
+    case moveToSR, moveFromSR
     case lea
     case subaw, subal
     case subqb, subqw, subql
@@ -425,7 +425,7 @@ enum OpClass: String {
     case move
     case movem
     case moveq
-    case moveToSR
+    case moveToSR, moveFromSR
     case lea
     case suba
     case subq
@@ -468,6 +468,7 @@ enum Operation: Equatable {
     case movem(Size, Direction, EffectiveAddress, RegisterList)
     case moveq(Int8, DataRegister)
     case moveToSR(EffectiveAddress)
+    case moveFromSR(EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
     case suba(Size, EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
@@ -538,6 +539,8 @@ extension Operation: CustomStringConvertible {
             return "moveq #$\(String(data, radix: 16)), \(register)"
         case let .moveToSR(address):
             return "move \(address), SR"
+        case let .moveFromSR(address):
+            return "move SR, \(address)"
         case let .cmp(size, address, register):
             return "cmp.\(size) \(address), \(register)"
         case let .cmpi(size, data, address):
@@ -657,6 +660,8 @@ let ops = [
     OpInfo(name: .movem,    opClass: .movem,    mask: 0xfb80, value: 0x4880),
     OpInfo(name: .moveq,    opClass: .moveq,    mask: 0xf100, value: 0x7000),
     OpInfo(name: .moveToSR, opClass: .moveToSR, mask: 0xffc0, value: 0x46c0),
+    OpInfo(name: .moveFromSR, opClass: .moveFromSR, mask: 0xffc0, value: 0x40c0),
+    
     OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
     
     OpInfo(name: .subaw,    opClass: .suba,     mask: 0xf1c0, value: 0x90c0),
@@ -1273,6 +1278,20 @@ public struct Disassembler {
                 }
                 
                 op = .moveToSR(address)
+            case .moveFromSR:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                op = .moveFromSR(address)
             case .moveq:
                 let data = Int8(truncatingIfNeeded: instructionWord)
                 guard let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
