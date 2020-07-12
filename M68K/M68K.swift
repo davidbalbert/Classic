@@ -1378,8 +1378,26 @@ public struct Disassembler {
                     op = .lsr(size, count, register)
                 }
             case .lslrm:
-                // TODO
-                op = .unknown(instructionWord)
+                let direction = (instructionWord >> 8) & 1
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                if (direction == 1) {
+                    op = .lslm(address)
+                } else {
+                    op = .lsrm(address)
+                }
             case .clr:
                 let size0 = (instructionWord >> 6) & 3
                 let size: Size
@@ -1539,8 +1557,26 @@ public struct Disassembler {
                     op = .ror(size, count, register)
                 }
             case .rolrm:
-                // TODO
-                op = .unknown(instructionWord)
+                let direction = (instructionWord >> 8) & 1
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                if (direction == 1) {
+                    op = .rolm(address)
+                } else {
+                    op = .rorm(address)
+                }
             case .mulu:
                 guard let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
                     op = .unknown(instructionWord)
@@ -1600,8 +1636,26 @@ public struct Disassembler {
                     op = .roxr(size, count, register)
                 }
             case .roxlrm:
-                // TODO
-                op = .unknown(instructionWord)
+                let direction = (instructionWord >> 8) & 1
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                if (direction == 1) {
+                    op = .roxlm(address)
+                } else {
+                    op = .roxrm(address)
+                }
             }
             
             insns.append(makeInstruction(op: op, startOffset: startOffset))

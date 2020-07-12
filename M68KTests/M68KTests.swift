@@ -235,6 +235,36 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.lsr(.b, .r(.d4), .d6))
     }
     
+    func testLogicalShiftWord() throws {
+        let data = Data([0xe8, 0x6e])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.lsr(.w, .r(.d4), .d6))
+    }
+
+    func testLogicalShiftLong() throws {
+        let data = Data([0xe8, 0xae])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.lsr(.l, .r(.d4), .d6))
+    }
+
+    
+    func testLogicalShiftRightMemory() throws {
+        let data = Data([0xe2, 0xc9])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.lsrm(.ad(.a1)))
+    }
+    
+    func testLogicalShiftLeftMemory() throws {
+        let data = Data([0xe3, 0xc9])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.lslm(.ad(.a1)))
+    }
+
+    
     func testRotateImmediate() throws {
         var data = Data([0xe9, 0x98])
         var op = d.disassemble(data, loadAddress: 0)[0].op
@@ -274,6 +304,21 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.rol(.w, .r(.d1), .d0))
     }
+    
+    func testRotateRightMemory() throws {
+        let data = Data([0xe6, 0xc1])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.rorm(.dd(.d1)))
+    }
+    
+    func testRotateLeftMemory() throws {
+        let data = Data([0xe7, 0xc1])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.rolm(.dd(.d1)))
+    }
+
 
     func testRotateExtendImmediate() throws {
         var data = Data([0xe3, 0x11])
@@ -314,8 +359,21 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.roxr(.l, .r(.d0), .d1))
     }
-
     
+    func testRotateExtendRightMemory() throws {
+        let data = Data([0xe4, 0xc0])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.roxrm(.dd(.d0)))
+    }
+    
+    func testRotateExtendLeftMemory() throws {
+        let data = Data([0xe5, 0xc0])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.roxlm(.dd(.d0)))
+    }
+
     func testClr() throws {
         let data = Data([0x42, 0x2d, 0x18, 0x00])
         let op = d.disassemble(data, loadAddress: 0)[0].op
