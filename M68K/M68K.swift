@@ -398,6 +398,7 @@ enum OpName: String {
     case jmp
     case tstb, tstw, tstl
     case orb, orw, orl
+    case oriToSR
     case lslb, lslw, lsll, lslm
     case lsrb, lsrw, lsrl, lsrm
     case clrb, clrw, clrl
@@ -430,6 +431,7 @@ enum OpClass: String {
     case jmp
     case tst
     case or
+    case oriToSR
     case lslr, lslrm
     case clr
     case bseti, bsetr
@@ -469,6 +471,7 @@ enum Operation: Equatable {
     case jmp(EffectiveAddress)
     case tst(Size, EffectiveAddress)
     case or(Size, Direction, EffectiveAddress, DataRegister)
+    case oriToSR(Int16)
     case lsl(Size, ShiftCount, DataRegister)
     case lsr(Size, ShiftCount, DataRegister)
     case lslm(EffectiveAddress)
@@ -537,6 +540,8 @@ extension Operation: CustomStringConvertible {
             return "or.\(size) \(address), \(register)"
         case let .or(size, .rToM, address, register):
             return "or.\(size) \(register), \(address)"
+        case let .oriToSR(data):
+            return "or #$\(String(data, radix: 16)), SR"
         case let .lsl(size, .r(countRegister), register):
             return "lsl.\(size) \(countRegister), \(register)"
         case let .lsl(size, .imm(count), register):
@@ -653,6 +658,8 @@ let ops = [
     OpInfo(name: .orw,      opClass: .or,       mask: 0xf0c0, value: 0x8040),
     OpInfo(name: .orl,      opClass: .or,       mask: 0xf0c0, value: 0x8080),
 
+    OpInfo(name: .oriToSR,  opClass: .oriToSR,  mask: 0xffff, value: 0x007c),
+    
     OpInfo(name: .lsrb,     opClass: .lslr,     mask: 0xf1d8, value: 0xe008),
     OpInfo(name: .lsrw,     opClass: .lslr,     mask: 0xf1d8, value: 0xe048),
     OpInfo(name: .lsrl,     opClass: .lslr,     mask: 0xf1d8, value: 0xe088),
@@ -1263,7 +1270,6 @@ public struct Disassembler {
                 
                 op = .tst(size, address)
             case .or:
-                
                 let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7)!
 
                 let size0 = (instructionWord >> 6) & 3
@@ -1296,6 +1302,13 @@ public struct Disassembler {
                 let direction: Direction = direction0 == 1 ? .rToM : .mToR
                 
                 op = .or(size, direction, address, register)
+            case .oriToSR:
+                guard let w = readWord() else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                op = .oriToSR(Int16(bitPattern: w))
             case .lslr:
                 let countOrRegister = (instructionWord >> 9) & 7
                 let direction = (instructionWord >> 8) & 1

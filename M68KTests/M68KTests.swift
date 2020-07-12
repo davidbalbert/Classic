@@ -202,6 +202,13 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.or(.b, .mToR, .dd(.d4), .d2))
     }
     
+    func testOriToSR() throws {
+        let data = Data([0x00, 0x7c, 0x03, 0x00])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.oriToSR(0x300))
+    }
+    
     func testLogicalShiftImmediate() throws {
         var data = Data([0xe9, 0x0e])
         var op = d.disassemble(data, loadAddress: 0)[0].op
