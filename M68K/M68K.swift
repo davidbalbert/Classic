@@ -707,7 +707,7 @@ public struct Disassembler {
         }
     }
     
-    public mutating func disassemble(_ data: Data, loadAddress: UInt32) -> [Instruction] {
+    public mutating func disassemble(_ data: Data, loadAddress: UInt32, entryPoint: UInt32) -> [Instruction] {
         var insns: [Instruction] = []
         
         self.data = data

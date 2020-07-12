@@ -12,17 +12,13 @@ import M68K
 class Content: NSObject {
     static let lineLength = 16
     
-    var _data = Data([])
+    var data = Data([])
     var loadAddress: UInt32 = 0
-    var offset: UInt32 = 0
-        
-    var data: Data {
-        _data[offset...]
-    }
-    
+    var entryPoint: UInt32 = 0
+
     lazy var instructions: [Instruction] = {
         var d = Disassembler()
-        return d.disassemble(data, loadAddress: loadAddress)
+        return d.disassemble(data, loadAddress: loadAddress, entryPoint: entryPoint)
     }()
     
     var assembly: String {
@@ -41,6 +37,6 @@ class Content: NSObject {
     }
     
     func read(from data: Data) {
-        self._data = data
+        self.data = data
     }
 }

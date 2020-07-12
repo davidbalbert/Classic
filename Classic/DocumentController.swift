@@ -27,7 +27,7 @@ class DocumentController: NSDocumentController {
         let document = try super.makeDocument(withContentsOf: url, ofType: typeName)
         
         if let document = document as? Document {
-            document.offset = accessoryViewController.offset
+            document.entryPoint = accessoryViewController.entryPoint
             document.loadAddress = accessoryViewController.loadAddress
         }
         

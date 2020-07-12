@@ -11,10 +11,10 @@ import Cocoa
 class OpenPanelAccessoryViewController: NSViewController, NSOpenSavePanelDelegate {
     
     @IBOutlet var loadAddressField: NSTextField!
-    @IBOutlet var offsetField: NSTextField!
+    @IBOutlet var entryPointField: NSTextField!
     
     var loadAddress: UInt32 = 0
-    var offset: UInt32 = 0
+    var entryPoint: UInt32 = 0
 
     @IBAction func loadAddressUpdated(_ sender: NSTextField) {
         let s = sender.stringValue
@@ -25,7 +25,7 @@ class OpenPanelAccessoryViewController: NSViewController, NSOpenSavePanelDelegat
     @IBAction func offsetUpdated(_ sender: NSTextField) {
         let s = sender.stringValue
         
-        offset = parseHex(s) ?? 0
+        entryPoint = parseHex(s) ?? 0
     }
     
     func parseHex(_ s: String) -> UInt32? {
@@ -43,10 +43,10 @@ class OpenPanelAccessoryViewController: NSViewController, NSOpenSavePanelDelegat
     }
     
     func reset() {
-        loadAddress = 0x400000
-        loadAddressField.stringValue = "0x400000"
+        loadAddress = 0
+        loadAddressField.stringValue = "0x0"
         
-        offset = 0x2a
-        offsetField.stringValue = "0x2a"
+        entryPoint = 0x2a
+        entryPointField.stringValue = "0x2a"
     }
 }

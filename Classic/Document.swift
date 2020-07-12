@@ -18,12 +18,12 @@ class Document: NSDocument {
             content.loadAddress = newValue
         }
     }
-    var offset: UInt32 {
+    var entryPoint: UInt32 {
         get {
-            content.offset
+            content.entryPoint
         }
         set {
-            content.offset = newValue
+            content.entryPoint = newValue
         }
     }
 

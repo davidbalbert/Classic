@@ -797,8 +797,8 @@
                                 </connections>
                             </textField>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="oeb-xT-hLK">
-                                <rect key="frame" x="60" y="20" width="46" height="16"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Offset:" id="fal-6S-x7b">
+                                <rect key="frame" x="28" y="20" width="74" height="16"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Entry point:" id="fal-6S-x7b">
                                     <font key="font" metaFont="system"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -815,12 +815,12 @@
                             <constraint firstItem="UbR-26-93c" firstAttribute="leading" secondItem="Bsp-AA-dYd" secondAttribute="trailing" constant="28" id="oho-Ql-d0J"/>
                             <constraint firstItem="Bsp-AA-dYd" firstAttribute="firstBaseline" secondItem="UbR-26-93c" secondAttribute="firstBaseline" id="qtK-PH-Mb3"/>
                             <constraint firstItem="UbR-26-93c" firstAttribute="top" secondItem="qnz-Ai-f0h" secondAttribute="top" constant="20" symbolic="YES" id="uNR-C4-FLD"/>
-                            <constraint firstItem="Bsp-AA-dYd" firstAttribute="leading" secondItem="oeb-xT-hLK" secondAttribute="trailing" constant="4" id="xXY-3Y-BvE"/>
+                            <constraint firstItem="Bsp-AA-dYd" firstAttribute="leading" secondItem="oeb-xT-hLK" secondAttribute="trailing" constant="8" symbolic="YES" id="xXY-3Y-BvE"/>
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="entryPointField" destination="Bsp-AA-dYd" id="ENJ-eW-fFj"/>
                         <outlet property="loadAddressField" destination="nNx-N7-R0G" id="zu5-yZ-Imq"/>
-                        <outlet property="offsetField" destination="Bsp-AA-dYd" id="ENJ-eW-fFj"/>
                     </connections>
                 </viewController>
                 <customObject id="DHz-Uu-efv" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
