@@ -403,6 +403,7 @@ enum OpName: String {
     case lsrb, lsrw, lsrl, lsrm
     case clrb, clrw, clrl
     case bseti, bsetr
+    case bclri, bclrr
     case btsti, btstr
     case swap
     case rolb, rolw, roll, rolm
@@ -437,6 +438,7 @@ enum OpClass: String {
     case lslr, lslrm
     case clr
     case bseti, bsetr
+    case bclri, bclrr
     case btsti, btstr
     case swap
     case rolr, rolrm
@@ -481,6 +483,7 @@ enum Operation: Equatable {
     case lsrm(EffectiveAddress)
     case clr(Size, EffectiveAddress)
     case bset(BitNumber, EffectiveAddress)
+    case bclr(BitNumber, EffectiveAddress)
     case btst(BitNumber, EffectiveAddress)
     case swap(DataRegister)
     case rol(Size, RotateCount, DataRegister)
@@ -567,6 +570,10 @@ extension Operation: CustomStringConvertible {
             return "bset #$\(String(bitNumber, radix: 16)), \(address)"
         case let .bset(.r(register), address):
             return "bset \(register), \(address)"
+        case let .bclr(.imm(bitNumber), address):
+            return "bclr #$\(String(bitNumber, radix: 16)), \(address)"
+        case let .bclr(.r(register), address):
+            return "bclr \(register), \(address)"
         case let .btst(.imm(bitNumber), address):
             return "btst #$\(String(bitNumber, radix: 16)), \(address)"
         case let .btst(.r(register), address):
@@ -715,6 +722,9 @@ let ops = [
 
     OpInfo(name: .bseti,    opClass: .bseti,    mask: 0xffc0, value: 0x08c0),
     OpInfo(name: .bsetr,    opClass: .bsetr,    mask: 0xf1c0, value: 0x01c0),
+
+    OpInfo(name: .bclri,    opClass: .bclri,    mask: 0xffc0, value: 0x0880),
+    OpInfo(name: .bclrr,    opClass: .bclrr,    mask: 0xf1c0, value: 0x0180),
 
     OpInfo(name: .btsti,    opClass: .btsti,    mask: 0xffc0, value: 0x0800),
     OpInfo(name: .btstr,    opClass: .btstr,    mask: 0xf1c0, value: 0x0100),
@@ -1468,6 +1478,48 @@ public struct Disassembler {
                 }
 
                 op = .bset(.r(register), address)
+            case .bclri:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let w = readWord() else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let bitNumber = UInt8(truncatingIfNeeded: w)
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    unreadWord() // bitNumber
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .bclr(.imm(bitNumber), address)
+            case .bclrr:
+                guard let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .bclr(.r(register), address)
             case .btsti:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
