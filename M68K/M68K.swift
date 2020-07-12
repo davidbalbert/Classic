@@ -407,6 +407,8 @@ enum OpName: String {
     case swap
     case rolb, rolw, roll, rolm
     case rorb, rorw, rorl, rorm
+    case roxlb, roxlw, roxll, roxlm
+    case roxrb, roxrw, roxrl, roxrm
     case mulu
 }
 
@@ -438,6 +440,7 @@ enum OpClass: String {
     case btsti, btstr
     case swap
     case rolr, rolrm
+    case roxlr, roxlrm
     case mulu
     
     case unknown
@@ -484,6 +487,10 @@ enum Operation: Equatable {
     case ror(Size, RotateCount, DataRegister)
     case rolm(EffectiveAddress)
     case rorm(EffectiveAddress)
+    case roxl(Size, RotateCount, DataRegister)
+    case roxr(Size, RotateCount, DataRegister)
+    case roxlm(EffectiveAddress)
+    case roxrm(EffectiveAddress)
     case mulu(EffectiveAddress, DataRegister)
     
     case unknown(UInt16)
@@ -578,6 +585,18 @@ extension Operation: CustomStringConvertible {
             return "rol \(address)"
         case let .rorm(address):
             return "ror \(address)"
+        case let .roxl(size, .imm(count), register):
+            return "roxl.\(size) #$\(String(count, radix: 16)), \(register)"
+        case let .roxl(size, .r(countRegister), register):
+            return "roxl.\(size) \(countRegister), \(register)"
+        case let .roxr(size, .imm(count), register):
+            return "roxr.\(size) #$\(String(count, radix: 16)), \(register)"
+        case let .roxr(size, .r(countRegister), register):
+            return "roxr.\(size) \(countRegister), \(register)"
+        case let .roxlm(address):
+            return "roxl \(address)"
+        case let .roxrm(address):
+            return "roxr \(address)"
         case let .mulu(address, register):
             return "mulu.w \(address), \(register)"
             
@@ -680,6 +699,16 @@ let ops = [
     OpInfo(name: .roll,     opClass: .rolr,     mask: 0xf1d8, value: 0xe198),
     OpInfo(name: .rolm,     opClass: .rolrm,    mask: 0xffc0, value: 0xe7c0),
     
+    OpInfo(name: .roxrb,    opClass: .roxlr,    mask: 0xf1d8, value: 0xe010),
+    OpInfo(name: .roxrw,    opClass: .roxlr,    mask: 0xf1d8, value: 0xe050),
+    OpInfo(name: .roxrl,    opClass: .roxlr,    mask: 0xf1d8, value: 0xe090),
+    OpInfo(name: .roxrm,    opClass: .roxlrm,   mask: 0xffc0, value: 0xe4c0),
+
+    OpInfo(name: .roxlb,    opClass: .roxlr,    mask: 0xf1d8, value: 0xe110),
+    OpInfo(name: .roxlw,    opClass: .roxlr,    mask: 0xf1d8, value: 0xe150),
+    OpInfo(name: .roxll,    opClass: .roxlr,    mask: 0xf1d8, value: 0xe190),
+    OpInfo(name: .roxlm,    opClass: .roxlrm,   mask: 0xffc0, value: 0xe5c0),
+
     OpInfo(name: .clrb,     opClass: .clr,      mask: 0xffc0, value: 0x4200),
     OpInfo(name: .clrw,     opClass: .clr,      mask: 0xffc0, value: 0x4240),
     OpInfo(name: .clrl,     opClass: .clr,      mask: 0xffc0, value: 0x4280),
@@ -1532,6 +1561,47 @@ public struct Disassembler {
                 }
 
                 op = .mulu(address, register)
+            case .roxlr:
+                let countOrRegister = (instructionWord >> 9) & 7
+                let direction = (instructionWord >> 8) & 1
+                let size0 = (instructionWord >> 6) & 3
+                let immOrReg = (instructionWord >> 5) & 1
+                guard let register = DataRegister(rawValue: Int(instructionWord & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let count: RotateCount
+                if immOrReg == 1 {
+                    guard let r = DataRegister(rawValue: Int(countOrRegister)) else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+                    count = .r(r)
+                } else {
+                    count = .imm(UInt8(countOrRegister == 0 ? 8 : countOrRegister))
+                }
+                
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                if (direction == 1) {
+                    op = .roxl(size, count, register)
+                } else {
+                    op = .roxr(size, count, register)
+                }
+            case .roxlrm:
+                // TODO
+                op = .unknown(instructionWord)
             }
             
             insns.append(makeInstruction(op: op, startOffset: startOffset))
