@@ -383,6 +383,8 @@ enum OpName: String {
     case addqb, addqw, addql
     case andb, andw, andl
     case andib, andiw, andil
+    case aslb, aslw, asll, aslm
+    case asrb, asrw, asrl, asrm
     case bra
     case bcc
     case dbcc
@@ -419,6 +421,7 @@ enum OpClass: String {
     case addq
     case and
     case andi
+    case aslr, aslrm
     case bra
     case bcc
     case dbcc
@@ -461,6 +464,10 @@ enum Operation: Equatable {
     case addq(Size, UInt8, EffectiveAddress)
     case and(Size, Direction, EffectiveAddress, DataRegister)
     case andi(Size, Int32, EffectiveAddress)
+    case asl(Size, ShiftCount, DataRegister)
+    case asr(Size, ShiftCount, DataRegister)
+    case aslm(EffectiveAddress)
+    case asrm(EffectiveAddress)
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
     case dbcc(Condition, DataRegister, UInt32, Int16)
@@ -517,6 +524,18 @@ extension Operation: CustomStringConvertible {
             return "and.\(size) \(register), \(address)"
         case let .andi(size, data, address):
             return "and.\(size) #$\(String(data, radix: 16)), \(address)"
+        case let .asl(size, .imm(count), register):
+            return "asl.\(size) #$\(String(count, radix: 16)), \(register)"
+        case let .asl(size, .r(countRegister), register):
+            return "asl.\(size) \(countRegister), \(register)"
+        case let .aslm(address):
+            return "asl \(address)"
+        case let .asr(size, .imm(count), register):
+            return "asr.\(size) #$\(String(count, radix: 16)), \(register)"
+        case let .asr(size, .r(countRegister), register):
+            return "asr.\(size) \(countRegister), \(register)"
+        case let .asrm(address):
+            return "asr \(address)"
         case let .bra(size, pc, displacement):
             return "bra.\(size) $\(String(Int64(pc) + Int64(displacement), radix: 16))"
         case let .bcc(size, condition, pc, displacement):
@@ -647,6 +666,16 @@ let ops = [
     OpInfo(name: .andib,    opClass: .andi,     mask: 0xffc0, value: 0x0200),
     OpInfo(name: .andiw,    opClass: .andi,     mask: 0xffc0, value: 0x0240),
     OpInfo(name: .andil,    opClass: .andi,     mask: 0xffc0, value: 0x0280),
+    
+    OpInfo(name: .asrb,     opClass: .aslr,     mask: 0xf1d8, value: 0xe000),
+    OpInfo(name: .asrw,     opClass: .aslr,     mask: 0xf1d8, value: 0xe040),
+    OpInfo(name: .asrl,     opClass: .aslr,     mask: 0xf1d8, value: 0xe080),
+    OpInfo(name: .asrm,     opClass: .aslrm,    mask: 0xffc0, value: 0xe0c0),
+
+    OpInfo(name: .aslb,     opClass: .aslr,     mask: 0xf1d8, value: 0xe100),
+    OpInfo(name: .aslw,     opClass: .aslr,     mask: 0xf1d8, value: 0xe140),
+    OpInfo(name: .asll,     opClass: .aslr,     mask: 0xf1d8, value: 0xe180),
+    OpInfo(name: .aslm,     opClass: .aslrm,    mask: 0xffc0, value: 0xe1c0),
     
     OpInfo(name: .bra,      opClass: .bra,      mask: 0xff00, value: 0x6000),
     OpInfo(name: .bcc,      opClass: .bcc,      mask: 0xf000, value: 0x6000),
@@ -966,6 +995,66 @@ public struct Disassembler {
                 }
 
                 op = .andi(size, data, address)
+            case .aslr:
+                let countOrRegister = (instructionWord >> 9) & 7
+                let direction = (instructionWord >> 8) & 1
+                let size0 = (instructionWord >> 6) & 3
+                let immOrReg = (instructionWord >> 5) & 1
+                
+                guard let register = DataRegister(rawValue: Int(instructionWord & 7)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let count: ShiftCount
+                if immOrReg == 1 {
+                    guard let r = DataRegister(rawValue: Int(countOrRegister)) else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+                    count = .r(r)
+                } else {
+                    count = .imm(UInt8(countOrRegister == 0 ? 8 : countOrRegister))
+                }
+                
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                    
+                if (direction == 1) {
+                    op = .asl(size, count, register)
+                } else {
+                    op = .asr(size, count, register)
+                }
+            case .aslrm:
+                let direction = (instructionWord >> 8) & 1
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                if (direction == 1) {
+                    op = .aslm(address)
+                } else {
+                    op = .asrm(address)
+                }
             case .bra:
                 // TODO: '20, '30, and '40 support 32 bit displacement
                 var displacement = Int16(Int8(bitPattern: UInt8(instructionWord & 0xFF)))

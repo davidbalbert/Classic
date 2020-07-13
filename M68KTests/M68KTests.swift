@@ -216,6 +216,60 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.oriToSR(0x300))
     }
     
+    func testArithmeticShiftImmediate() throws {
+        var data = Data([0xe4, 0x42])
+        var op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.asr(.w, .imm(2), .d2))
+        
+        data = Data([0xe0, 0x42])
+        op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.asr(.w, .imm(8), .d2))
+    }
+    
+    func testArithmeticShiftRegister() throws {
+        let data = Data([0xe0, 0x62])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.asr(.w, .r(.d0), .d2))
+    }
+    
+    func testArithmeticShiftLeft() throws {
+        let data = Data([0xe1, 0x62])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.asl(.w, .r(.d0), .d2))
+    }
+    
+    func testArithmeticShiftByte() throws {
+        let data = Data([0xe1, 0x22])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.asl(.b, .r(.d0), .d2))
+    }
+
+    func testArithmeticShiftLong() throws {
+        let data = Data([0xe1, 0xa2])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.asl(.l, .r(.d0), .d2))
+    }
+    
+    func testArithmeticShiftRightMemory() throws {
+        let data = Data([0xe0, 0xc2])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.asrm(.dd(.d2)))
+    }
+    
+    func testArithmeticShiftLeftMemory() throws {
+        let data = Data([0xe1, 0xc2])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.aslm(.dd(.d2)))
+    }
+
     func testLogicalShiftImmediate() throws {
         var data = Data([0xe9, 0x0e])
         var op = d.disassemble(data, loadAddress: 0)[0].op
