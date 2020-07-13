@@ -152,6 +152,34 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.lea(.d16PC(2, 0x6), .a6))
     }
     
+    func testSubByte() throws {
+        let data = Data([0x90, 0x0b])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.sub(.b, .mToR, .ad(.a3), .d0))
+    }
+    
+    func testSubWord() throws {
+        let data = Data([0x90, 0x4b])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.sub(.w, .mToR, .ad(.a3), .d0))
+    }
+    
+    func testSubLong() throws {
+        let data = Data([0x90, 0x8b])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.sub(.l, .mToR, .ad(.a3), .d0))
+    }
+    
+    func testSubRToM() throws {
+        let data = Data([0x91, 0x8b])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.sub(.l, .rToM, .ad(.a3), .d0))
+    }
+    
     func testSuba() throws {
         let data = Data([0x97, 0xcb])
         let op = d.disassemble(data, loadAddress: 0)[0].op

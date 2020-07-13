@@ -393,6 +393,7 @@ enum OpName: String {
     case moveq
     case moveToSR, moveFromSR
     case lea
+    case subb, subw, subl
     case subaw, subal
     case subqb, subqw, subql
     case cmpb, cmpw, cmpl
@@ -430,6 +431,7 @@ enum OpClass: String {
     case moveq
     case moveToSR, moveFromSR
     case lea
+    case sub
     case suba
     case subq
     case cmp
@@ -477,6 +479,7 @@ enum Operation: Equatable {
     case moveToSR(EffectiveAddress)
     case moveFromSR(EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
+    case sub(Size, Direction, EffectiveAddress, DataRegister)
     case suba(Size, EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
     case cmp(Size, EffectiveAddress, DataRegister)
@@ -546,6 +549,10 @@ extension Operation: CustomStringConvertible {
             return "move.\(size) \(from), \(to)"
         case let .lea(address, register):
             return "lea \(address), \(register)"
+        case let .sub(size, .mToR, address, register):
+            return "sub.\(size) \(address), \(register)"
+        case let .sub(size, .rToM, address, register):
+            return "sub.\(size) \(register), \(address)"
         case let .suba(size, address, register):
             return "suba.\(size) \(address), \(register)"
         case let .subq(size, data, address):
@@ -693,6 +700,10 @@ let ops = [
     
     OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
     
+    OpInfo(name: .subb,     opClass: .sub,      mask: 0xf0c0, value: 0x9000),
+    OpInfo(name: .subw,     opClass: .sub,      mask: 0xf0c0, value: 0x9040),
+    OpInfo(name: .subl,     opClass: .sub,      mask: 0xf0c0, value: 0x9080),
+
     OpInfo(name: .subaw,    opClass: .suba,     mask: 0xf1c0, value: 0x90c0),
     OpInfo(name: .subal,    opClass: .suba,     mask: 0xf1c0, value: 0x91c0),
 
@@ -1165,6 +1176,42 @@ public struct Disassembler {
                 }
                 
                 op = .lea(srcAddr, dstReg)
+            case .sub:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let register = DataRegister(rawValue: Int(instructionWord >> 9) & 7) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                let direction0 = (instructionWord >> 8) & 1
+                let direction: Direction = direction0 == 1 ? .rToM : .mToR
+
+                op = .sub(size, direction, address, register)
             case .suba:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
