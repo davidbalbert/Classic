@@ -19,7 +19,7 @@ class ViewController: NSViewController {
                 return
             }
 
-            textView.string = content.assembly
+            textView.textStorage?.setAttributedString(content.attributedAssembly)
             textView.font = NSFont(name: "Monaco", size: 11)
             rulerView?.content = content
         }

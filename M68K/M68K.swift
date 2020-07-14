@@ -653,6 +653,14 @@ public struct Instruction: CustomStringConvertible {
         
         return "\(hex)\(op)"
     }
+    
+    public var isUnknown: Bool {
+        if case .unknown(_) = op {
+            return true
+        } else {
+            return false
+        }
+    }
 }
 
 let ops = [
