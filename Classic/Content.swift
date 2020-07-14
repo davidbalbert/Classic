@@ -9,19 +9,6 @@
 import Cocoa
 import M68K
 
-private extension Sequence where Iterator.Element == NSAttributedString {
-    func joined(separator: NSAttributedString) -> NSAttributedString {
-        return reduce(NSMutableAttributedString()) { r, s in
-            if r.length > 0 {
-                r.append(separator)
-            }
-            r.append(s)
-            
-            return r
-        }
-    }
-}
-
 class Content: NSObject {
     static let lineLength = 16
     
@@ -43,13 +30,20 @@ class Content: NSObject {
     }
     
     var attributedAssembly: NSAttributedString {
-        instructions.map { instruction in
-            if instruction.isUnknown {
-                return NSAttributedString(string: String(describing: instruction), attributes: [.backgroundColor: NSColor.red])
-            } else {
-                return NSAttributedString(string: String(describing: instruction))
+        let res = NSMutableAttributedString()
+                    
+        for insn in instructions {
+            var attributes: [NSAttributedString.Key : Any] = [:]
+            
+            if insn.isUnknown {
+                attributes[.backgroundColor] = NSColor.red
             }
-        }.joined(separator: NSAttributedString(string: "\n"))
+            
+            res.append(NSAttributedString(string: String(describing: insn), attributes: attributes))
+            res.append(NSAttributedString(string: "\n", attributes: attributes))
+        }
+        
+        return res
     }
     
     // lineno is 1 indexed
