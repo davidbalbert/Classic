@@ -265,7 +265,7 @@ enum Size: Equatable {
     case l
 }
 
-enum Condition: Int, Equatable {
+enum Condition: Int, Equatable, CaseIterable {
     case t
     case f
     case hi
@@ -393,6 +393,7 @@ enum OpName: String {
     case moveq
     case moveToSR, moveFromSR
     case lea
+    case scc
     case subb, subw, subl
     case subaw, subal
     case subqb, subqw, subql
@@ -431,6 +432,7 @@ enum OpClass: String {
     case moveq
     case moveToSR, moveFromSR
     case lea
+    case scc
     case sub
     case suba
     case subq
@@ -479,6 +481,7 @@ enum Operation: Equatable {
     case moveToSR(EffectiveAddress)
     case moveFromSR(EffectiveAddress)
     case lea(EffectiveAddress, AddressRegister)
+    case scc(Condition, EffectiveAddress)
     case sub(Size, Direction, EffectiveAddress, DataRegister)
     case suba(Size, EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
@@ -549,6 +552,8 @@ extension Operation: CustomStringConvertible {
             return "move.\(size) \(from), \(to)"
         case let .lea(address, register):
             return "lea \(address), \(register)"
+        case let .scc(condition, address):
+            return "s\(condition) \(address)"
         case let .sub(size, .mToR, address, register):
             return "sub.\(size) \(address), \(register)"
         case let .sub(size, .rToM, address, register):
@@ -707,6 +712,8 @@ let ops = [
     OpInfo(name: .moveFromSR, opClass: .moveFromSR, mask: 0xffc0, value: 0x40c0),
     
     OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
+    
+    OpInfo(name: .scc,      opClass: .scc,      mask: 0xf0c0, value: 0x50c0),
     
     OpInfo(name: .subb,     opClass: .sub,      mask: 0xf0c0, value: 0x9000),
     OpInfo(name: .subw,     opClass: .sub,      mask: 0xf0c0, value: 0x9040),
@@ -1184,6 +1191,26 @@ public struct Disassembler {
                 }
                 
                 op = .lea(srcAddr, dstReg)
+            case .scc:
+                guard let condition = Condition(rawValue: Int((instructionWord >> 8) & 0xf)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                op = .scc(condition, address)
             case .sub:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7

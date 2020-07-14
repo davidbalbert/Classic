@@ -152,6 +152,18 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.lea(.d16PC(2, 0x6), .a6))
     }
     
+    func testScc() throws {
+        let template: UInt16 = 0b0101_0000_1100_0000
+        
+        for c in Condition.allCases {
+            let value = template | UInt16(c.rawValue << 8)
+            let data = Data([UInt8(value >> 8), UInt8(value & 0xff)])
+            let op = d.disassemble(data, loadAddress: 0)[0].op
+            
+            XCTAssertEqual(op, Operation.scc(c, .dd(.d0)))
+        }
+    }
+    
     func testSubByte() throws {
         let data = Data([0x90, 0x0b])
         let op = d.disassemble(data, loadAddress: 0)[0].op
