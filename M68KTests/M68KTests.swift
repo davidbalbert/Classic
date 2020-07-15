@@ -221,6 +221,13 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.jmp(.ind(.a0)))
     }
     
+    func testJsr() throws {
+        let data = Data([0x4e, 0xba, 0x16, 0x00])
+        let op = d.disassemble(data, loadAddress: 0x436)[0].op
+        
+        XCTAssertEqual(op, Operation.jsr(.d16PC(0x438, 0x1600)))
+    }
+    
     func testMoveToSR() throws {
         let data = Data([0x46, 0xfc, 0x27, 0x00])
         let op = d.disassemble(data, loadAddress: 0)[0].op

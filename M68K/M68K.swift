@@ -400,6 +400,7 @@ enum OpName: String {
     case cmpb, cmpw, cmpl
     case cmpib, cmpiw, cmpil
     case jmp
+    case jsr
     case tstb, tstw, tstl
     case orb, orw, orl
     case oriToSR
@@ -439,6 +440,7 @@ enum OpClass: String {
     case cmp
     case cmpi
     case jmp
+    case jsr
     case tst
     case or
     case oriToSR
@@ -488,6 +490,7 @@ enum Operation: Equatable {
     case cmp(Size, EffectiveAddress, DataRegister)
     case cmpi(Size, Int32, EffectiveAddress)
     case jmp(EffectiveAddress)
+    case jsr(EffectiveAddress)
     case tst(Size, EffectiveAddress)
     case or(Size, Direction, EffectiveAddress, DataRegister)
     case oriToSR(Int16)
@@ -578,6 +581,8 @@ extension Operation: CustomStringConvertible {
             return "cmp.\(size) #$\(String(data, radix: 16)), \(address)"
         case let .jmp(address):
             return "jmp \(address)"
+        case let .jsr(address):
+            return "jsr \(address)"
         case let .tst(size, address):
             return "tst.\(size) \(address)"
         case let .or(size, .mToR, address, register):
@@ -735,7 +740,8 @@ let ops = [
     OpInfo(name: .cmpil,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c80),
     
     OpInfo(name: .jmp,      opClass: .jmp,      mask: 0xffc0, value: 0x4ec0),
-    
+    OpInfo(name: .jsr,      opClass: .jsr,      mask: 0xffc0, value: 0x4e80),
+
     OpInfo(name: .tstb,     opClass: .tst,      mask: 0xffc0, value: 0x4a00),
     OpInfo(name: .tstw,     opClass: .tst,      mask: 0xffc0, value: 0x4a40),
     OpInfo(name: .tstl,     opClass: .tst,      mask: 0xffc0, value: 0x4a80),
@@ -1435,6 +1441,20 @@ public struct Disassembler {
                 }
 
                 op = .jmp(address)
+            case .jsr:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .jsr(address)
             case .moveToSR:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7
