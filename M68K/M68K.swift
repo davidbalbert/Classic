@@ -388,6 +388,9 @@ enum OpName: String {
     case bra
     case bcc
     case dbcc
+    case cmpb, cmpw, cmpl
+    case cmpa
+    case cmpib, cmpiw, cmpil
     case moveb, movew, movel
     case movem
     case moveq
@@ -397,8 +400,6 @@ enum OpName: String {
     case subb, subw, subl
     case subaw, subal
     case subqb, subqw, subql
-    case cmpb, cmpw, cmpl
-    case cmpib, cmpiw, cmpil
     case jmp
     case jsr
     case tstb, tstw, tstl
@@ -427,6 +428,9 @@ enum OpClass: String {
     case aslr, aslrm
     case bra
     case bcc
+    case cmp
+    case cmpa
+    case cmpi
     case dbcc
     case move
     case movem
@@ -437,8 +441,6 @@ enum OpClass: String {
     case sub
     case suba
     case subq
-    case cmp
-    case cmpi
     case jmp
     case jsr
     case tst
@@ -488,6 +490,7 @@ enum Operation: Equatable {
     case suba(Size, EffectiveAddress, AddressRegister)
     case subq(Size, UInt8, EffectiveAddress)
     case cmp(Size, EffectiveAddress, DataRegister)
+    case cmpa(Size, EffectiveAddress, AddressRegister)
     case cmpi(Size, Int32, EffectiveAddress)
     case jmp(EffectiveAddress)
     case jsr(EffectiveAddress)
@@ -577,6 +580,8 @@ extension Operation: CustomStringConvertible {
             return "move SR, \(address)"
         case let .cmp(size, address, register):
             return "cmp.\(size) \(address), \(register)"
+        case let .cmpa(size, address, register):
+            return "cmpa.\(size) \(address), \(register)"
         case let .cmpi(size, data, address):
             return "cmp.\(size) #$\(String(data, radix: 16)), \(address)"
         case let .jmp(address):
@@ -734,6 +739,8 @@ let ops = [
     OpInfo(name: .cmpb,     opClass: .cmp,      mask: 0xf1c0, value: 0xb000),
     OpInfo(name: .cmpw,     opClass: .cmp,      mask: 0xf1c0, value: 0xb040),
     OpInfo(name: .cmpl,     opClass: .cmp,      mask: 0xf1c0, value: 0xb080),
+    
+    OpInfo(name: .cmpa,     opClass: .cmpa,     mask: 0xf0c0, value: 0xb0c0),
     
     OpInfo(name: .cmpib,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c00),
     OpInfo(name: .cmpiw,    opClass: .cmpi,     mask: 0xffc0, value: 0x0c40),
@@ -1381,6 +1388,25 @@ public struct Disassembler {
                 }
 
                 op = .cmp(size, address, register)
+            case .cmpa:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let register = AddressRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                
+                let size = (instructionWord >> 8) & 1 == 0 ? Size.w : Size.l
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .cmpa(size, address, register)
             case .cmpi:
                 let eaModeNum = (instructionWord >> 3) & 7
                 let eaReg = instructionWord & 7

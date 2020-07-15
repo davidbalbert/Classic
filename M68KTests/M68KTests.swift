@@ -207,6 +207,20 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.subq(.l, 1, .ad(.a7)))
     }
     
+    func testCmpaWord() throws {
+        let data = Data([0xb0, 0xc9])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.cmpa(.w, .ad(.a1), .a0))
+    }
+    
+    func testCmpaLong() throws {
+        let data = Data([0xb1, 0xc9])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.cmpa(.l, .ad(.a1), .a0))
+    }
+    
     func testCmpi() throws {
         let data = Data([0x0c, 0x80, 0x55, 0xaa, 0xaa, 0x55])
         let op = d.disassemble(data, loadAddress: 0)[0].op
