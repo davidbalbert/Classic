@@ -387,10 +387,12 @@ enum OpName: String {
     case asrb, asrw, asrl, asrm
     case bra
     case bcc
-    case dbcc
     case cmpb, cmpw, cmpl
     case cmpa
     case cmpib, cmpiw, cmpil
+    case extw, extl
+    case extbl
+    case dbcc
     case moveb, movew, movel
     case movem
     case moveq
@@ -432,6 +434,7 @@ enum OpClass: String {
     case cmpa
     case cmpi
     case dbcc
+    case ext
     case move
     case movem
     case moveq
@@ -479,6 +482,8 @@ enum Operation: Equatable {
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
     case dbcc(Condition, DataRegister, UInt32, Int16)
+    case ext(Size, DataRegister)
+    case extbl(DataRegister)
     case move(Size, EffectiveAddress, EffectiveAddress)
     case movem(Size, Direction, EffectiveAddress, RegisterList)
     case moveq(Int8, DataRegister)
@@ -554,6 +559,10 @@ extension Operation: CustomStringConvertible {
             return "b\(condition).\(size) $\(String(Int64(pc) + Int64(displacement), radix: 16))"
         case let .dbcc(condition, register, pc, displacement):
             return "db\(condition) \(register), $\(String(Int64(pc) + Int64(displacement), radix: 16))"
+        case let .ext(size, register):
+            return "ext.\(size) \(register)"
+        case let .extbl(register):
+            return "extb.l \(register)"
         case let .move(size, from, to):
             return "move.\(size) \(from), \(to)"
         case let .lea(address, register):
@@ -711,6 +720,13 @@ let ops = [
     OpInfo(name: .bcc,      opClass: .bcc,      mask: 0xf000, value: 0x6000),
     
     OpInfo(name: .dbcc,     opClass: .dbcc,     mask: 0xf0f8, value: 0x50c8),
+    
+    // NOTE: for now Ext instructions have to be listed before MoveM. This
+    // will remain necessary until we encode valid addressing modes for
+    // each instruction.
+    OpInfo(name: .extw,     opClass: .ext,      mask: 0xfff8, value: 0x4880),
+    OpInfo(name: .extl,     opClass: .ext,      mask: 0xfff8, value: 0x48c0),
+    OpInfo(name: .extbl,    opClass: .ext,      mask: 0xfff8, value: 0x49c0),
     
     OpInfo(name: .moveb,    opClass: .move,     mask: 0xf000, value: 0x1000),
     OpInfo(name: .movew,    opClass: .move,     mask: 0xf000, value: 0x3000),
@@ -1147,6 +1163,19 @@ public struct Disassembler {
                 let displacement = Int16(bitPattern: w)
                 
                 op = .dbcc(condition, register, loadAddress+UInt32(startOffset+2), displacement)
+            case .ext:
+                let opmode = (instructionWord >> 6) & 7
+                let register = DataRegister(rawValue: Int(instructionWord & 7))!
+                
+                if opmode == 0b010 {
+                    op = .ext(.w, register)
+                } else if opmode == 0b011 {
+                    op = .ext(.l, register)
+                } else if opmode == 0b111 {
+                    op = .extbl(register)
+                } else {
+                    op = .unknown(instructionWord)
+                }
             case .move:
                 let size0 = (instructionWord >> 12) & 3
                 
