@@ -35,11 +35,17 @@ class Content: NSObject {
         for insn in instructions {
             var attributes: [NSAttributedString.Key : Any] = [:]
             
-            if insn.isUnknown {
+            var s: String
+            if insn.isUnknown, let atrap = ATrap(data: insn.data) {
+                s = String(describing: atrap)
+            } else if insn.isUnknown {
+                s = String(describing: insn)
                 attributes[.backgroundColor] = NSColor.red
+            } else {
+                s = String(describing: insn)
             }
             
-            res.append(NSAttributedString(string: String(describing: insn), attributes: attributes))
+            res.append(NSAttributedString(string: s, attributes: attributes))
             res.append(NSAttributedString(string: "\n", attributes: attributes))
         }
         

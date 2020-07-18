@@ -680,7 +680,7 @@ extension Operation: CustomStringConvertible {
 public struct Instruction: CustomStringConvertible {
     let op: Operation
     public let address: UInt32
-    let data: Data
+    public let data: Data
     
     public var description: String {
         let hex = data.hexDump().padding(toLength: 21, withPad: " ", startingAt: 0)

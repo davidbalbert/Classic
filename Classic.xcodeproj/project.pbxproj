@@ -22,6 +22,7 @@
 		63827F0B24AAB0B0003DB88F /* M68K.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63827EF624AAB0B0003DB88F /* M68K.framework */; };
 		63827F0C24AAB0B0003DB88F /* M68K.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 63827EF624AAB0B0003DB88F /* M68K.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		63827F1424AAB0C1003DB88F /* M68K.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6321D9CC245F635900C73B5F /* M68K.swift */; };
+		63E0A07724C38D27000348D7 /* ATrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E0A07624C38D27000348D7 /* ATrap.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -83,6 +84,7 @@
 		63827EFE24AAB0B0003DB88F /* M68KTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = M68KTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		63827F0524AAB0B0003DB88F /* M68KTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = M68KTests.swift; sourceTree = "<group>"; };
 		63827F0724AAB0B0003DB88F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		63E0A07624C38D27000348D7 /* ATrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ATrap.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -141,6 +143,7 @@
 				63229390249D50C4006460CC /* LineNumberRulerView.swift */,
 				6321D9BE245F61DA00C73B5F /* Document.swift */,
 				631736A2245FA1B900154425 /* Content.swift */,
+				63E0A07624C38D27000348D7 /* ATrap.swift */,
 				6321D9CE245F65D000C73B5F /* DocumentController.swift */,
 				6321D9D0245F673000C73B5F /* OpenPanelAccessoryViewController.swift */,
 				6321D9C0245F61DC00C73B5F /* Assets.xcassets */,
@@ -319,6 +322,7 @@
 				631736A3245FA1B900154425 /* Content.swift in Sources */,
 				6321D9BB245F61DA00C73B5F /* AppDelegate.swift in Sources */,
 				6321D9CF245F65D000C73B5F /* DocumentController.swift in Sources */,
+				63E0A07724C38D27000348D7 /* ATrap.swift in Sources */,
 				6321D9BF245F61DA00C73B5F /* Document.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
