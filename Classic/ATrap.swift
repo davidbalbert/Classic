@@ -12,7 +12,7 @@ import Foundation
 // http://webcache.googleusercontent.com/search?q=cache:6y5NwwN0foIJ:www.mac.linux-m68k.org/devel/macalmanac.php+&cd=2&hl=en&ct=clnk&gl=us
 
 
-let traps: [UInt16: String] = [
+private let traps: [UInt16: String] = [
     0xa000: "_Open",
     0xa001: "_Close",
     0xa002: "_Read",
@@ -699,8 +699,13 @@ private func readWord(_ data: Data) -> UInt16 {
     return w
 }
 
+private let toolboxMask: UInt16 = 0xfbff
+private let osMask:      UInt16 = 0xf0ff
+
 struct ATrap: CustomStringConvertible {
     var data: Data
+    var name: String
+    var value: UInt16
     
     init?(data: Data) {
         guard data.count == 2 else { return nil }
@@ -708,16 +713,23 @@ struct ATrap: CustomStringConvertible {
         let w = readWord(data)
         
         guard (w & 0xf000) == 0xa000 else { return nil }
-        guard let _ = traps[w] else { return nil }
         
+        let toolbox = (w & 0x800) == 0x800
+        let name: String?
+        if toolbox {
+            name = traps[w & toolboxMask]
+        } else {
+            name = traps[w & osMask]
+        }
+                
+        self.name = name ?? "_Unknown"
+        self.value = w
         self.data = data
     }
     
     var description: String {
-        let w = readWord(data)
+        let hex = String(value, radix: 16).padding(toLength: 21, withPad: " ", startingAt: 0)
         
-        let hex = String(w, radix: 16).padding(toLength: 21, withPad: " ", startingAt: 0)
-        
-        return "\(hex)\(traps[w]!)"
+        return "\(hex)\(name)"
     }
 }
