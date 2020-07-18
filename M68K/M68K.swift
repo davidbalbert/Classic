@@ -398,6 +398,7 @@ enum OpName: String {
     case movem
     case moveq
     case moveToSR, moveFromSR
+    case nop
     case pea
     case rts
     case scc
@@ -442,6 +443,7 @@ enum OpClass: String {
     case movem
     case moveq
     case moveToSR, moveFromSR
+    case nop
     case pea
     case rts
     case scc
@@ -494,6 +496,7 @@ enum Operation: Equatable {
     case moveq(Int8, DataRegister)
     case moveToSR(EffectiveAddress)
     case moveFromSR(EffectiveAddress)
+    case nop
     case pea(EffectiveAddress)
     case rts
     case scc(Condition, EffectiveAddress)
@@ -593,6 +596,8 @@ extension Operation: CustomStringConvertible {
             return "move \(address), SR"
         case let .moveFromSR(address):
             return "move SR, \(address)"
+        case .nop:
+            return "nop"
         case let .pea(address):
             return "pea \(address)"
         case .rts:
@@ -749,6 +754,8 @@ let ops = [
     OpInfo(name: .moveq,    opClass: .moveq,    mask: 0xf100, value: 0x7000),
     OpInfo(name: .moveToSR, opClass: .moveToSR, mask: 0xffc0, value: 0x46c0),
     OpInfo(name: .moveFromSR, opClass: .moveFromSR, mask: 0xffc0, value: 0x40c0),
+    
+    OpInfo(name: .nop,      opClass: .nop,      mask: 0xffff, value: 0x4e71),
     
     OpInfo(name: .pea,      opClass: .pea,      mask: 0xffc0, value: 0x4840),
     
@@ -1578,6 +1585,8 @@ public struct Disassembler {
                 }
                 
                 op = .moveq(data, register)
+            case .nop:
+                op = .nop
             case .tst:
                 let size0 = (instructionWord >> 6) & 3
                 let size: Size
