@@ -700,7 +700,12 @@ private func readWord(_ data: Data) -> UInt16 {
 }
 
 private let toolboxMask: UInt16 = 0xfbff
-private let osMask:      UInt16 = 0xf0ff
+
+// osMask includes the save A0 bit (bit 8). Not sure if this is
+// the correct decision. Bit 8 isn't part of the trap number
+// for OS traps, but some OS trap numbers above have it set
+// and some don't.
+private let osMask:      UInt16 = 0xf1ff
 
 struct ATrap: CustomStringConvertible {
     var data: Data
