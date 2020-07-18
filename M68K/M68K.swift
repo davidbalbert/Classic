@@ -393,11 +393,13 @@ enum OpName: String {
     case extw, extl
     case extbl
     case dbcc
+    case lea
     case moveb, movew, movel
     case movem
     case moveq
     case moveToSR, moveFromSR
-    case lea
+    case pea
+    case rts
     case scc
     case subb, subw, subl
     case subaw, subal
@@ -435,11 +437,13 @@ enum OpClass: String {
     case cmpi
     case dbcc
     case ext
+    case lea
     case move
     case movem
     case moveq
     case moveToSR, moveFromSR
-    case lea
+    case pea
+    case rts
     case scc
     case sub
     case suba
@@ -484,12 +488,14 @@ enum Operation: Equatable {
     case dbcc(Condition, DataRegister, UInt32, Int16)
     case ext(Size, DataRegister)
     case extbl(DataRegister)
+    case lea(EffectiveAddress, AddressRegister)
     case move(Size, EffectiveAddress, EffectiveAddress)
     case movem(Size, Direction, EffectiveAddress, RegisterList)
     case moveq(Int8, DataRegister)
     case moveToSR(EffectiveAddress)
     case moveFromSR(EffectiveAddress)
-    case lea(EffectiveAddress, AddressRegister)
+    case pea(EffectiveAddress)
+    case rts
     case scc(Condition, EffectiveAddress)
     case sub(Size, Direction, EffectiveAddress, DataRegister)
     case suba(Size, EffectiveAddress, AddressRegister)
@@ -587,6 +593,10 @@ extension Operation: CustomStringConvertible {
             return "move \(address), SR"
         case let .moveFromSR(address):
             return "move SR, \(address)"
+        case let .pea(address):
+            return "pea \(address)"
+        case .rts:
+            return "rts"
         case let .cmp(size, address, register):
             return "cmp.\(size) \(address), \(register)"
         case let .cmpa(size, address, register):
@@ -721,13 +731,16 @@ let ops = [
     
     OpInfo(name: .dbcc,     opClass: .dbcc,     mask: 0xf0f8, value: 0x50c8),
     
-    // NOTE: for now Ext instructions have to be listed before MoveM. This
-    // will remain necessary until we encode valid addressing modes for
-    // each instruction.
+    // NOTE: for now, Ext instructions have to be listed before MoveM. This
+    // is because Ext can have the same value as MoveM, but a more specific
+    // mask. This will remain necessary until we encode valid addressing modes
+    // for each instruction.
     OpInfo(name: .extw,     opClass: .ext,      mask: 0xfff8, value: 0x4880),
     OpInfo(name: .extl,     opClass: .ext,      mask: 0xfff8, value: 0x48c0),
     OpInfo(name: .extbl,    opClass: .ext,      mask: 0xfff8, value: 0x49c0),
-    
+
+    OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
+
     OpInfo(name: .moveb,    opClass: .move,     mask: 0xf000, value: 0x1000),
     OpInfo(name: .movew,    opClass: .move,     mask: 0xf000, value: 0x3000),
     OpInfo(name: .movel,    opClass: .move,     mask: 0xf000, value: 0x2000),
@@ -737,7 +750,9 @@ let ops = [
     OpInfo(name: .moveToSR, opClass: .moveToSR, mask: 0xffc0, value: 0x46c0),
     OpInfo(name: .moveFromSR, opClass: .moveFromSR, mask: 0xffc0, value: 0x40c0),
     
-    OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
+    OpInfo(name: .pea,      opClass: .pea,      mask: 0xffc0, value: 0x4840),
+    
+    OpInfo(name: .rts,      opClass: .rts,      mask: 0xffff, value: 0x4e75),
     
     OpInfo(name: .scc,      opClass: .scc,      mask: 0xf0c0, value: 0x50c0),
     
@@ -1214,6 +1229,23 @@ public struct Disassembler {
                 }
                 
                 op = .move(size, srcAddr, dstAddr)
+            case .pea:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .pea(address)
+            case .rts:
+                op = .rts
             case .lea:
                 guard let dstReg = AddressRegister(rawValue: Int((instructionWord >> 9) & 7)) else {
                     op = .unknown(instructionWord)

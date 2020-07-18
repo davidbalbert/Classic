@@ -572,4 +572,18 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.swap(.d0))
     }
+    
+    func testPea() throws {
+        let data = Data([0x48, 0x6a, 0xff, 0x94])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.pea(.d16An(-0x6c, .a2)))
+    }
+    
+    func testRts() throws {
+        let data = Data([0x4e, 0x75])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.rts)
+    }
 }
