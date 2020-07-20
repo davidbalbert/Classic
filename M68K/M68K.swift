@@ -402,6 +402,7 @@ enum OpName: String {
     case moveq
     case moveToSR, moveFromSR
     case nop
+    case notb, notw, notl
     case pea
     case rts
     case scc
@@ -451,6 +452,7 @@ enum OpClass: String {
     case moveq
     case moveToSR, moveFromSR
     case nop
+    case not
     case pea
     case rts
     case scc
@@ -511,6 +513,7 @@ enum Operation: Equatable {
     case moveToSR(EffectiveAddress)
     case moveFromSR(EffectiveAddress)
     case nop
+    case not(Size, EffectiveAddress)
     case pea(EffectiveAddress)
     case rts
     case scc(Condition, EffectiveAddress)
@@ -620,6 +623,8 @@ extension Operation: CustomStringConvertible {
             return "move SR, \(address)"
         case .nop:
             return "nop"
+        case let .not(size, address):
+            return "not.\(size), \(address)"
         case let .pea(address):
             return "pea \(address)"
         case .rts:
@@ -791,6 +796,10 @@ let ops = [
     
     OpInfo(name: .nop,      opClass: .nop,      mask: 0xffff, value: 0x4e71),
     
+    OpInfo(name: .notb,     opClass: .not,      mask: 0xffc0, value: 0x4600),
+    OpInfo(name: .notw,     opClass: .not,      mask: 0xffc0, value: 0x4640),
+    OpInfo(name: .notl,     opClass: .not,      mask: 0xffc0, value: 0x4680),
+
     OpInfo(name: .pea,      opClass: .pea,      mask: 0xffc0, value: 0x4840),
     
     OpInfo(name: .rts,      opClass: .rts,      mask: 0xffff, value: 0x4e75),
@@ -1804,6 +1813,34 @@ public struct Disassembler {
                 op = .moveq(data, register)
             case .nop:
                 op = .nop
+            case .not:
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size
+                if size0 == 0 {
+                    size = .b
+                } else if size0 == 1 {
+                    size = .w
+                } else if size0 == 2 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .not(size, address)
             case .tst:
                 let size0 = (instructionWord >> 6) & 3
                 let size: Size

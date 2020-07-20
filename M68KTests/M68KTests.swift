@@ -151,6 +151,27 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.move(.b, .imm(.b(-0x79)), .d16An(0x400, .a5)))
     }
     
+    func testNotByte() throws {
+        let data = Data([0x46, 0x18])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.not(.b, .postInc(.a0)))
+    }
+    
+    func testNotWord() throws {
+        let data = Data([0x46, 0x58])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.not(.w, .postInc(.a0)))
+    }
+    
+    func testNotLong() throws {
+        let data = Data([0x46, 0x98])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.not(.l, .postInc(.a0)))
+    }
+    
     func testEorb() throws {
         let data = Data([0xb3, 0x10])
         let op = d.disassemble(data, loadAddress: 0)[0].op
