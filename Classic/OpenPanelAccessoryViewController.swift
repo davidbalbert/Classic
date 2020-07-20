@@ -46,7 +46,7 @@ class OpenPanelAccessoryViewController: NSViewController, NSOpenSavePanelDelegat
         loadAddress = 0x400000
         loadAddressField.stringValue = "0x400000"
         
-        offset = 0x2a
-        offsetField.stringValue = "0x2a"
+        offset = 0x0
+        offsetField.stringValue = "0x0"
     }
 }
