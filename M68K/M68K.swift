@@ -387,6 +387,7 @@ enum OpName: String {
     case asrb, asrw, asrl, asrm
     case bra
     case bcc
+    case bchgr, bchgi
     case cmpb, cmpw, cmpl
     case cmpa
     case cmpib, cmpiw, cmpil
@@ -434,6 +435,7 @@ enum OpClass: String {
     case aslr, aslrm
     case bra
     case bcc
+    case bchgr, bchgi
     case cmp
     case cmpa
     case cmpi
@@ -489,6 +491,10 @@ enum Operation: Equatable {
     case asrm(EffectiveAddress)
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
+    case bchg(Size, BitNumber, EffectiveAddress)
+    case bclr(BitNumber, EffectiveAddress)
+    case bset(BitNumber, EffectiveAddress)
+    case btst(BitNumber, EffectiveAddress)
     case dbcc(Condition, DataRegister, UInt32, Int16)
     case eor(Size, DataRegister, EffectiveAddress)
     case ext(Size, DataRegister)
@@ -519,9 +525,6 @@ enum Operation: Equatable {
     case lslm(EffectiveAddress)
     case lsrm(EffectiveAddress)
     case clr(Size, EffectiveAddress)
-    case bset(BitNumber, EffectiveAddress)
-    case bclr(BitNumber, EffectiveAddress)
-    case btst(BitNumber, EffectiveAddress)
     case swap(DataRegister)
     case rol(Size, RotateCount, DataRegister)
     case ror(Size, RotateCount, DataRegister)
@@ -569,6 +572,10 @@ extension Operation: CustomStringConvertible {
             return "bra.\(size) $\(String(Int64(pc) + Int64(displacement), radix: 16))"
         case let .bcc(size, condition, pc, displacement):
             return "b\(condition).\(size) $\(String(Int64(pc) + Int64(displacement), radix: 16))"
+        case let .bchg(size, .r(register), address):
+            return "bchg.\(size) \(register), \(address)"
+        case let .bchg(size, .imm(data), address):
+            return "bchg.\(size) #$\(String(data, radix: 16)), \(address)"
         case let .dbcc(condition, register, pc, displacement):
             return "db\(condition) \(register), $\(String(Int64(pc) + Int64(displacement), radix: 16))"
         case let .eor(size, register, address):
@@ -739,6 +746,9 @@ let ops = [
     OpInfo(name: .bra,      opClass: .bra,      mask: 0xff00, value: 0x6000),
     OpInfo(name: .bcc,      opClass: .bcc,      mask: 0xf000, value: 0x6000),
     
+    OpInfo(name: .bchgr,    opClass: .bchgr,    mask: 0xf1c0, value: 0x0140),
+    OpInfo(name: .bchgi,    opClass: .bchgi,    mask: 0xffc0, value: 0x0840),
+
     OpInfo(name: .dbcc,     opClass: .dbcc,     mask: 0xf0f8, value: 0x50c8),
     
     // CLK omits bit 8 from the mask and the value. Not sure why.
@@ -1179,6 +1189,59 @@ public struct Disassembler {
                 }
 
                 op = .bcc(size, condition, loadAddress+UInt32(startOffset+2), displacement)
+            case .bchgr:
+                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let size: Size
+                if case .dd = eaMode {
+                    size = .l
+                } else {
+                    size = .b
+                }
+
+                op = .bchg(size, .r(register), address)
+            case .bchgi:
+                guard let w = readWord() else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let bitNumber = UInt8(truncatingIfNeeded: w)
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let size: Size
+                if case .dd = eaMode {
+                    size = .l
+                } else {
+                    size = .b
+                }
+
+                op = .bchg(size, .imm(bitNumber), address)
             case .dbcc:
                 guard let condition = Condition(rawValue: Int((instructionWord >> 8) & 0xf)),
                       let register = DataRegister(rawValue: Int(instructionWord & 7)) else {
