@@ -41,6 +41,27 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.adda(.l, .dd(.d1), .a2))
     }
     
+    func testAddiByte() throws {
+        let data = Data([0x06, 0x38, 0x00, 0x15, 0x01, 0x0c])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.addi(.b, 0x15, .XXXw(0x10c)))
+    }
+    
+    func testAddiWord() throws {
+        let data = Data([0x06, 0x78, 0x04, 0x00, 0x01, 0x0c])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.addi(.w, 0x400, .XXXw(0x10c)))
+    }
+    
+    func testAddiLong() throws {
+        let data = Data([0x06, 0xb8, 0x00, 0x00, 0x04, 0x00, 0x01, 0x0c])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.addi(.l, 0x400, .XXXw(0x10c)))
+    }
+
     func testAddQByte() throws {
         let data = Data([0x52, 0x00])
         let op = d.disassemble(data, loadAddress: 0)[0].op
