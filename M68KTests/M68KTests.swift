@@ -130,13 +130,34 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.move(.b, .imm(.b(-0x79)), .d16An(0x400, .a5)))
     }
     
+    func testEorb() throws {
+        let data = Data([0xb3, 0x10])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.eor(.b, .d1, .ind(.a0)))
+    }
+    
+    func testEorw() throws {
+        let data = Data([0xb3, 0x50])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.eor(.w, .d1, .ind(.a0)))
+    }
+
+    func testEorl() throws {
+        let data = Data([0xb3, 0x90])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+
+        XCTAssertEqual(op, Operation.eor(.l, .d1, .ind(.a0)))
+    }
+    
     func testExtw() throws {
         let data = Data([0x48, 0x81])
         let op = d.disassemble(data, loadAddress: 0)[0].op
 
         XCTAssertEqual(op, Operation.ext(.w, .d1))
     }
-    
+        
     func testExtl() throws {
         let data = Data([0x48, 0xc1])
         let op = d.disassemble(data, loadAddress: 0)[0].op

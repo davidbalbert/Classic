@@ -390,6 +390,7 @@ enum OpName: String {
     case cmpb, cmpw, cmpl
     case cmpa
     case cmpib, cmpiw, cmpil
+    case eorb, eorw, eorl
     case extw, extl
     case extbl
     case dbcc
@@ -437,6 +438,7 @@ enum OpClass: String {
     case cmpa
     case cmpi
     case dbcc
+    case eor
     case ext
     case lea
     case move
@@ -488,6 +490,7 @@ enum Operation: Equatable {
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
     case dbcc(Condition, DataRegister, UInt32, Int16)
+    case eor(Size, DataRegister, EffectiveAddress)
     case ext(Size, DataRegister)
     case extbl(DataRegister)
     case lea(EffectiveAddress, AddressRegister)
@@ -568,6 +571,8 @@ extension Operation: CustomStringConvertible {
             return "b\(condition).\(size) $\(String(Int64(pc) + Int64(displacement), radix: 16))"
         case let .dbcc(condition, register, pc, displacement):
             return "db\(condition) \(register), $\(String(Int64(pc) + Int64(displacement), radix: 16))"
+        case let .eor(size, register, address):
+            return "eor.\(size) \(register), \(address)"
         case let .ext(size, register):
             return "ext.\(size) \(register)"
         case let .extbl(register):
@@ -736,6 +741,11 @@ let ops = [
     
     OpInfo(name: .dbcc,     opClass: .dbcc,     mask: 0xf0f8, value: 0x50c8),
     
+    // CLK omits bit 8 from the mask and the value. Not sure why.
+    OpInfo(name: .eorb,     opClass: .eor,      mask: 0xf1c0, value: 0xb100),
+    OpInfo(name: .eorw,     opClass: .eor,      mask: 0xf1c0, value: 0xb140),
+    OpInfo(name: .eorl,     opClass: .eor,      mask: 0xf1c0, value: 0xb180),
+
     // NOTE: for now, Ext instructions have to be listed before MoveM. This
     // is because Ext can have the same value as MoveM, but a more specific
     // mask. This will remain necessary until we encode valid addressing modes
@@ -1185,6 +1195,36 @@ public struct Disassembler {
                 let displacement = Int16(bitPattern: w)
                 
                 op = .dbcc(condition, register, loadAddress+UInt32(startOffset+2), displacement)
+            case .eor:
+                let register = DataRegister(rawValue: Int((instructionWord >> 9) & 7))!
+                let opmode = (instructionWord >> 6) & 7
+
+                let size: Size
+                if opmode == 0b100 {
+                    size = .b
+                } else if opmode == 0b101 {
+                    size = .w
+                } else if opmode == 0b110 {
+                    size = .l
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                op = .eor(size, register, address)
             case .ext:
                 let opmode = (instructionWord >> 6) & 7
                 let register = DataRegister(rawValue: Int(instructionWord & 7))!
