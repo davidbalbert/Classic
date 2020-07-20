@@ -241,6 +241,26 @@ class M68KTests: XCTestCase {
         XCTAssertEqual(op, Operation.suba(.l, .ad(.a3), .a3))
     }
 
+    func testSubiByte() throws {
+        let data = Data([0x04, 0x38, 0x00, 0x12, 0x01, 0x0c])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.subi(.b, 0x12, .XXXw(0x10c)))
+    }
+    
+    func testSubiWord() throws {
+        let data = Data([0x04, 0x78, 0x04, 0x00, 0x01, 0x0c])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.subi(.w, 0x400, .XXXw(0x10c)))
+    }
+    
+    func testSubiLong() throws {
+        let data = Data([0x04, 0xb8, 0x00, 0x00, 0x04, 0x00, 0x01, 0x0c])
+        let op = d.disassemble(data, loadAddress: 0)[0].op
+        
+        XCTAssertEqual(op, Operation.subi(.l, 0x400, .XXXw(0x10c)))
+    }
     
     func testSubq() throws {
         let data = Data([0x53, 0x8f])
@@ -586,8 +606,6 @@ class M68KTests: XCTestCase {
         
         XCTAssertEqual(op, Operation.bchg(.l, .r(.d1), .dd(.d0)))
     }
-
-
     
     func testBclrImmediate() throws {
         let data = Data([0x08, 0x91, 0x00, 0x10])

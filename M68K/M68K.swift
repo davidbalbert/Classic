@@ -406,6 +406,7 @@ enum OpName: String {
     case scc
     case subb, subw, subl
     case subaw, subal
+    case subib, subiw, subil
     case subqb, subqw, subql
     case jmp
     case jsr
@@ -453,6 +454,7 @@ enum OpClass: String {
     case scc
     case sub
     case suba
+    case subi
     case subq
     case jmp
     case jsr
@@ -511,6 +513,7 @@ enum Operation: Equatable {
     case scc(Condition, EffectiveAddress)
     case sub(Size, Direction, EffectiveAddress, DataRegister)
     case suba(Size, EffectiveAddress, AddressRegister)
+    case subi(Size, Int32, EffectiveAddress)
     case subq(Size, UInt8, EffectiveAddress)
     case cmp(Size, EffectiveAddress, DataRegister)
     case cmpa(Size, EffectiveAddress, AddressRegister)
@@ -596,6 +599,8 @@ extension Operation: CustomStringConvertible {
             return "sub.\(size) \(register), \(address)"
         case let .suba(size, address, register):
             return "suba.\(size) \(address), \(register)"
+        case let .subi(size, data, address):
+            return "sub.\(size) #$\(String(data, radix: 16)), \(address)"
         case let .subq(size, data, address):
             return "subq.\(size) #$\(String(data, radix: 16)), \(address)"
         case let .movem(size, .rToM, address, registers):
@@ -790,6 +795,10 @@ let ops = [
     OpInfo(name: .subaw,    opClass: .suba,     mask: 0xf1c0, value: 0x90c0),
     OpInfo(name: .subal,    opClass: .suba,     mask: 0xf1c0, value: 0x91c0),
 
+    OpInfo(name: .subib,    opClass: .subi,     mask: 0xffc0, value: 0x0400),
+    OpInfo(name: .subiw,    opClass: .subi,     mask: 0xffc0, value: 0x0440),
+    OpInfo(name: .subil,    opClass: .subi,     mask: 0xffc0, value: 0x0480),
+    
     OpInfo(name: .subqb,    opClass: .subq,     mask: 0xf1c0, value: 0x5100),
     OpInfo(name: .subqw,    opClass: .subq,     mask: 0xf1c0, value: 0x5140),
     OpInfo(name: .subql,    opClass: .subq,     mask: 0xf1c0, value: 0x5180),
@@ -1458,6 +1467,54 @@ public struct Disassembler {
                 }
 
                 op = .suba(size, address, register)
+            case .subi:
+                let eaModeNum = (instructionWord >> 3) & 7
+                let eaReg = instructionWord & 7
+                
+                guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                let size0 = (instructionWord >> 6) & 3
+                let size: Size
+                let data: Int32
+
+                if size0 == 0 {
+                    guard let w = readWord() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
+                    size = .b
+                    data = Int32(Int8(truncatingIfNeeded: w))
+                } else if size0 == 1 {
+                    guard let w = readWord() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
+                    size = .w
+                    data = Int32(Int16(bitPattern: w))
+                } else if size0 == 2 {
+                    guard let l = readLong() else {
+                        op = .unknown(instructionWord)
+                        break
+                    }
+
+                    size = .l
+                    data = Int32(bitPattern: l)
+                } else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                guard let address = readAddress(eaMode, Int(eaReg)) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .subi(size, data, address)
             case .subq:
                 var data = UInt8((instructionWord >> 9) & 7)
                 if data == 0 {
