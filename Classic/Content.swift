@@ -33,7 +33,7 @@ class Content: NSObject {
         let res = NSMutableAttributedString()
                     
         for insn in instructions {
-            var attributes: [NSAttributedString.Key : Any] = [:]
+            var attributes: [NSAttributedString.Key : Any] = [.foregroundColor: NSColor.textColor]
             
             var s: String
             if insn.isUnknown, let atrap = ATrap(data: insn.data) {
