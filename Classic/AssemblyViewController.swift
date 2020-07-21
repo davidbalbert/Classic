@@ -12,9 +12,9 @@ class AssemblyViewController: NSViewController {
     @IBOutlet var textView: NSTextView!
     var rulerView: LineNumberRulerView?
 
-    var content: Content? {
+    override var representedObject: Any? {
         didSet {
-            guard let content = content else {
+            guard let content = representedObject as? Content else {
                 textView.string = ""
                 return
             }
@@ -31,7 +31,7 @@ class AssemblyViewController: NSViewController {
         if let scrollView = textView.enclosingScrollView {
             let rulerView = LineNumberRulerView(scrollView: scrollView, orientation: .verticalRuler)
             rulerView.clientView = textView
-            rulerView.content = content
+//            rulerView.content = content
             
             scrollView.verticalRulerView = rulerView
             scrollView.rulersVisible = true

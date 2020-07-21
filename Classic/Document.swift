@@ -37,9 +37,7 @@ class Document: NSDocument {
         let windowController = storyboard.instantiateController(withIdentifier: NSStoryboard.SceneIdentifier("Document Window Controller")) as! NSWindowController
         self.addWindowController(windowController)
 
-        if let contentVC = windowController.contentViewController as? AssemblyViewController {
-            contentVC.content = content
-        }
+        windowController.contentViewController?.representedObject = content
     }
 
     override func data(ofType typeName: String) throws -> Data {
