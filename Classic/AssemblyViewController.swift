@@ -31,7 +31,6 @@ class AssemblyViewController: NSViewController {
         if let scrollView = textView.enclosingScrollView {
             let rulerView = LineNumberRulerView(scrollView: scrollView, orientation: .verticalRuler)
             rulerView.clientView = textView
-//            rulerView.content = content
             
             scrollView.verticalRulerView = rulerView
             scrollView.rulersVisible = true
