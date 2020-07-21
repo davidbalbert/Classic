@@ -8,7 +8,7 @@
 
 import Cocoa
 
-class ViewController: NSViewController {
+class AssemblyViewController: NSViewController {
     @IBOutlet var textView: NSTextView!
     var rulerView: LineNumberRulerView?
 
