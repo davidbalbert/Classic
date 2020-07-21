@@ -733,8 +733,6 @@ struct ATrap: CustomStringConvertible {
     }
     
     var description: String {
-        let hex = String(value, radix: 16).padding(toLength: 21, withPad: " ", startingAt: 0)
-        
-        return "\(hex)\(name)"
+        name
     }
 }

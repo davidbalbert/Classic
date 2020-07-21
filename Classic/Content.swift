@@ -9,6 +9,20 @@
 import Cocoa
 import M68K
 
+private extension Data {
+    func chunked(by count: Int) -> [Data] {
+        stride(from: startIndex, to: endIndex, by: count).map { i in
+            self[i..<Swift.min(i+count, endIndex)]
+        }
+    }
+
+    func hexDump() -> String {
+        chunked(by: 2).map { word in
+            word.map { String(format: "%02x", $0) }.joined(separator: "")
+        }.joined(separator: " ")
+    }
+}
+
 class Content: NSObject {
     static let lineLength = 16
     
@@ -25,24 +39,21 @@ class Content: NSObject {
         return d.disassemble(data, loadAddress: loadAddress)
     }()
     
-    var assembly: String {
-        instructions.map { String(describing: $0) }.joined(separator: "\n")
-    }
-    
     var attributedAssembly: NSAttributedString {
         let res = NSMutableAttributedString()
                     
         for insn in instructions {
             var attributes: [NSAttributedString.Key : Any] = [.foregroundColor: NSColor.textColor]
             
-            var s: String
+            var s = insn.data.hexDump().padding(toLength: 21, withPad: " ", startingAt: 0)
+            
             if insn.isUnknown, let atrap = ATrap(data: insn.data) {
-                s = String(describing: atrap)
+                s += String(describing: atrap)
             } else if insn.isUnknown {
-                s = String(describing: insn)
+                s += String(describing: insn)
                 attributes[.backgroundColor] = NSColor.red
             } else {
-                s = String(describing: insn)
+                s += String(describing: insn)
             }
             
             res.append(NSAttributedString(string: s, attributes: attributes))

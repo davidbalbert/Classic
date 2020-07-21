@@ -8,20 +8,6 @@
 
 import Foundation
 
-private extension Data {
-    func chunked(by count: Int) -> [Data] {
-        stride(from: startIndex, to: endIndex, by: count).map { i in
-            self[i..<Swift.min(i+count, endIndex)]
-        }
-    }
-
-    func hexDump() -> String {
-        chunked(by: 2).map { word in
-            word.map { String(format: "%02x", $0) }.joined(separator: "")
-        }.joined(separator: " ")
-    }
-}
-
 private extension BinaryInteger {
     var bitSwapped: Self {
         var res: Self = 0
@@ -715,9 +701,7 @@ public struct Instruction: CustomStringConvertible {
     public let data: Data
     
     public var description: String {
-        let hex = data.hexDump().padding(toLength: 21, withPad: " ", startingAt: 0)
-        
-        return "\(hex)\(op)"
+        return String(describing: op)
     }
     
     public var isUnknown: Bool {
