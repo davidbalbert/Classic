@@ -25,38 +25,43 @@ private extension BinaryInteger {
 }
 
 
-struct StatusRegister: OptionSet {
-    let rawValue: UInt16
+public struct StatusRegister: OptionSet {
+    public let rawValue: UInt16
 
+    public init(rawValue: RawValue) {
+        self.rawValue = rawValue
+    }
+    
+    public init() {
+        rawValue = 0
+    }
+    
     // CCR bits
-    static let c = StatusRegister(rawValue: 1 << 0)
-    static let v = StatusRegister(rawValue: 1 << 1)
-    static let z = StatusRegister(rawValue: 1 << 2)
-    static let n = StatusRegister(rawValue: 1 << 3)
-    static let x = StatusRegister(rawValue: 1 << 4)
+    public static let c = StatusRegister(rawValue: 1 << 0)
+    public static let v = StatusRegister(rawValue: 1 << 1)
+    public static let z = StatusRegister(rawValue: 1 << 2)
+    public static let n = StatusRegister(rawValue: 1 << 3)
+    public static let x = StatusRegister(rawValue: 1 << 4)
 
-    static let ccr: StatusRegister = [x, n, z, v, c]
+    public static let ccr: StatusRegister = [x, n, z, v, c]
 
     // System bits
 
     // Interrupt priority mask
-    static let i0 = StatusRegister(rawValue: 1 << 8)
-    static let i1 = StatusRegister(rawValue: 1 << 9)
-    static let i2 = StatusRegister(rawValue: 1 << 10)
+    public static let i0 = StatusRegister(rawValue: 1 << 8)
+    public static let i1 = StatusRegister(rawValue: 1 << 9)
+    public static let i2 = StatusRegister(rawValue: 1 << 10)
 
-    static let m  = StatusRegister(rawValue: 1 << 12)
-    static let s  = StatusRegister(rawValue: 1 << 13)
+    public static let s  = StatusRegister(rawValue: 1 << 13)
 
     // Trace enable
-    static let t0 = StatusRegister(rawValue: 1 << 14)
-    static let t1 = StatusRegister(rawValue: 1 << 15)
+    public static let t0 = StatusRegister(rawValue: 1 << 14)
 
-    static let all: StatusRegister = [t1, t0, s, m, i2, i1, i0, x, n, z, v, c]
+    static let all: StatusRegister = [t0, s, i2, i1, i0, x, n, z, v, c]
 
     // stack selection
-    static let stackSelectionMask: StatusRegister = [m, s]
-    static let msp: StatusRegister = [m, s]
-    static let isp: StatusRegister = [s]
+    static let stackSelectionMask: StatusRegister = s
+    static let isp: StatusRegister = s
 }
 
 struct Registers {
@@ -88,8 +93,6 @@ struct Registers {
     var a7: UInt32 {
         get {
             switch sr.intersection(.stackSelectionMask) {
-            case .msp:
-                return msp
             case .isp:
                 return isp
             default:
@@ -99,8 +102,6 @@ struct Registers {
 
         set {
             switch sr.intersection(.stackSelectionMask) {
-            case .msp:
-                msp = newValue
             case .isp:
                 isp = newValue
             default:
