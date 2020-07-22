@@ -45,7 +45,7 @@ class Content: NSObject {
         for insn in instructions {
             var attributes: [NSAttributedString.Key : Any] = [.foregroundColor: NSColor.textColor]
             
-            var s = insn.data.hexDump().padding(toLength: 21, withPad: " ", startingAt: 0)
+            var s = insn.data.hexDump().padding(toLength: 26, withPad: " ", startingAt: 0)
             
             if insn.isUnknown, let atrap = ATrap(data: insn.data) {
                 s += String(describing: atrap)
