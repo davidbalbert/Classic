@@ -799,7 +799,7 @@
                                             <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                             <tableColumns>
                                                 <tableColumn width="689" minWidth="40" maxWidth="1000" id="KP0-YT-6b9">
-                                                    <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border">
+                                                    <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Register">
                                                         <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                         <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                                     </tableHeaderCell>
@@ -810,7 +810,7 @@
                                                     </textFieldCell>
                                                     <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                     <prototypeCellViews>
-                                                        <tableCellView id="FCO-FW-CFb">
+                                                        <tableCellView identifier="Register" id="FCO-FW-CFb">
                                                             <rect key="frame" x="1" y="1" width="689" height="17"/>
                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                             <subviews>
@@ -818,7 +818,7 @@
                                                                     <rect key="frame" x="0.0" y="0.0" width="689" height="17"/>
                                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
                                                                     <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Table View Cell" id="l7o-dD-25L">
-                                                                        <font key="font" metaFont="system"/>
+                                                                        <font key="font" metaFont="label" size="11"/>
                                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                                     </textFieldCell>
@@ -831,6 +831,10 @@
                                                     </prototypeCellViews>
                                                 </tableColumn>
                                             </tableColumns>
+                                            <connections>
+                                                <outlet property="dataSource" destination="yX8-El-knd" id="nSe-9d-Ith"/>
+                                                <outlet property="delegate" destination="yX8-El-knd" id="qa0-7z-qy5"/>
+                                            </connections>
                                         </outlineView>
                                     </subviews>
                                 </clipView>
@@ -851,6 +855,9 @@
                             <constraint firstItem="qLA-2M-EEd" firstAttribute="top" secondItem="Xxc-tn-EQI" secondAttribute="top" id="g5s-he-Lxu"/>
                         </constraints>
                     </view>
+                    <connections>
+                        <outlet property="outlineView" destination="dNy-ld-Zta" id="tdp-UV-0yh"/>
+                    </connections>
                 </viewController>
                 <customObject id="k9A-yx-Ezu" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
