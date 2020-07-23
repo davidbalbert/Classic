@@ -151,9 +151,9 @@
 				63E0A07624C38D27000348D7 /* ATrap.swift */,
 				6321D9CE245F65D000C73B5F /* DocumentController.swift */,
 				6321D9D0245F673000C73B5F /* OpenPanelAccessoryViewController.swift */,
+				635385D424C723D7009E147C /* RegisterViewController.swift */,
 				6321D9C0245F61DC00C73B5F /* Assets.xcassets */,
 				6321D9C2245F61DC00C73B5F /* Main.storyboard */,
-				635385D424C723D7009E147C /* RegisterViewController.swift */,
 				6321D9C5245F61DC00C73B5F /* Info.plist */,
 				6321D9C6245F61DC00C73B5F /* Classic.entitlements */,
 			);

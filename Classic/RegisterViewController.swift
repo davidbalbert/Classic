@@ -32,7 +32,13 @@ extension NameValueDescribable {
 struct BitField: NameValueDescribable {
     var name: String
     var bitNumber: Int
-    var value: Int
+    var value: UInt32
+    
+    init(name: String, bitNumber: Int, registerValue: UInt32) {
+        self.name = name
+        self.bitNumber = bitNumber
+        self.value = (registerValue >> bitNumber) & 1
+    }
 
     var nameDescription: String {
         "\(name) (\(bitNumber))"
@@ -121,8 +127,16 @@ struct StatusRegister: Register, NameValueDescribable {
     
     var children: [BitField] {
         [
-            BitField(name: "T0", bitNumber: 14, value: statusRegister.intersection(.t0).rawValue == 0 ? 0 : 1),
-            BitField(name: "S", bitNumber: 13, value: statusRegister.intersection(.s).rawValue == 0 ? 0 : 1),
+            BitField(name: "T0", bitNumber: 14, registerValue: UInt32(statusRegister.rawValue)),
+            BitField(name: "S", bitNumber: 13, registerValue: UInt32(statusRegister.rawValue)),
+            BitField(name: "I2", bitNumber: 10, registerValue: UInt32(statusRegister.rawValue)),
+            BitField(name: "I1", bitNumber: 9, registerValue: UInt32(statusRegister.rawValue)),
+            BitField(name: "I0", bitNumber: 8, registerValue: UInt32(statusRegister.rawValue)),
+            BitField(name: "X", bitNumber: 4, registerValue: UInt32(statusRegister.rawValue)),
+            BitField(name: "N", bitNumber: 3, registerValue: UInt32(statusRegister.rawValue)),
+            BitField(name: "Z", bitNumber: 2, registerValue: UInt32(statusRegister.rawValue)),
+            BitField(name: "V", bitNumber: 1, registerValue: UInt32(statusRegister.rawValue)),
+            BitField(name: "C", bitNumber: 0, registerValue: UInt32(statusRegister.rawValue)),
         ]
     }
 }
@@ -132,7 +146,7 @@ class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutline
     @IBOutlet var outlineView: NSOutlineView!
     
     lazy var registers: [Register] = {
-        var registers: [Register] = [AddressRegister(name: "PC", value: 0x2a), StatusRegister(statusRegister: [.s])]
+        var registers: [Register] = [AddressRegister(name: "PC", value: 0x2a), StatusRegister(statusRegister: [.s, .c, .v, .n])]
         
         registers += ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"].map { DataRegister(name: $0, value: 0) }
         
