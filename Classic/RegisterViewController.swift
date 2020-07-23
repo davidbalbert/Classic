@@ -29,17 +29,13 @@ extension NameValueDescribable {
     }
 }
 
-struct BitField: NameValueDescribable {
-    var name: String
-    var bitNumber: Int
-    var value: UInt32
-    
-    init(name: String, bitNumber: Int, registerValue: UInt32) {
-        self.name = name
-        self.bitNumber = bitNumber
-        self.value = (registerValue >> bitNumber) & 1
-    }
+protocol BitField {
+    var name: String { get }
+    var bitNumber: Int { get }
+    var value: Int { get }
+}
 
+extension BitField {
     var nameDescription: String {
         "\(name) (\(bitNumber))"
     }
@@ -47,6 +43,23 @@ struct BitField: NameValueDescribable {
     var valueDescription: String {
         "\(value)"
     }
+}
+
+struct StatusRegisterBitField: BitField, NameValueDescribable {
+    var name: String
+    var bitNumber: Int
+    var value: Int
+
+    init?(name: String, bit: M68K.StatusRegister, register: M68K.StatusRegister) {
+        guard bit.rawValue.nonzeroBitCount == 1 else {
+            return nil
+        }
+        
+        self.name = name
+        self.bitNumber = bit.rawValue.trailingZeroBitCount
+        self.value = register.intersection(bit).rawValue == 0 ? 0 : 1
+    }
+
 }
 
 protocol Register {
@@ -125,18 +138,22 @@ struct StatusRegister: Register, NameValueDescribable {
         "0x\(String(statusRegister.rawValue, radix: 16))"
     }
     
+    func bitField(name: String, bit: M68K.StatusRegister) -> BitField? {
+        StatusRegisterBitField(name: name, bit: bit, register: statusRegister)
+    }
+    
     var children: [BitField] {
         [
-            BitField(name: "T0", bitNumber: 14, registerValue: UInt32(statusRegister.rawValue)),
-            BitField(name: "S", bitNumber: 13, registerValue: UInt32(statusRegister.rawValue)),
-            BitField(name: "I2", bitNumber: 10, registerValue: UInt32(statusRegister.rawValue)),
-            BitField(name: "I1", bitNumber: 9, registerValue: UInt32(statusRegister.rawValue)),
-            BitField(name: "I0", bitNumber: 8, registerValue: UInt32(statusRegister.rawValue)),
-            BitField(name: "X", bitNumber: 4, registerValue: UInt32(statusRegister.rawValue)),
-            BitField(name: "N", bitNumber: 3, registerValue: UInt32(statusRegister.rawValue)),
-            BitField(name: "Z", bitNumber: 2, registerValue: UInt32(statusRegister.rawValue)),
-            BitField(name: "V", bitNumber: 1, registerValue: UInt32(statusRegister.rawValue)),
-            BitField(name: "C", bitNumber: 0, registerValue: UInt32(statusRegister.rawValue)),
+            bitField(name: "T0", bit: .t0)!,
+            bitField(name: "S",  bit: .s)!,
+            bitField(name: "I2", bit: .i2)!,
+            bitField(name: "I1", bit: .i1)!,
+            bitField(name: "I0", bit: .i0)!,
+            bitField(name: "X",  bit: .x)!,
+            bitField(name: "N",  bit: .n)!,
+            bitField(name: "Z",  bit: .z)!,
+            bitField(name: "V",  bit: .v)!,
+            bitField(name: "C",  bit: .c)!,
         ]
     }
 }
