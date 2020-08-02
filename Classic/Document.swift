@@ -10,22 +10,6 @@ import Cocoa
 
 class Document: NSDocument {
     var content = Content()
-    var loadAddress: UInt32 {
-        get {
-            content.loadAddress
-        }
-        set {
-            content.loadAddress = newValue
-        }
-    }
-    var offset: UInt32 {
-        get {
-            content.offset
-        }
-        set {
-            content.offset = newValue
-        }
-    }
 
     override init() {
         super.init()

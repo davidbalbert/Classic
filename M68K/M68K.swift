@@ -52,18 +52,42 @@ protocol AddressableDevice {
     func read8(_ address: UInt32) -> UInt8
     func read16(_ address: UInt32) -> UInt16
     func read32(_ address: UInt32) -> UInt32
-    mutating func write8(_ address: UInt32, value: UInt8)
-    mutating func write16(_ address: UInt32, value: UInt16)
-    mutating func write32(_ address: UInt32, value: UInt32)
+    func readRange(_ range: Range<UInt32>) -> Data
+
+    func write8(_ address: UInt32, value: UInt8)
+    func write16(_ address: UInt32, value: UInt16)
+    func write32(_ address: UInt32, value: UInt32)
+    
+    var readableWithoutSideEffects: Bool { get }
 }
 
-class Machine {
-    var ram = RAM(count: 0x400000)
-    var cpu = CPU()
-    let rom: ROM
+struct Mapping {
+    let range: Range<UInt32>
+    let device: AddressableDevice
     
-    init(rom: Data) {
-        self.rom = ROM(data: rom)
+    var size: UInt32 {
+        UInt32(range.count)
+    }
+    
+    var readableWithoutSideEffects: Bool {
+        device.readableWithoutSideEffects
+    }
+}
+
+public class Machine {
+    let ram = RAM(count: 0x400000)
+    let rom: ROM
+    public var cpu = CPU()
+    
+    var mappings: [Mapping] = []
+    
+    public init(rom romData: Data) {
+        rom = ROM(data: romData)
+
+        // This mapping is boot configuration which has ROM mapped at 0x0 in addition to its normal location of 0x400000
+        map(0x0..<0x40_0000, to: rom)
+        map(0x40_0000..<0x60_0000, to: rom)
+        map(0x60_0000..<0x60_0000+UInt32(ram.count), to: ram)
         
         cpu.bus = self
         cpu.reset()
@@ -71,66 +95,106 @@ class Machine {
     
     func read8(_ address: UInt32) -> UInt8 {
         let a24 = address & 0x00FFFFFF
-        let device = getDevice(address: a24)
+        guard let m = mapping(for: a24) else {
+            return 0
+        }
         
-        return device?.read8(address) ?? 0
+        return m.device.read8(a24 % m.size)
     }
     
     func read16(_ address: UInt32) -> UInt16 {
         let a24 = address & 0x00FFFFFF
-        let device = getDevice(address: a24)
+        guard let m = mapping(for: a24) else {
+            return 0
+        }
         
-        return device?.read16(address) ?? 0
+        return m.device.read16(a24 % m.size)
     }
     
     func read32(_ address: UInt32) -> UInt32 {
         let a24 = address & 0x00FFFFFF
-        let device = getDevice(address: a24)
+        guard let m = mapping(for: a24) else {
+            return 0
+        }
         
-        return device?.read32(address) ?? 0
+        return m.device.read32(a24 % m.size)
     }
     
     func write8(_ address: UInt32, value: UInt8) {
         let a24 = address & 0x00FFFFFF
-        var device = getDevice(address: a24)
-
-        device?.write8(address, value: value)
+        guard let m = mapping(for: a24) else { return }
+        
+        return m.device.write8(a24 % m.size, value: value)
     }
     
     func write16(_ address: UInt32, value: UInt16) {
         let a24 = address & 0x00FFFFFF
-        var device = getDevice(address: a24)
-
-        device?.write16(address, value: value)
+        guard let m = mapping(for: a24) else { return }
+        
+        return m.device.write16(a24 % m.size, value: value)
     }
     
     func write32(_ address: UInt32, value: UInt32) {
         let a24 = address & 0x00FFFFFF
-        var device = getDevice(address: a24)
-
-        device?.write32(address, value: value)
+        guard let m = mapping(for: a24) else { return }
+        
+        return m.device.write32(a24 % m.size, value: value)
     }
     
-    func getDevice(address: UInt32) -> AddressableDevice? {
-        // This mapping is boot configuration with 
-        switch address {
-        case 0x0..<0x40_0000:
-            return rom
-        case 0x40_0000..<0x60_000:
-            return rom
-        case 0x60_0000..<0x60_0000+UInt32(ram.count):
-            return ram
-        default:
-            return nil
+    func map(_ range: Range<UInt32>, to device: AddressableDevice) {
+        if mappings.contains(where: { $0.range.overlaps(range) }) {
+            fatalError("Trying to map \(range), but some addresses in that range are already mapped")
         }
+        
+        mappings.append(Mapping(range: range, device: device))
+    }
+    
+    func mapping(for address: UInt32) -> Mapping? {
+        mappings.first { $0.range.contains(address) }
+    }
+    
+    func mappings(for range: Range<UInt32>) -> [Mapping] {
+        mappings.filter { $0.range.overlaps(range) }
     }
 }
 
-struct RAM: AddressableDevice {
+extension Machine: InstructionStorage {
+    public subscript(range: Range<UInt32>) -> Data {
+        let r24 = (range.lowerBound & 0x00ffffff)..<(range.upperBound & 0x00ffffff)
+        let ms = mappings(for: r24)
+        
+        if ms.count == 0 {
+            return Data(repeating: 0, count: r24.count)
+        } else if ms.count == 1 {
+            let m = ms[0]
+            return m.device.readRange((r24.lowerBound % m.size)..<(r24.upperBound % m.size))
+        } else {
+            fatalError("Reading acrossing mappings is not currently supported")
+        }
+    }
+    
+    public subscript(address: UInt32, size size: UInt16.Type) -> UInt16 {
+        read16(address)
+    }
+    
+    public subscript(address: UInt32, size size: UInt32.Type) -> UInt32 {
+        read32(address)
+    }
+    
+    public func canReadWithoutSideEffects(_ address: UInt32) -> Bool {
+        return mapping(for: address)?.readableWithoutSideEffects ?? false
+    }
+}
+
+class RAM: AddressableDevice {
     var data: Data
     
     var count: Int {
         data.count
+    }
+    
+    var readableWithoutSideEffects: Bool {
+        true
     }
     
     init(count: Int) {
@@ -149,36 +213,51 @@ struct RAM: AddressableDevice {
         data.read32(Int(address) % data.count)
     }
     
-    mutating func write8(_ address: UInt32, value: UInt8) {
+    func readRange(_ range: Range<UInt32>) -> Data {
+        data[range]
+    }
+    
+    func write8(_ address: UInt32, value: UInt8) {
         data.write8(Int(address) % data.count, value: value)
     }
     
-    mutating func write16(_ address: UInt32, value: UInt16) {
+    func write16(_ address: UInt32, value: UInt16) {
         data.write16(Int(address) % data.count, value: value)
     }
     
-    mutating func write32(_ address: UInt32, value: UInt32) {
+    func write32(_ address: UInt32, value: UInt32) {
         data.write32(Int(address) % data.count, value: value)
     }
 }
 
-struct ROM: AddressableDevice {
+class ROM: AddressableDevice {
     var data: Data
+    
+    var readableWithoutSideEffects: Bool {
+        true
+    }
     
     init(data: Data) {
         self.data = data
     }
     
+    // TODO: modulating by data.count is probably wrong. We might want
+    // to modulate by ROM capacity instead (who knows if ROM dumps are
+    // the same size as the ROM chip)
     func read8(_ address: UInt32) -> UInt8 {
         data.read8(Int(address) % data.count)
     }
     
     func read16(_ address: UInt32) -> UInt16 {
-        data.read16(Int(address) % data.count)
+        data.read16(Int(address))
     }
     
     func read32(_ address: UInt32) -> UInt32 {
-        data.read32(Int(address) % data.count)
+        data.read32(Int(address))
+    }
+    
+    func readRange(_ range: Range<UInt32>) -> Data {
+        data[range]
     }
     
     func write8(_ address: UInt32, value: UInt8) {}
@@ -186,12 +265,12 @@ struct ROM: AddressableDevice {
     func write32(_ address: UInt32, value: UInt32) {}
 }
 
-struct CPU {
-    var pc: UInt32
-    var sr: StatusRegister
-    var disassembler = Disassembler()
+public struct CPU {
+    public var pc: UInt32
+    public var sr: StatusRegister
+    public var disassembler = Disassembler()
 
-    var ccr: StatusRegister {
+    public var ccr: StatusRegister {
         get {
             sr.intersection(.ccr)
         }
@@ -201,18 +280,18 @@ struct CPU {
         }
     }
 
-    var usp: UInt32
-    var isp: UInt32
+    public var usp: UInt32
+    public var isp: UInt32
 
-    var a0: UInt32
-    var a1: UInt32
-    var a2: UInt32
-    var a3: UInt32
-    var a4: UInt32
-    var a5: UInt32
-    var a6: UInt32
+    public var a0: UInt32
+    public var a1: UInt32
+    public var a2: UInt32
+    public var a3: UInt32
+    public var a4: UInt32
+    public var a5: UInt32
+    public var a6: UInt32
 
-    var a7: UInt32 {
+    public var a7: UInt32 {
         get {
             switch sr.intersection(.stackSelectionMask) {
             case .isp:
@@ -232,14 +311,14 @@ struct CPU {
         }
     }
 
-    var d0: UInt32
-    var d1: UInt32
-    var d2: UInt32
-    var d3: UInt32
-    var d4: UInt32
-    var d5: UInt32
-    var d6: UInt32
-    var d7: UInt32
+    public var d0: UInt32
+    public var d1: UInt32
+    public var d2: UInt32
+    public var d3: UInt32
+    public var d4: UInt32
+    public var d5: UInt32
+    public var d6: UInt32
+    public var d7: UInt32
 
     weak var bus: Machine?
     
@@ -285,6 +364,7 @@ struct CPU {
     }
     
     mutating func fetchNextInstruction() -> Instruction {
+//        disassembler.instruction(at: pc, memory: bus)
 //        disassembler.operation(at: pc, cpu: self)
         
         Instruction(op: .unknown(0), address: pc, data: Data([0x0, 0x0]))

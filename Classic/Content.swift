@@ -23,21 +23,39 @@ private extension Data {
     }
 }
 
-class Content: NSObject {
-    static let lineLength = 16
-    
-    var _data = Data([])
-    var loadAddress: UInt32 = 0
-    var offset: UInt32 = 0
+extension Disassembler {
+    mutating func disassembleUntilEndOfFunction(at address: UInt32, storage: InstructionStorage) -> [Instruction] {
+        var insns: [Instruction] = []
         
-    var data: Data {
-        _data[offset...]
+        var address = address
+
+        while storage.canReadWithoutSideEffects(address) {
+            let insn = instruction(at: address, storage: storage, returningZeroForSideEffectingReads: true)
+            
+            insns.append(insn)
+            address += UInt32(insn.length)
+            
+            if insn.isEndOfFunction {
+                break
+            }
+        }
+
+        return insns
     }
+}
+
+class Content: NSObject {
+    var machine: Machine?
     
     lazy var instructions: [Instruction] = {
-        var d = Disassembler()
-//        return d.disassemble(data, loadAddress: loadAddress)
-        return []
+        guard let machine = machine else {
+            return []
+        }
+        
+        let cpu = machine.cpu
+        var disassembler = cpu.disassembler
+        
+        return disassembler.disassembleUntilEndOfFunction(at: cpu.pc, storage: machine)
     }()
     
     var attributedAssembly: NSAttributedString {
@@ -76,6 +94,6 @@ class Content: NSObject {
     }
     
     func read(from data: Data) {
-        self._data = data
+        machine = Machine(rom: data)
     }
 }

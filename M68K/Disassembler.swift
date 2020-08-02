@@ -609,12 +609,20 @@ public struct Instruction: CustomStringConvertible {
         return String(describing: op)
     }
     
+    public var length: Int {
+        data.count
+    }
+    
     public var isUnknown: Bool {
         if case .unknown(_) = op {
             return true
         } else {
             return false
         }
+    }
+
+    public var isEndOfFunction: Bool {
+        op == .rts
     }
 }
 
@@ -787,36 +795,43 @@ public protocol InstructionStorage {
     subscript(address: UInt32, size size: UInt16.Type) -> UInt16 { get }
     subscript(address: UInt32, size size: UInt32.Type) -> UInt32 { get }
 
-    func canReadWithoutSideEffects(_ size: UInt16.Type, at address: UInt32) -> Bool
-    func canReadWithoutSideEffects(_ size: UInt32.Type, at address: UInt32) -> Bool
+    func canReadWithoutSideEffects(_ address: UInt32) -> Bool
 }
 
-struct NullStorage: InstructionStorage {
-    subscript(range: Range<UInt32>) -> Data {
-        Data([])
+class DisassemblyState {
+    var address: UInt32
+    var storage: InstructionStorage
+    var skipSideEffectingReads: Bool
+    
+    init(address: UInt32, storage: InstructionStorage, skipSideEffectingReads: Bool) {
+        self.address = address
+        self.storage = storage
+        self.skipSideEffectingReads = skipSideEffectingReads
     }
     
-    subscript(address: UInt32, size size: UInt16.Type) -> UInt16 {
-        0
+    func readWord() -> UInt16 {
+        defer { address += 2 }
+        
+        if skipSideEffectingReads && !storage.canReadWithoutSideEffects(address) {
+            return 0
+        } else {
+            return storage[address, size: UInt16.self]
+        }
     }
     
-    subscript(address: UInt32, size size: UInt32.Type) -> UInt32 {
-        0
-    }
-    
-    func canReadWithoutSideEffects(_ size: UInt16.Type, at address: UInt32) -> Bool {
-        false
-    }
-    
-    func canReadWithoutSideEffects(_ size: UInt32.Type, at address: UInt32) -> Bool {
-        false
+    func readLong() -> UInt32 {
+        defer { address += 4 }
+        
+        if skipSideEffectingReads && !storage.canReadWithoutSideEffects(address) {
+            return 0
+        } else {
+            return storage[address, size: UInt32.self]
+        }
     }
 }
 
 public struct Disassembler {
     var opTable: [OpClass]
-    var storage: InstructionStorage = NullStorage()
-    var address: UInt32 = 0
 
     public init() {
         opTable = Array(repeating: .unknown, count: Int(UInt16.max) + 1)
@@ -830,34 +845,13 @@ public struct Disassembler {
             }
         }
     }
-    
-    //    public mutating func disassemble(_ data: Data, loadAddress: UInt32) -> [Instruction] {
-    //        var insns: [Instruction] = []
-    //
-    //        self.data = data
-    //        offset = data.startIndex
-    //
-    //        while offset < data.endIndex {
-    //            let startOffset = offset
-    //
-    //            guard let instructionWord = readWord() else {
-    //                break
-    //            }
-    //        }
-    //
-    //        return insns
-    //    }
 
-    
-    public mutating func instruction(at address: UInt32, memory: InstructionStorage) -> Instruction? {
-        self.storage = memory
-        self.address = address
-
-        guard let instructionWord = readWord() else {
-            return nil
-        }
-
+    public func instruction(at address: UInt32, storage: InstructionStorage, returningZeroForSideEffectingReads: Bool = false) -> Instruction {
         let startAddress = address
+        
+        let state = DisassemblyState(address: address, storage: storage, skipSideEffectingReads: returningZeroForSideEffectingReads)
+        
+        let instructionWord = state.readWord()
         let opClass = opTable[Int(instructionWord)]
         
         let op: Operation
@@ -892,7 +886,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -926,7 +920,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg), size: size) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -946,27 +940,18 @@ public struct Disassembler {
             let data: Int32
 
             if size0 == 0 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
+                let w = state.readWord()
 
                 size = .b
                 data = Int32(Int8(truncatingIfNeeded: w))
             } else if size0 == 1 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
-
+                let w = state.readWord()
+                
                 size = .w
                 data = Int32(Int16(bitPattern: w))
             } else if size0 == 2 {
-                guard let l = readLong() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
-
+                let l = state.readLong()
+                
                 size = .l
                 data = Int32(bitPattern: l)
             } else {
@@ -974,7 +959,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1007,7 +992,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg), size: size) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1041,7 +1026,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1064,26 +1049,17 @@ public struct Disassembler {
             let data: Int32
 
             if size0 == 0 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
+                let w = state.readWord()
 
                 size = .b
                 data = Int32(Int8(truncatingIfNeeded: w))
             } else if size0 == 1 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
-
+                let w = state.readWord()
+                
                 size = .w
                 data = Int32(Int16(bitPattern: w))
             } else if size0 == 2 {
-                guard let l = readLong() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
+                let l = state.readLong()
 
                 size = .l
                 data = Int32(bitPattern: l)
@@ -1092,7 +1068,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1148,7 +1124,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1164,10 +1140,7 @@ public struct Disassembler {
             var size = Size.b
             
             if displacement == 0 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
+                let w = state.readWord()
 
                 displacement = Int16(bitPattern: w)
                 size = .w
@@ -1185,10 +1158,7 @@ public struct Disassembler {
             var size = Size.b
             
             if displacement == 0 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
+                let w = state.readWord()
 
                 displacement = Int16(bitPattern: w)
                 size = .w
@@ -1206,7 +1176,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1220,10 +1190,7 @@ public struct Disassembler {
 
             op = .bchg(size, .r(register), address)
         case .bchgi:
-            guard let w = readWord() else {
-                op = .unknown(instructionWord)
-                break
-            }
+            let w = state.readWord()
             
             let bitNumber = UInt8(truncatingIfNeeded: w)
             
@@ -1235,7 +1202,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1255,11 +1222,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let w = readWord() else {
-                op = .unknown(instructionWord)
-                break
-            }
-
+            let w = state.readWord()
             
             let displacement = Int16(bitPattern: w)
             
@@ -1288,7 +1251,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1338,8 +1301,8 @@ public struct Disassembler {
 
             }
             
-            guard let srcAddr = readAddress(srcMode, Int(srcReg), size: size),
-                  let dstAddr = readAddress(dstMode, Int(dstReg), size: size) else {
+            guard let srcAddr = readAddress(state, srcMode, Int(srcReg), size: size),
+                  let dstAddr = readAddress(state, dstMode, Int(dstReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1354,7 +1317,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1375,7 +1338,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let srcAddr = readAddress(srcMode, Int(srcReg)) else {
+            guard let srcAddr = readAddress(state, srcMode, Int(srcReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1395,7 +1358,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1428,7 +1391,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1458,7 +1421,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg), size: size) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1478,27 +1441,18 @@ public struct Disassembler {
             let data: Int32
 
             if size0 == 0 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
+                let w = state.readWord()
 
                 size = .b
                 data = Int32(Int8(truncatingIfNeeded: w))
             } else if size0 == 1 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
+                let w = state.readWord()
 
                 size = .w
                 data = Int32(Int16(bitPattern: w))
             } else if size0 == 2 {
-                guard let l = readLong() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
-
+                let l = state.readLong()
+                
                 size = .l
                 data = Int32(bitPattern: l)
             } else {
@@ -1506,7 +1460,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1540,7 +1494,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1558,13 +1512,9 @@ public struct Disassembler {
                 break
             }
             
-            guard let registers0 = readWord() else {
-                op = .unknown(instructionWord)
-                break
-            }
+            let registers0 = state.readWord()
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
-                unreadWord() // registers0
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1607,7 +1557,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1626,7 +1576,7 @@ public struct Disassembler {
             
             let size = (instructionWord >> 8) & 1 == 0 ? Size.w : Size.l
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1644,26 +1594,17 @@ public struct Disassembler {
             let size: Size
             let data: Int32
             if size0 == 0 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
-
+                let w = state.readWord()
+                
                 size = .b
                 data = Int32(Int8(truncatingIfNeeded: w))
             } else if size0 == 1 {
-                guard let w = readWord() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
-
+                let w = state.readWord()
+                
                 size = .w
                 data = Int32(Int16(bitPattern: w))
             } else if size0 == 2 {
-                guard let l = readLong() else {
-                    op = .unknown(instructionWord)
-                    break
-                }
+                let l = state.readLong()
 
                 size = .l
                 data = Int32(bitPattern: l)
@@ -1672,7 +1613,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1686,7 +1627,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1700,7 +1641,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1714,7 +1655,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1728,7 +1669,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1766,7 +1707,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1793,7 +1734,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1823,7 +1764,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1833,10 +1774,7 @@ public struct Disassembler {
             
             op = .or(size, direction, address, register)
         case .oriToSR:
-            guard let w = readWord() else {
-                op = .unknown(instructionWord)
-                break
-            }
+            let w = state.readWord()
             
             op = .oriToSR(Int16(bitPattern: w))
         case .lslr:
@@ -1889,7 +1827,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1921,7 +1859,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1936,14 +1874,10 @@ public struct Disassembler {
                 break
             }
             
-            guard let w = readWord() else {
-                op = .unknown(instructionWord)
-                break
-            }
+            let w = state.readWord()
             
             let bitNumber = UInt8(truncatingIfNeeded: w)
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
-                unreadWord() // bitNumber
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1963,7 +1897,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1978,14 +1912,10 @@ public struct Disassembler {
                 break
             }
             
-            guard let w = readWord() else {
-                op = .unknown(instructionWord)
-                break
-            }
+            let w = state.readWord()
             
             let bitNumber = UInt8(truncatingIfNeeded: w)
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
-                unreadWord() // bitNumber
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2005,7 +1935,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2020,15 +1950,11 @@ public struct Disassembler {
                 break
             }
             
-            guard let w = readWord() else {
-                op = .unknown(instructionWord)
-                break
-            }
+            let w = state.readWord()
             
             let bitNumber = UInt8(truncatingIfNeeded: w)
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
-                unreadWord() // bitNumber
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2048,7 +1974,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2110,7 +2036,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2134,7 +2060,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg), size: .w) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2189,7 +2115,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(eaMode, Int(eaReg)) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2201,10 +2127,10 @@ public struct Disassembler {
             }
         }
         
-        return Instruction(op: op, address: startAddress, data: storage[startAddress..<address])
+        return Instruction(op: op, address: startAddress, data: storage[startAddress..<state.address])
     }
 
-    mutating func readAddress(_ mode: AddressingMode, _ reg: Int, size: Size? = nil) -> EffectiveAddress? {
+    func readAddress(_ state: DisassemblyState, _ mode: AddressingMode, _ reg: Int, size: Size? = nil) -> EffectiveAddress? {
         switch mode {
         case .dd: return .dd(DataRegister(rawValue: reg)!)
         case .ad: return .ad(AddressRegister(rawValue: reg)!)
@@ -2212,33 +2138,33 @@ public struct Disassembler {
         case .postInc: return .postInc(AddressRegister(rawValue: reg)!)
         case .preDec: return .preDec(AddressRegister(rawValue: reg)!)
         case .d16An:
-            guard let w = readWord() else { return nil }
+            let w = state.readWord()
             
             let val = Int16(bitPattern: w)
             
             return .d16An(val, AddressRegister(rawValue: reg)!)
         case .d8AnXn:
-            guard let ex = readExtensionWord() else { return nil }
+            guard let ex = readExtensionWord(state) else { return nil }
             let register = AddressRegister(rawValue: reg)!
             
             return .d8AnXn(ex.displacement, register, ex.indexRegister, ex.indexSize)
         case .XXXw:
-            guard let w = readWord() else { return nil }
+            let w = state.readWord()
 
             let val = UInt32(truncatingIfNeeded: Int16(bitPattern: w))
             
             return .XXXw(val)
         case .XXXl:
-            guard let val = readLong() else { return nil }
+            let val = state.readLong()
             
             return .XXXl(val)
         case .d16PC:
-            let exAddress = address
-            guard let ex = readWord() else { return nil }
+            let exAddress = state.address
+            let ex = state.readWord()
             return .d16PC(exAddress, Int16(bitPattern: ex))
         case .d8PCXn:
-            let exAddress = address
-            guard let ex = readExtensionWord() else { return nil }
+            let exAddress = state.address
+            guard let ex = readExtensionWord(state) else { return nil }
             
             return .d8PCXn(exAddress, ex.displacement, ex.indexRegister, ex.indexSize)
         case .imm:
@@ -2246,26 +2172,23 @@ public struct Disassembler {
             
             switch size {
             case .b:
-                guard let w = readWord() else { return nil }
+                let w = state.readWord()
                 return .imm(.b(Int8(truncatingIfNeeded: w)))
             case .w:
-                guard let w = readWord() else { return nil }
+                let w = state.readWord()
                 return .imm(.w(Int16(bitPattern: w)))
             case .l:
-                guard let l = readLong() else { return nil }
+                let l = state.readLong()
                 return .imm(.l(Int32(bitPattern: l)))
             }
         }
     }
 
-    mutating func readExtensionWord() -> ExtensionWord? {
-        guard let w = readWord() else {
-            return nil
-        }
+    func readExtensionWord(_ state: DisassemblyState) -> ExtensionWord? {
+        let w = state.readWord()
         
         if (w & 0x100) == 0x100 {
             // TODO: full extension words are not yet supported
-            unreadWord() // w
             return nil
         }
         
@@ -2289,31 +2212,5 @@ public struct Disassembler {
         }
         
         return ExtensionWord(indexRegister: indexRegister, indexSize: size, displacement: displacement)
-    }
-        
-    mutating func readWord() -> UInt16? {
-        guard storage.canReadWithoutSideEffects(UInt16.self, at: address) else {
-            return nil
-        }
-        
-        defer { address += 2 }
-        return storage[address, size: UInt16.self]
-    }
-    
-    mutating func readLong() -> UInt32? {
-        guard storage.canReadWithoutSideEffects(UInt32.self, at: address) else {
-            return nil
-        }
-        
-        defer { address += 4 }
-        return storage[address, size: UInt32.self]
-    }
-    
-    mutating func unreadWord() {
-        address -= 2
-    }
-    
-    mutating func unreadLong() {
-        address -= 4
     }
 }
