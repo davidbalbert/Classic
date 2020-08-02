@@ -36,7 +36,8 @@ class Content: NSObject {
     
     lazy var instructions: [Instruction] = {
         var d = Disassembler()
-        return d.disassemble(data, loadAddress: loadAddress)
+//        return d.disassemble(data, loadAddress: loadAddress)
+        return []
     }()
     
     var attributedAssembly: NSAttributedString {

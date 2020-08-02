@@ -274,11 +274,20 @@ struct CPU {
     }
     
     mutating func step() {
-//        let op = fetchNextOperation()
+        let insn = fetchNextInstruction()
+        
+        pc += UInt32(insn.data.count)
+        
+        switch (insn.op) {
+        default:
+            break
+        }
     }
     
-    mutating func fetchNextOperation() -> Operation {
-//        disassembler.operation(at: pc, )
+    mutating func fetchNextInstruction() -> Instruction {
+//        disassembler.operation(at: pc, cpu: self)
+        
+        Instruction(op: .unknown(0), address: pc, data: Data([0x0, 0x0]))
     }
     
     func read8(_ address: UInt32) -> UInt8 {
