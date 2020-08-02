@@ -46,30 +46,40 @@ extension BitField {
 }
 
 struct StatusRegisterBitField: BitField, NameValueDescribable {
-    var name: String
-    var bitNumber: Int
-    var value: Int
+    let name: String
+    let cpu: CPU
+    let bit: StatusRegister
+    let bitNumber: Int
+    
+    var value: Int {
+        cpu.sr.intersection(bit).rawValue == 0 ? 0 : 1
+    }
 
-    init?(name: String, bit: M68K.StatusRegister, register: M68K.StatusRegister) {
+    init?(name: String, bit: StatusRegister, cpu: CPU) {
         guard bit.rawValue.nonzeroBitCount == 1 else {
             return nil
         }
         
         self.name = name
+        self.cpu = cpu
+        self.bit = bit
         self.bitNumber = bit.rawValue.trailingZeroBitCount
-        self.value = register.intersection(bit).rawValue == 0 ? 0 : 1
     }
-
 }
 
 protocol Register {
     var children: [BitField] { get }
 }
 
-struct DataRegister: Register, NameValueDescribable {
-    var name: String
-    var value: Int32
+struct DataRegisterItem: Register, NameValueDescribable {
+    let cpu: CPU
+    let name: String
+    let keyPath: KeyPath<CPU, UInt32>
     
+    var value: UInt32 {
+        cpu[keyPath: keyPath]
+    }
+
     var nameDescription: String {
         name
     }
@@ -83,9 +93,14 @@ struct DataRegister: Register, NameValueDescribable {
     }
 }
 
-struct AddressRegister: Register, NameValueDescribable {
-    var name: String
-    var value: UInt32
+struct AddressRegisterItem: Register, NameValueDescribable {
+    let cpu: CPU
+    let name: String
+    let keyPath: KeyPath<CPU, UInt32>
+    
+    var value: UInt32 {
+        cpu[keyPath: keyPath]
+    }
     
     var nameDescription: String {
         name
@@ -100,21 +115,19 @@ struct AddressRegister: Register, NameValueDescribable {
     }
 }
 
-struct StackPointer: Register, NameValueDescribable {
-    enum BackingRegister {
-        case usp
-        case isp
+struct StackPointerItem: Register, NameValueDescribable {
+    let cpu: CPU
+    
+    var value: UInt32 {
+        cpu.a7
     }
     
-    var backingRegister: BackingRegister
-    var value: UInt32
-    
     var nameDescription: String {
-        switch backingRegister {
-        case .usp:
-            return "A7 (USP)"
+        switch cpu.sr.intersection(.stackSelectionMask) {
         case .isp:
             return "A7 (ISP)"
+        default:
+            return "A7 (USP)"
         }
     }
     
@@ -127,19 +140,19 @@ struct StackPointer: Register, NameValueDescribable {
     }
 }
 
-struct StatusRegister: Register, NameValueDescribable {
-    let statusRegister: M68K.StatusRegister
+struct StatusRegisterItem: Register, NameValueDescribable {
+    let cpu: CPU
     
     var nameDescription: String {
       "SR (CCR)"
     }
     
     var valueDescription: String {
-        "0x\(String(statusRegister.rawValue, radix: 16))"
+        "0x\(String(cpu.sr.rawValue, radix: 16))"
     }
     
-    func bitField(name: String, bit: M68K.StatusRegister) -> BitField? {
-        StatusRegisterBitField(name: name, bit: bit, register: statusRegister)
+    func bitField(name: String, bit: StatusRegister) -> BitField? {
+        StatusRegisterBitField(name: name, bit: bit, cpu: cpu)
     }
     
     var children: [BitField] {
@@ -162,22 +175,52 @@ struct StatusRegister: Register, NameValueDescribable {
 class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutlineViewDataSource {
     @IBOutlet var outlineView: NSOutlineView!
     
-    lazy var registers: [Register] = {
-        var registers: [Register] = [AddressRegister(name: "PC", value: 0x2a), StatusRegister(statusRegister: [.s, .c, .v, .n])]
+    var cpu: CPU?
+    var registers: [Register] = []
+
+    
+    override var representedObject: Any? {
+        didSet {
+            guard let content = representedObject as? Content else {
+                return
+            }
+            
+            guard let cpu = content.machine?.cpu else {
+                return
+            }
+            
+            self.cpu = cpu
+            
+            createRegisters(cpu)
+            outlineView.reloadData()
+        }
+    }
+    
+    func createRegisters(_ cpu: CPU) {
+        let dataKeyPaths: [String: KeyPath<CPU, UInt32>] = ["D0": \.d0, "D1": \.d1, "D2": \.d2, "D3": \.d3, "D4": \.d4, "D5": \.d5, "D6": \.d6, "D7": \.d7]
+        let addressKeyPaths: [String: KeyPath<CPU, UInt32>] =  ["A0": \.a0, "A1": \.a1, "A2": \.a2, "A3": \.a3, "A4": \.a4, "A5": \.a5, "A6": \.a6]
         
-        registers += ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"].map { DataRegister(name: $0, value: 0) }
+        registers = [
+            AddressRegisterItem(cpu: cpu, name: "PC", keyPath: \CPU.pc),
+            StatusRegisterItem(cpu: cpu)
+        ]
         
-        registers += ["A0", "A1", "A2", "A3", "A4", "A5", "A6"].map { AddressRegister(name: $0, value: 0) }
+        registers += dataKeyPaths.map { (name, path) in
+            DataRegisterItem(cpu: cpu, name: name, keyPath: path)
+        }
         
-        registers.append(StackPointer(backingRegister: .usp, value: 0))
+        registers += addressKeyPaths.map { (name, path) in
+            AddressRegisterItem(cpu: cpu, name: name, keyPath: path)
+        }
         
-        registers += ["USP", "ISP"].map { AddressRegister(name: $0, value: 0) }
-        
-        return registers
-    }()
+        registers += [
+            StackPointerItem(cpu: cpu),
+            AddressRegisterItem(cpu: cpu, name: "USP", keyPath: \.usp),
+            AddressRegisterItem(cpu: cpu, name: "ISP", keyPath: \.isp),
+        ]
+    }
 
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
-        
         if item == nil {
             return registers.count
         } else if let register = item as AnyObject as? Register {
@@ -188,7 +231,6 @@ class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutline
     }
     
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
-        
         if item == nil {
             return registers[index]
         } else if let register = item as AnyObject as? Register {
@@ -227,7 +269,5 @@ class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutline
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do view setup here.
     }
-    
 }
