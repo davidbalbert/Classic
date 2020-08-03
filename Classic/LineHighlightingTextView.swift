@@ -59,10 +59,10 @@ class LineHighlightingTextView: NSTextView {
         backgroundColor.set()
         NSBezierPath.fill(dirtyRect)
         
-        if let highlightedRect = rectForHighlightedLine(), let highlightColor = highlightColor {
-            
+        if let highlightRect = rectForHighlightedLine(), let highlightColor = highlightColor, highlightRect.intersects(dirtyRect) {
+
             highlightColor.set()
-            NSBezierPath.fill(highlightedRect)
+            NSBezierPath.fill(highlightRect)
         }
 
         super.draw(dirtyRect)
