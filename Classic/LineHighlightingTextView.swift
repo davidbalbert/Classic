@@ -8,6 +8,26 @@
 
 import Cocoa
 
+private extension NSString {
+    func characterRange(for line: Int) -> NSRange? {
+        var l = 1
+        var i = 0
+        var range = NSRange(location: i, length: 0)
+        
+        while l <= line {
+            if i == length {
+                return nil
+            }
+
+            range = lineRange(for: NSRange(location: i, length: 0))
+            l += 1
+            i = NSMaxRange(range)
+        }
+        
+        return range
+    }
+}
+
 class LineHighlightingTextView: NSTextView {
     var highlightedLine: Int? {
         didSet {
@@ -34,24 +54,24 @@ class LineHighlightingTextView: NSTextView {
         }
     }
     
+    
     func rectForHighlightedLine() -> NSRect? {
         guard let highlightedLine = highlightedLine,
-            let layoutManager = layoutManager else {
+            let layoutManager = layoutManager,
+            let textStorage = textStorage,
+            let textContainer = textContainer else {
                 return nil
         }
         
-        var line = 1   // line numbers are 1 indexed
-        var index = 0
-        var range = NSRange(location: 0, length: 0)
-        var rect = NSRect.zero
-        while line <= highlightedLine {
-            rect = layoutManager.lineFragmentRect(forGlyphAt: index, effectiveRange: &range)
-            
-            line += 1
-            index = NSMaxRange(range)
+        guard let charRange = (textStorage.string as NSString).characterRange(for: highlightedLine) else {
+            return nil
         }
         
-        return rect
+        let glyphRange = layoutManager.glyphRange(forCharacterRange: charRange, actualCharacterRange: nil)
+        
+        let boundingRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+        
+        return boundingRect.insetBy(dx: -textContainer.lineFragmentPadding, dy: 0)
     }
 
     override func draw(_ dirtyRect: NSRect) {
