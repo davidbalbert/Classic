@@ -9,7 +9,7 @@
 import Cocoa
 
 class AssemblyViewController: NSViewController {
-    @IBOutlet var textView: NSTextView!
+    @IBOutlet var textView: LineHighlightingTextView!
     var rulerView: LineNumberRulerView?
 
     override var representedObject: Any? {
@@ -27,6 +27,9 @@ class AssemblyViewController: NSViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        textView.highlightColor = NSColor(named: "debuggerHighlightColor")
+        textView.highlightedLine = 2
         
         if let scrollView = textView.enclosingScrollView {
             let rulerView = LineNumberRulerView(scrollView: scrollView, orientation: .verticalRuler)
