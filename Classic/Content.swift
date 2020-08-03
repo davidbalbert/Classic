@@ -61,7 +61,7 @@ class Content: NSObject {
     var attributedAssembly: NSAttributedString {
         let res = NSMutableAttributedString()
                     
-        for insn in instructions {
+        for (i, insn) in instructions.enumerated() {
             var attributes: [NSAttributedString.Key : Any] = [.foregroundColor: NSColor.textColor]
             
             var s = insn.data.hexDump().padding(toLength: 26, withPad: " ", startingAt: 0)
@@ -76,7 +76,10 @@ class Content: NSObject {
             }
             
             res.append(NSAttributedString(string: s, attributes: attributes))
-            res.append(NSAttributedString(string: "\n", attributes: attributes))
+            
+            if i < instructions.count-1 {
+                res.append(NSAttributedString(string: "\n", attributes: attributes))
+            }
         }
         
         return res
