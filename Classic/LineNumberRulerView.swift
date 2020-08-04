@@ -14,12 +14,28 @@ class LineNumberRulerView: NSRulerView {
     var content: Content?
     var padding = 0
     
+    var highlightedLine: Int? {
+        didSet {
+            needsDisplay = true
+        }
+    }
+    
     override var isFlipped: Bool {
         true
     }
     
     var attributes: [NSAttributedString.Key : Any] {
         var attrs: [NSAttributedString.Key : Any] = [.foregroundColor: NSColor.secondaryLabelColor]
+        
+        if let textView = clientView as? NSTextView, let font = textView.font {
+            attrs[.font] = font
+        }
+        
+        return attrs
+    }
+    
+    var highlightedAttributes: [NSAttributedString.Key : Any] {
+        var attrs: [NSAttributedString.Key : Any] = [.foregroundColor: NSColor.textColor]
         
         if let textView = clientView as? NSTextView, let font = textView.font {
             attrs[.font] = font
@@ -65,8 +81,11 @@ class LineNumberRulerView: NSRulerView {
         padding = lastString.length
     }
     
-    func address(for characterIndex: Int) -> UInt32? {
-        guard let lineno = lineInfo[characterIndex] else { return nil }
+    func line(for characterIndex: Int) -> Int? {
+        lineInfo[characterIndex]
+    }
+    
+    func address(for lineno: Int) -> UInt32? {
         return content?.address(for: lineno)
     }
     
@@ -87,7 +106,7 @@ class LineNumberRulerView: NSRulerView {
         var charIndex = visibleChars.location
         
         while charIndex < NSMaxRange(visibleChars) {
-            guard let address = address(for: charIndex) else {
+            guard let lineno = line(for: charIndex), let address = address(for: lineno) else {
                 string.getLineStart(nil, end: &charIndex, contentsEnd: nil, for: NSRange(location: charIndex, length: 0))
                 continue
             }
@@ -98,7 +117,12 @@ class LineNumberRulerView: NSRulerView {
             let s = NSString(format: "%0\(padding)x" as NSString, address)
             let size = s.size(withAttributes: attrs)
             let rect = NSRect(x: bounds.maxX - size.width - 3, y: fragment.minY - visibleRect.minY, width: size.width, height: size.height)
-            s.draw(in: rect, withAttributes: attrs)
+            
+            if lineno == highlightedLine {
+                s.draw(in: rect, withAttributes: highlightedAttributes)
+            } else {
+                s.draw(in: rect, withAttributes: attrs)
+            }
             
             string.getLineStart(nil, end: &charIndex, contentsEnd: nil, for: NSRange(location: charIndex, length: 0))
         }
