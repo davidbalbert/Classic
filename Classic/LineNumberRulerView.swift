@@ -8,11 +8,16 @@
 
 import Cocoa
 
+@objc protocol LineNumberRulerViewDelegate {
+    @objc optional func lineNumberRulerView(_ rulerView: LineNumberRulerView, stringFor lineno: Int) -> String
+}
+
 class LineNumberRulerView: NSRulerView {
     var lineInfoValid: Bool = false
     var lineInfo: [Int : Int] = [:] // first character -> line
-    var content: Content?
     var padding = 0
+    
+    weak var delegate: LineNumberRulerViewDelegate?
     
     var highlightedLine: Int? {
         didSet {
@@ -54,7 +59,6 @@ class LineNumberRulerView: NSRulerView {
     
     func updateLineInfo() {
         guard let textStorage = (clientView as? NSTextView)?.textStorage else { return }
-        guard let content = content else { return }
         
         let s = textStorage.string as NSString
         
@@ -67,28 +71,27 @@ class LineNumberRulerView: NSRulerView {
                 
         lineInfoValid = true
         
-        var last: UInt32
+        var last: String
         if lineInfo.count > 0 {
-            last = content.address(for: lineInfo.count) ?? 0
+            last = string(for: lineInfo.count)
         } else {
-            last = 0
+            last = "1"
         }
 
-        let lastString = NSString(format: "%x", last)
-        let maxWidth = lastString.size(withAttributes: attributes).width + 6
+        let maxWidth = last.size(withAttributes: attributes).width + 6
         
         ruleThickness = maxWidth
-        padding = lastString.length
+        padding = last.count
     }
     
     func line(for characterIndex: Int) -> Int? {
         lineInfo[characterIndex]
     }
     
-    func address(for lineno: Int) -> UInt32? {
-        return content?.address(for: lineno)
+    func string(for lineno: Int) -> String {
+        delegate?.lineNumberRulerView?(self, stringFor: lineno) ?? String(lineno)
     }
-    
+        
     override func drawHashMarksAndLabels(in rect: NSRect) {
         guard let textView = clientView as? NSTextView else { return }
         guard let layoutManager = textView.layoutManager else { return }
@@ -101,20 +104,20 @@ class LineNumberRulerView: NSRulerView {
         let visibleChars = layoutManager.characterRange(forGlyphRange: visibleGlyphs, actualGlyphRange: nil)
         
         let attrs = attributes
-        let string = textStorage.string as NSString
+        let storageString = textStorage.string as NSString
 
         var charIndex = visibleChars.location
         
         while charIndex < NSMaxRange(visibleChars) {
-            guard let lineno = line(for: charIndex), let address = address(for: lineno) else {
-                string.getLineStart(nil, end: &charIndex, contentsEnd: nil, for: NSRange(location: charIndex, length: 0))
+            guard let lineno = line(for: charIndex) else {
+                storageString.getLineStart(nil, end: &charIndex, contentsEnd: nil, for: NSRange(location: charIndex, length: 0))
                 continue
             }
 
             let glyphIndex = layoutManager.characterIndexForGlyph(at: charIndex)
             let fragment = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
             
-            let s = NSString(format: "%0\(padding)x" as NSString, address)
+            let s = string(for: lineno)
             let size = s.size(withAttributes: attrs)
             let rect = NSRect(x: bounds.maxX - size.width - 3, y: fragment.minY - visibleRect.minY, width: size.width, height: size.height)
             
@@ -124,7 +127,7 @@ class LineNumberRulerView: NSRulerView {
                 s.draw(in: rect, withAttributes: attrs)
             }
             
-            string.getLineStart(nil, end: &charIndex, contentsEnd: nil, for: NSRange(location: charIndex, length: 0))
+            storageString.getLineStart(nil, end: &charIndex, contentsEnd: nil, for: NSRange(location: charIndex, length: 0))
         }
     }
 }

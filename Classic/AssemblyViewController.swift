@@ -8,7 +8,7 @@
 
 import Cocoa
 
-class AssemblyViewController: NSViewController {
+class AssemblyViewController: NSViewController, LineNumberRulerViewDelegate {
     @IBOutlet var textView: LineHighlightingTextView!
     var rulerView: LineNumberRulerView?
     
@@ -23,7 +23,6 @@ class AssemblyViewController: NSViewController {
 
             textView.textStorage?.setAttributedString(content.attributedAssembly)
             textView.font = NSFont(name: "Monaco", size: 11)
-            rulerView?.content = content
             
             addressToLine = [:]
             for (i, instruction) in content.instructions.enumerated() {
@@ -39,6 +38,14 @@ class AssemblyViewController: NSViewController {
         }
     }
     
+    func lineNumberRulerView(_ rulerView: LineNumberRulerView, stringFor lineno: Int) -> String {
+        guard let content = representedObject as? Content else {
+            return String(lineno)
+        }
+        
+        return String(content.address(for: lineno) ?? 0, radix: 16)
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -47,6 +54,7 @@ class AssemblyViewController: NSViewController {
         if let scrollView = textView.enclosingScrollView {
             let rulerView = LineNumberRulerView(scrollView: scrollView, orientation: .verticalRuler)
             rulerView.clientView = textView
+            rulerView.delegate = self
             
             scrollView.verticalRulerView = rulerView
             scrollView.rulersVisible = true
