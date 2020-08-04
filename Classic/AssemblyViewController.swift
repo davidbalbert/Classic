@@ -11,6 +11,8 @@ import Cocoa
 class AssemblyViewController: NSViewController {
     @IBOutlet var textView: LineHighlightingTextView!
     var rulerView: LineNumberRulerView?
+    
+    var addressToLine: [UInt32: Int] = [:]
 
     override var representedObject: Any? {
         didSet {
@@ -22,6 +24,18 @@ class AssemblyViewController: NSViewController {
             textView.textStorage?.setAttributedString(content.attributedAssembly)
             textView.font = NSFont(name: "Monaco", size: 11)
             rulerView?.content = content
+            
+            addressToLine = [:]
+            for (i, instruction) in content.instructions.enumerated() {
+                addressToLine[instruction.address] = i+1
+            }
+            
+            guard let pc = content.machine?.cpu.pc, let lineno = addressToLine[pc] else {
+                return
+            }
+
+            textView.highlightedLine = lineno
+            rulerView?.highlightedLine = lineno
         }
     }
     
@@ -29,13 +43,10 @@ class AssemblyViewController: NSViewController {
         super.viewDidLoad()
         
         textView.highlightColor = NSColor(named: "debuggerHighlightColor")
-        textView.highlightedLine = 2
         
         if let scrollView = textView.enclosingScrollView {
             let rulerView = LineNumberRulerView(scrollView: scrollView, orientation: .verticalRuler)
             rulerView.clientView = textView
-            
-            rulerView.highlightedLine = 2
             
             scrollView.verticalRulerView = rulerView
             scrollView.rulersVisible = true
