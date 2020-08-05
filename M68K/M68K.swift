@@ -102,7 +102,7 @@ public class Machine {
         return m.device.read8(a24 % m.size)
     }
     
-    func read16(_ address: UInt32) -> UInt16 {
+    public func read16(_ address: UInt32) -> UInt16 {
         let a24 = address & 0x00FFFFFF
         guard let m = mapping(for: a24) else {
             return 0
@@ -111,7 +111,7 @@ public class Machine {
         return m.device.read16(a24 % m.size)
     }
     
-    func read32(_ address: UInt32) -> UInt32 {
+    public func read32(_ address: UInt32) -> UInt32 {
         let a24 = address & 0x00FFFFFF
         guard let m = mapping(for: a24) else {
             return 0
@@ -159,7 +159,7 @@ public class Machine {
 }
 
 extension Machine: InstructionStorage {
-    public subscript(range: Range<UInt32>) -> Data {
+    public func readRange(_ range: Range<UInt32>) -> Data {
         let r24 = (range.lowerBound & 0x00ffffff)..<(range.upperBound & 0x00ffffff)
         let ms = mappings(for: r24)
         
@@ -172,15 +172,7 @@ extension Machine: InstructionStorage {
             fatalError("Reading acrossing mappings is not currently supported")
         }
     }
-    
-    public subscript(address: UInt32, size size: UInt16.Type) -> UInt16 {
-        read16(address)
-    }
-    
-    public subscript(address: UInt32, size size: UInt32.Type) -> UInt32 {
-        read32(address)
-    }
-    
+
     public func canReadWithoutSideEffects(_ address: UInt32) -> Bool {
         return mapping(for: address)?.readableWithoutSideEffects ?? false
     }

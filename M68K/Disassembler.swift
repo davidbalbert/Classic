@@ -791,9 +791,9 @@ let ops = [
 ]
 
 public protocol InstructionStorage {
-    subscript(range: Range<UInt32>) -> Data { get }    
-    subscript(address: UInt32, size size: UInt16.Type) -> UInt16 { get }
-    subscript(address: UInt32, size size: UInt32.Type) -> UInt32 { get }
+    func read16(_ address: UInt32) -> UInt16
+    func read32(_ address: UInt32) -> UInt32
+    func readRange(_ range: Range<UInt32>) -> Data
 
     func canReadWithoutSideEffects(_ address: UInt32) -> Bool
 }
@@ -815,7 +815,7 @@ class DisassemblyState {
         if skipSideEffectingReads && !storage.canReadWithoutSideEffects(address) {
             return 0
         } else {
-            return storage[address, size: UInt16.self]
+            return storage.read16(address)
         }
     }
     
@@ -825,7 +825,7 @@ class DisassemblyState {
         if skipSideEffectingReads && !storage.canReadWithoutSideEffects(address) {
             return 0
         } else {
-            return storage[address, size: UInt32.self]
+            return storage.read32(address)
         }
     }
 }
@@ -2127,7 +2127,7 @@ public struct Disassembler {
             }
         }
         
-        return Instruction(op: op, address: startAddress, data: storage[startAddress..<state.address])
+        return Instruction(op: op, address: startAddress, data: storage.readRange(startAddress..<state.address))
     }
 
     func readAddress(_ state: DisassemblyState, _ mode: AddressingMode, _ reg: Int, size: Size? = nil) -> EffectiveAddress? {
