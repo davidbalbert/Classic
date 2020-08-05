@@ -16,15 +16,15 @@ struct TestInstructionStorage: InstructionStorage {
         data = Data(bytes)
     }
     
-    subscript(range: Range<UInt32>) -> Data {
+    func readRange(_ range: Range<UInt32>) -> Data {
         data[range]
     }
     
-    subscript(address: UInt32, size size: UInt16.Type) -> UInt16 {
+    func read16(_ address: UInt32) -> UInt16 {
         data.read16(Int(address))
     }
     
-    subscript(address: UInt32, size size: UInt32.Type) -> UInt32 {
+    func read32(_ address: UInt32) -> UInt32 {
         data.read32(Int(address))
     }
     
