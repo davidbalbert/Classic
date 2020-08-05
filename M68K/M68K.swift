@@ -77,7 +77,7 @@ struct Mapping {
 public class Machine {
     let ram = RAM(count: 0x400000)
     let rom: ROM
-    public let cpu = CPU()
+    public var cpu = CPU()
     
     var mappings: [Mapping] = []
     
@@ -265,7 +265,7 @@ class ROM: AddressableDevice {
     func write32(_ address: UInt32, value: UInt32) {}
 }
 
-public class CPU {
+public struct CPU {
     public var pc: UInt32
     public var sr: StatusRegister
     public var disassembler = Disassembler()
@@ -347,12 +347,12 @@ public class CPU {
         a6 = 0
     }
     
-    func reset() {
+    mutating func reset() {
         isp = read32(0x0)
         pc = read32(0x4)
     }
     
-    func step() {
+    mutating func step() {
         let insn = fetchNextInstruction()
         
         pc += UInt32(insn.data.count)

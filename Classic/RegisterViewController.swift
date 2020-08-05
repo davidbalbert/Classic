@@ -9,12 +9,12 @@
 import Cocoa
 import M68K
 
-protocol NameValueDescribable {
+protocol NameValueConvertible {
     var nameDescription: String { get }
     var valueDescription: String { get }
 }
 
-extension NameValueDescribable {
+extension NameValueConvertible {
     func attributedDescription(with font: NSFont) -> NSAttributedString {
         let boldDesc = font.fontDescriptor.withSymbolicTraits(.bold)
         let boldFont = NSFont(descriptor: boldDesc, size: font.pointSize) ?? font
@@ -45,23 +45,26 @@ extension BitField {
     }
 }
 
-struct StatusRegisterBitField: BitField, NameValueDescribable {
+struct StatusRegisterBitField: BitField, NameValueConvertible {
     let name: String
-    let cpu: CPU
     let bit: StatusRegister
     let bitNumber: Int
     
+    weak var viewController: RegisterViewController?
+    
     var value: Int {
-        cpu.sr.intersection(bit).rawValue == 0 ? 0 : 1
+        guard let vc = viewController, let cpu = vc.cpu else { return 0 }
+        
+        return cpu.sr.intersection(bit).rawValue == 0 ? 0 : 1
     }
 
-    init?(name: String, bit: StatusRegister, cpu: CPU) {
+    init?(name: String, bit: StatusRegister, viewController: RegisterViewController) {
         guard bit.rawValue.nonzeroBitCount == 1 else {
             return nil
         }
         
         self.name = name
-        self.cpu = cpu
+        self.viewController = viewController
         self.bit = bit
         self.bitNumber = bit.rawValue.trailingZeroBitCount
     }
@@ -71,13 +74,16 @@ protocol Register {
     var children: [BitField] { get }
 }
 
-struct DataRegisterItem: Register, NameValueDescribable {
-    let cpu: CPU
+struct DataRegisterItem: Register, NameValueConvertible {
     let name: String
     let keyPath: KeyPath<CPU, UInt32>
     
+    weak var viewController: RegisterViewController?
+    
     var value: UInt32 {
-        cpu[keyPath: keyPath]
+        guard let vc = viewController, let cpu = vc.cpu else { return 0 }
+
+        return cpu[keyPath: keyPath]
     }
 
     var nameDescription: String {
@@ -93,13 +99,16 @@ struct DataRegisterItem: Register, NameValueDescribable {
     }
 }
 
-struct AddressRegisterItem: Register, NameValueDescribable {
-    let cpu: CPU
+struct AddressRegisterItem: Register, NameValueConvertible {
     let name: String
     let keyPath: KeyPath<CPU, UInt32>
     
+    weak var viewController: RegisterViewController?
+    
     var value: UInt32 {
-        cpu[keyPath: keyPath]
+        guard let vc = viewController, let cpu = vc.cpu else { return 0 }
+
+        return cpu[keyPath: keyPath]
     }
     
     var nameDescription: String {
@@ -115,14 +124,18 @@ struct AddressRegisterItem: Register, NameValueDescribable {
     }
 }
 
-struct StackPointerItem: Register, NameValueDescribable {
-    let cpu: CPU
+struct StackPointerItem: Register, NameValueConvertible {
+    weak var viewController: RegisterViewController?
     
     var value: UInt32 {
-        cpu.a7
+        guard let vc = viewController, let cpu = vc.cpu else { return 0 }
+
+        return cpu.a7
     }
     
     var nameDescription: String {
+        guard let vc = viewController, let cpu = vc.cpu else { return "A7" }
+        
         switch cpu.sr.intersection(.stackSelectionMask) {
         case .isp:
             return "A7 (ISP)"
@@ -140,19 +153,23 @@ struct StackPointerItem: Register, NameValueDescribable {
     }
 }
 
-struct StatusRegisterItem: Register, NameValueDescribable {
-    let cpu: CPU
+struct StatusRegisterItem: Register, NameValueConvertible {
+    weak var viewController: RegisterViewController?
     
     var nameDescription: String {
       "SR (CCR)"
     }
     
     var valueDescription: String {
-        "0x\(String(cpu.sr.rawValue, radix: 16))"
+        guard let vc = viewController, let cpu = vc.cpu else { return "0x0" }
+        
+        return "0x\(String(cpu.sr.rawValue, radix: 16))"
     }
     
     func bitField(name: String, bit: StatusRegister) -> BitField? {
-        StatusRegisterBitField(name: name, bit: bit, cpu: cpu)
+        guard let viewController = viewController else { return nil }
+
+        return StatusRegisterBitField(name: name, bit: bit, viewController: viewController)
     }
     
     var children: [BitField] {
@@ -201,22 +218,22 @@ class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutline
         let addressKeyPaths: [String: KeyPath<CPU, UInt32>] =  ["A0": \.a0, "A1": \.a1, "A2": \.a2, "A3": \.a3, "A4": \.a4, "A5": \.a5, "A6": \.a6]
         
         registers = [
-            AddressRegisterItem(cpu: cpu, name: "PC", keyPath: \CPU.pc),
-            StatusRegisterItem(cpu: cpu)
+            AddressRegisterItem(name: "PC", keyPath: \.pc, viewController: self),
+            StatusRegisterItem(viewController: self)
         ]
         
         registers += dataKeyPaths.map { (name, path) in
-            DataRegisterItem(cpu: cpu, name: name, keyPath: path)
+            DataRegisterItem(name: name, keyPath: path, viewController: self)
         }
         
         registers += addressKeyPaths.map { (name, path) in
-            AddressRegisterItem(cpu: cpu, name: name, keyPath: path)
+            AddressRegisterItem(name: name, keyPath: path, viewController: self)
         }
         
         registers += [
-            StackPointerItem(cpu: cpu),
-            AddressRegisterItem(cpu: cpu, name: "USP", keyPath: \.usp),
-            AddressRegisterItem(cpu: cpu, name: "ISP", keyPath: \.isp),
+            StackPointerItem(viewController: self),
+            AddressRegisterItem(name: "USP", keyPath: \.usp, viewController: self),
+            AddressRegisterItem(name: "ISP", keyPath: \.isp, viewController: self),
         ]
     }
 
@@ -252,7 +269,7 @@ class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutline
         let view = outlineView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "Register"), owner: self) as? NSTableCellView
         
         // `as AnyObject` is a hack to get around this bug: https://bugs.swift.org/browse/SR-3871
-        guard let register = item as AnyObject as? NameValueDescribable else {
+        guard let register = item as AnyObject as? NameValueConvertible else {
             return view
         }
         
