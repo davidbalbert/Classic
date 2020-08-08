@@ -214,8 +214,8 @@ class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutline
     }
     
     func createRegisters(_ cpu: CPU) {
-        let dataKeyPaths: [String: KeyPath<CPU, UInt32>] = ["D0": \.d0, "D1": \.d1, "D2": \.d2, "D3": \.d3, "D4": \.d4, "D5": \.d5, "D6": \.d6, "D7": \.d7]
-        let addressKeyPaths: [String: KeyPath<CPU, UInt32>] =  ["A0": \.a0, "A1": \.a1, "A2": \.a2, "A3": \.a3, "A4": \.a4, "A5": \.a5, "A6": \.a6]
+        let dataKeyPaths: [(String, KeyPath<CPU, UInt32>)] = [("D0", \.d0), ("D1", \.d1), ("D2", \.d2), ("D3", \.d3), ("D4", \.d4), ("D5", \.d5), ("D6", \.d6), ("D7", \.d7)]
+        let addressKeyPaths: [(String, KeyPath<CPU, UInt32>)] =  [("A0", \.a0), ("A1", \.a1), ("A2", \.a2), ("A3", \.a3), ("A4", \.a4), ("A5", \.a5), ("A6", \.a6)]
         
         registers = [
             AddressRegisterItem(name: "PC", keyPath: \.pc, viewController: self),

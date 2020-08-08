@@ -24,7 +24,7 @@ private extension Data {
 }
 
 extension Disassembler {
-    mutating func disassembleUntilEndOfFunction(at address: UInt32, storage: InstructionStorage) -> [Instruction] {
+    func disassembleUntilEndOfFunction(at address: UInt32, storage: InstructionStorage) -> [Instruction] {
         var insns: [Instruction] = []
         
         var address = address
@@ -53,7 +53,7 @@ class Content: NSObject {
         }
         
         let cpu = machine.cpu
-        var disassembler = cpu.disassembler
+        let disassembler = cpu.disassembler
         
         return disassembler.disassembleUntilEndOfFunction(at: cpu.pc, storage: machine)
     }()

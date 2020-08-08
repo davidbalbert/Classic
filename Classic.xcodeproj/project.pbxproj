@@ -14,6 +14,7 @@
 		6321D9C1245F61DC00C73B5F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6321D9C0245F61DC00C73B5F /* Assets.xcassets */; };
 		6321D9C4245F61DC00C73B5F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6321D9C2245F61DC00C73B5F /* Main.storyboard */; };
 		63229391249D50C4006460CC /* LineNumberRulerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63229390249D50C4006460CC /* LineNumberRulerView.swift */; };
+		6332243D24DF14EE00157207 /* DebugWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6332243C24DF14EE00157207 /* DebugWindowController.swift */; };
 		635385D324C71E4A009E147C /* SplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635385D224C71E4A009E147C /* SplitViewController.swift */; };
 		635385D524C723D7009E147C /* RegisterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635385D424C723D7009E147C /* RegisterViewController.swift */; };
 		6376279224CDFE71005FFC5D /* Disassembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6376279124CDFE71005FFC5D /* Disassembler.swift */; };
@@ -80,6 +81,7 @@
 		6321D9CC245F635900C73B5F /* M68K.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = M68K.swift; sourceTree = "<group>"; };
 		6321D9D4245F7FE500C73B5F /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		63229390249D50C4006460CC /* LineNumberRulerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberRulerView.swift; sourceTree = "<group>"; };
+		6332243C24DF14EE00157207 /* DebugWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugWindowController.swift; sourceTree = "<group>"; };
 		635385D224C71E4A009E147C /* SplitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitViewController.swift; sourceTree = "<group>"; };
 		635385D424C723D7009E147C /* RegisterViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterViewController.swift; sourceTree = "<group>"; };
 		6376279124CDFE71005FFC5D /* Disassembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Disassembler.swift; sourceTree = "<group>"; };
@@ -158,6 +160,7 @@
 				63EBB8D124CA558D006165DC /* MemoryViewController.swift */,
 				6321D9C0245F61DC00C73B5F /* Assets.xcassets */,
 				6321D9C2245F61DC00C73B5F /* Main.storyboard */,
+				6332243C24DF14EE00157207 /* DebugWindowController.swift */,
 				6321D9C5245F61DC00C73B5F /* Info.plist */,
 				6321D9C6245F61DC00C73B5F /* Classic.entitlements */,
 			);
@@ -333,6 +336,7 @@
 				6321D9BD245F61DA00C73B5F /* AssemblyViewController.swift in Sources */,
 				63229391249D50C4006460CC /* LineNumberRulerView.swift in Sources */,
 				631736A3245FA1B900154425 /* Content.swift in Sources */,
+				6332243D24DF14EE00157207 /* DebugWindowController.swift in Sources */,
 				63CE822624D7A3510065EE11 /* LineHighlightingTextView.swift in Sources */,
 				6321D9BB245F61DA00C73B5F /* AppDelegate.swift in Sources */,
 				635385D324C71E4A009E147C /* SplitViewController.swift in Sources */,

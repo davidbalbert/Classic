@@ -194,15 +194,15 @@ class RAM: AddressableDevice {
     }
 
     func read8(_ address: UInt32) -> UInt8 {
-        data.read8(Int(address) % data.count)
+        data.read8(Int(address))
     }
     
     func read16(_ address: UInt32) -> UInt16 {
-        data.read16(Int(address) % data.count)
+        data.read16(Int(address))
     }
     
     func read32(_ address: UInt32) -> UInt32 {
-        data.read32(Int(address) % data.count)
+        data.read32(Int(address))
     }
     
     func readRange(_ range: Range<UInt32>) -> Data {
@@ -210,15 +210,15 @@ class RAM: AddressableDevice {
     }
     
     func write8(_ address: UInt32, value: UInt8) {
-        data.write8(Int(address) % data.count, value: value)
+        data.write8(Int(address), value: value)
     }
     
     func write16(_ address: UInt32, value: UInt16) {
-        data.write16(Int(address) % data.count, value: value)
+        data.write16(Int(address), value: value)
     }
     
     func write32(_ address: UInt32, value: UInt32) {
-        data.write32(Int(address) % data.count, value: value)
+        data.write32(Int(address), value: value)
     }
 }
 
@@ -233,11 +233,8 @@ class ROM: AddressableDevice {
         self.data = data
     }
     
-    // TODO: modulating by data.count is probably wrong. We might want
-    // to modulate by ROM capacity instead (who knows if ROM dumps are
-    // the same size as the ROM chip)
     func read8(_ address: UInt32) -> UInt8 {
-        data.read8(Int(address) % data.count)
+        data.read8(Int(address))
     }
     
     func read16(_ address: UInt32) -> UInt16 {
