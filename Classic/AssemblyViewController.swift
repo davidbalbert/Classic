@@ -40,6 +40,8 @@ class AssemblyViewController: NSViewController, LineNumberRulerViewDelegate {
                 
                 self?.textView.highlightedLine = lineno
                 self?.rulerView?.highlightedLine = lineno
+                
+                self?.textView.scrollHighlightedLineToVisible()
             }
         }
     }

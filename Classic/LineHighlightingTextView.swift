@@ -73,6 +73,12 @@ class LineHighlightingTextView: NSTextView {
         
         return boundingRect.insetBy(dx: -textContainer.lineFragmentPadding, dy: 0)
     }
+    
+    func scrollHighlightedLineToVisible() {
+        guard let rect = rectForHighlightedLine() else { return }
+        
+        scrollToVisible(rect)
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         // TODO: figure out what to do when drawsBackground is false
