@@ -363,6 +363,19 @@ public struct CPU {
         switch (insn.op) {
         case let .bra(_, pc, displacement):
             self.pc = UInt32(Int64(pc) + Int64(displacement))
+        case let .bcc(size, condition, pc, displacement):
+            if conditionIsSatisfied(condition) {
+                self.pc = UInt32(Int64(pc) + Int64(displacement))
+            }
+        case let .cmpi(size, data, address):
+            assert(size == .l)
+            if case let .dd(register) = address {
+                let res = Int32(bitPattern: self[keyPath: register.keyPath]) - data
+                
+                setConditionCodes(value: res, mask: [.n, .z, .v, .c])
+            } else {
+                fatalError("only dd is supported")
+            }
         case let .movem(size, .mToR, address, registers):
             let inc: UInt32
             switch size {
@@ -389,6 +402,48 @@ public struct CPU {
     
     func fetchNextInstruction() -> Instruction {
         disassembler.instruction(at: pc, storage: bus!)
+    }
+    
+    mutating func setConditionCodes(value: Int32, mask: StatusRegister) {
+        if mask.contains(.x) {
+            fatalError("setConditionCodes x not implemented yet")
+        }
+        
+        if mask.contains(.n) && value < 0 {
+            sr.insert(.n)
+        } else {
+            sr.remove(.n)
+        }
+        
+        if mask.contains(.z) && value == 0 {
+            sr.insert(.z)
+        } else {
+            sr.remove(.z)
+        }
+
+        // TODO: overflow
+        // TODO: borrow
+    }
+    
+    func conditionIsSatisfied(_ conditionCode: Condition) -> Bool {
+        switch conditionCode {
+        case .t: return true
+        case .f: return false
+        case .hi: return !sr.isSuperset(of: [.c, .z])
+        case .ls: return sr.contains(.c) || sr.contains(.z)
+        case .cc: return !sr.contains(.c)
+        case .cs: return sr.contains(.c)
+        case .ne: return !sr.contains(.z)
+        case .eq: return sr.contains(.z)
+        case .vc: return !sr.contains(.v)
+        case .vs: return sr.contains(.v)
+        case .pl: return !sr.contains(.n)
+        case .mi: return sr.contains(.n)
+        case .ge: return sr.contains(.n) == sr.contains(.v)
+        case .lt: return sr.contains(.n) != sr.contains(.v)
+        case .gt: return !(sr.contains(.z) && (sr.contains(.n) != sr.contains(.v)))
+        case .le: return sr.contains(.z) && (sr.contains(.n) != sr.contains(.v))
+        }
     }
     
     func read8(_ address: UInt32) -> UInt8 {

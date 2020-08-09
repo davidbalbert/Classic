@@ -30,6 +30,19 @@ enum DataRegister: Int, Equatable, CustomStringConvertible {
     var description: String {
         "D\(rawValue)"
     }
+    
+    var keyPath: WritableKeyPath<CPU, UInt32> {
+        switch self {
+        case .d0: return \.d0
+        case .d1: return \.d1
+        case .d2: return \.d2
+        case .d3: return \.d3
+        case .d4: return \.d4
+        case .d5: return \.d5
+        case .d6: return \.d6
+        case .d7: return \.d7
+        }
+    }
 }
 
 enum AddressRegister: Int, Equatable, CustomStringConvertible {
@@ -37,6 +50,19 @@ enum AddressRegister: Int, Equatable, CustomStringConvertible {
     
     var description: String {
         "A\(rawValue)"
+    }
+    
+    var keyPath: WritableKeyPath<CPU, UInt32> {
+        switch self {
+        case .a0: return \.a0
+        case .a1: return \.a1
+        case .a2: return \.a2
+        case .a3: return \.a3
+        case .a4: return \.a4
+        case .a5: return \.a5
+        case .a6: return \.a6
+        case .a7: return \.a7
+        }
     }
 }
 
