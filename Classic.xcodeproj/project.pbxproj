@@ -148,21 +148,21 @@
 		6321D9B9245F61DA00C73B5F /* Classic */ = {
 			isa = PBXGroup;
 			children = (
+				6321D9C6245F61DC00C73B5F /* Classic.entitlements */,
+				6321D9C5245F61DC00C73B5F /* Info.plist */,
 				6321D9BA245F61DA00C73B5F /* AppDelegate.swift */,
 				6321D9BC245F61DA00C73B5F /* AssemblyViewController.swift */,
-				63229390249D50C4006460CC /* LineNumberRulerView.swift */,
-				6321D9BE245F61DA00C73B5F /* Document.swift */,
-				635385D224C71E4A009E147C /* SplitViewController.swift */,
-				631736A2245FA1B900154425 /* Content.swift */,
-				63CE822524D7A3510065EE11 /* LineHighlightingTextView.swift */,
 				63E0A07624C38D27000348D7 /* ATrap.swift */,
-				635385D424C723D7009E147C /* RegisterViewController.swift */,
+				631736A2245FA1B900154425 /* Content.swift */,
+				6332243C24DF14EE00157207 /* DebugWindowController.swift */,
+				6321D9BE245F61DA00C73B5F /* Document.swift */,
+				63CE822524D7A3510065EE11 /* LineHighlightingTextView.swift */,
+				63229390249D50C4006460CC /* LineNumberRulerView.swift */,
 				63EBB8D124CA558D006165DC /* MemoryViewController.swift */,
+				635385D424C723D7009E147C /* RegisterViewController.swift */,
+				635385D224C71E4A009E147C /* SplitViewController.swift */,
 				6321D9C0245F61DC00C73B5F /* Assets.xcassets */,
 				6321D9C2245F61DC00C73B5F /* Main.storyboard */,
-				6332243C24DF14EE00157207 /* DebugWindowController.swift */,
-				6321D9C5245F61DC00C73B5F /* Info.plist */,
-				6321D9C6245F61DC00C73B5F /* Classic.entitlements */,
 			);
 			path = Classic;
 			sourceTree = "<group>";

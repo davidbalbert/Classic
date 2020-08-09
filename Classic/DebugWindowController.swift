@@ -7,9 +7,12 @@
 //
 
 import Cocoa
+import M68K
 
 class DebugWindowController: NSWindowController {
     @IBOutlet var toolbar: NSToolbar!
+    
+    var machine: Machine?
     
     override func windowDidLoad() {
         super.windowDidLoad()
@@ -18,6 +21,6 @@ class DebugWindowController: NSWindowController {
     }
 
     @IBAction func step(_ sender: Any) {
-        print("step")
+        machine?.step()
     }
 }

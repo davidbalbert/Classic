@@ -77,7 +77,7 @@ struct Mapping {
 public class Machine {
     let ram = RAM(count: 0x400000)
     let rom: ROM
-    public var cpu = CPU()
+    @Published public var cpu = CPU()
     
     var mappings: [Mapping] = []
     
@@ -91,6 +91,10 @@ public class Machine {
         
         cpu.bus = self
         cpu.reset()
+    }
+    
+    public func step() {
+        cpu.step()
     }
     
     func read8(_ address: UInt32) -> UInt8 {

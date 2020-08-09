@@ -7,6 +7,7 @@
 //
 
 import Cocoa
+import Combine
 import M68K
 
 protocol NameValueConvertible {
@@ -192,28 +193,36 @@ struct StatusRegisterItem: Register, NameValueConvertible {
 class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutlineViewDataSource {
     @IBOutlet var outlineView: NSOutlineView!
     
-    var cpu: CPU?
-    var registers: [Register] = []
-
-    
-    override var representedObject: Any? {
+    var machine: Machine?
+    var cpu: CPU? {
         didSet {
-            guard let content = representedObject as? Content else {
-                return
-            }
-            
-            guard let cpu = content.machine?.cpu else {
-                return
-            }
-            
-            self.cpu = cpu
-            
-            createRegisters(cpu)
             outlineView.reloadData()
         }
     }
+    var registers: [Register] = []
+    var canceller: AnyCancellable?
     
-    func createRegisters(_ cpu: CPU) {
+    override var representedObject: Any? {
+        didSet {
+            guard let content = representedObject as? Content, let machine = content.machine else {
+                return
+            }
+            
+            canceller?.cancel()
+
+            canceller = machine.$cpu.sink { [weak self] cpu in
+                self?.cpu = cpu
+            }
+        }
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        createRegisters()
+    }
+    
+    func createRegisters() {
         let dataKeyPaths: [(String, KeyPath<CPU, UInt32>)] = [("D0", \.d0), ("D1", \.d1), ("D2", \.d2), ("D3", \.d3), ("D4", \.d4), ("D5", \.d5), ("D6", \.d6), ("D7", \.d7)]
         let addressKeyPaths: [(String, KeyPath<CPU, UInt32>)] =  [("A0", \.a0), ("A1", \.a1), ("A2", \.a2), ("A3", \.a3), ("A4", \.a4), ("A5", \.a5), ("A6", \.a6)]
         
@@ -282,9 +291,5 @@ class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutline
         textField.attributedStringValue = register.attributedDescription(with: font)
         
         return view
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
     }
 }

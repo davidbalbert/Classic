@@ -7,12 +7,14 @@
 //
 
 import Cocoa
+import Combine
 
 class AssemblyViewController: NSViewController, LineNumberRulerViewDelegate {
     @IBOutlet var textView: LineHighlightingTextView!
     var rulerView: LineNumberRulerView?
     
     var addressToLine: [UInt32: Int] = [:]
+    var canceller: AnyCancellable?
 
     override var representedObject: Any? {
         didSet {
@@ -29,12 +31,16 @@ class AssemblyViewController: NSViewController, LineNumberRulerViewDelegate {
                 addressToLine[instruction.address] = i+1
             }
             
-            guard let pc = content.machine?.cpu.pc, let lineno = addressToLine[pc] else {
-                return
+            guard let machine = content.machine else { return }
+            
+            canceller?.cancel()
+            
+            canceller = machine.$cpu.sink { [weak self] cpu in
+                let lineno = self?.addressToLine[cpu.pc]
+                
+                self?.textView.highlightedLine = lineno
+                self?.rulerView?.highlightedLine = lineno
             }
-
-            textView.highlightedLine = lineno
-            rulerView?.highlightedLine = lineno
         }
     }
     
