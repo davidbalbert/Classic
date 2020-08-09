@@ -345,19 +345,44 @@ public struct CPU {
     }
     
     mutating func reset() {
+        sr.insert(.s)
+        sr.remove(.t0)
+        
         isp = read32(0x0)
         pc = read32(0x4)
     }
     
     mutating func step() {
         let insn = fetchNextInstruction()
+        executeInstruction(insn)
+    }
+    
+    mutating func executeInstruction(_ insn: Instruction) {
+        pc += UInt32(insn.data.count)
         
         switch (insn.op) {
         case let .bra(_, pc, displacement):
             self.pc = UInt32(Int64(pc) + Int64(displacement))
-        default:
-            pc += UInt32(insn.data.count)
+        case let .movem(size, .mToR, address, registers):
+            let inc: UInt32
+            switch size {
+            case .l: inc = 4
+            case .w: inc = 2
+            }
+
+            switch address {
+            case let .XXXl(addr):
+                var a = addr
+                for path in registers.keyPaths {
+                    self[keyPath: path] = read32(a)
+                    a += inc
+                }
+            default:
+                fatalError("movem: unsupported address type")
+            }
             
+            
+        default:
             break
         }
     }

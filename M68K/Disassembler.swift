@@ -150,10 +150,22 @@ struct ExtensionWord {
     let displacement: Int8
 }
 
+enum SizeWL: Equatable {
+    case w
+    case l
+}
+
 enum Size: Equatable {
     case b
     case w
     case l
+    
+    init(_ sizeWL: SizeWL) {
+        switch sizeWL {
+        case .w: self = .w
+        case .l: self = .l
+        }
+    }
 }
 
 enum Condition: Int, Equatable, CaseIterable {
@@ -245,6 +257,54 @@ struct RegisterList: OptionSet, CustomStringConvertible {
         } else {
             return a
         }
+    }
+    
+    var keyPaths: [WritableKeyPath<CPU, UInt32>] {
+        var res: [WritableKeyPath<CPU, UInt32>] = []
+        
+        if contains(.d0) { res.append(\CPU.d0) }
+        if contains(.d1) { res.append(\CPU.d1) }
+        if contains(.d2) { res.append(\CPU.d2) }
+        if contains(.d3) { res.append(\CPU.d3) }
+        if contains(.d4) { res.append(\CPU.d4) }
+        if contains(.d5) { res.append(\CPU.d5) }
+        if contains(.d6) { res.append(\CPU.d6) }
+        if contains(.d7) { res.append(\CPU.d7) }
+        
+        if contains(.a0) { res.append(\CPU.a0) }
+        if contains(.a1) { res.append(\CPU.a1) }
+        if contains(.a2) { res.append(\CPU.a2) }
+        if contains(.a3) { res.append(\CPU.a3) }
+        if contains(.a4) { res.append(\CPU.a4) }
+        if contains(.a5) { res.append(\CPU.a5) }
+        if contains(.a6) { res.append(\CPU.a6) }
+        if contains(.a7) { res.append(\CPU.a7) }
+
+        return res
+    }
+    
+    var registers: [Register] {
+        var res: [Register] = []
+    
+        if contains(.d0) { res.append(.d(.d0)) }
+        if contains(.d1) { res.append(.d(.d1)) }
+        if contains(.d2) { res.append(.d(.d2)) }
+        if contains(.d3) { res.append(.d(.d3)) }
+        if contains(.d4) { res.append(.d(.d4)) }
+        if contains(.d5) { res.append(.d(.d5)) }
+        if contains(.d6) { res.append(.d(.d6)) }
+        if contains(.d7) { res.append(.d(.d7)) }
+        
+        if contains(.a0) { res.append(.a(.a0)) }
+        if contains(.a1) { res.append(.a(.a1)) }
+        if contains(.a2) { res.append(.a(.a2)) }
+        if contains(.a3) { res.append(.a(.a3)) }
+        if contains(.a4) { res.append(.a(.a4)) }
+        if contains(.a5) { res.append(.a(.a5)) }
+        if contains(.a6) { res.append(.a(.a6)) }
+        if contains(.a7) { res.append(.a(.a7)) }
+
+        return res
     }
 }
 
@@ -399,7 +459,7 @@ enum Operation: Equatable {
     case extbl(DataRegister)
     case lea(EffectiveAddress, AddressRegister)
     case move(Size, EffectiveAddress, EffectiveAddress)
-    case movem(Size, Direction, EffectiveAddress, RegisterList)
+    case movem(SizeWL, Direction, EffectiveAddress, RegisterList)
     case moveq(Int8, DataRegister)
     case moveToSR(EffectiveAddress)
     case moveFromSR(EffectiveAddress)
@@ -1503,7 +1563,7 @@ public struct Disassembler {
         case .movem:
             let direction0 = (instructionWord >> 10) & 1
             let size0 = (instructionWord >> 6) & 1
-            let size = size0 == 1 ? Size.l : Size.w
+            let size = size0 == 1 ? SizeWL.l : SizeWL.w
             
             let eaModeNum = (instructionWord >> 3) & 7
             let eaReg = instructionWord & 7
