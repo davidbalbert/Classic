@@ -352,10 +352,12 @@ public struct CPU {
     mutating func step() {
         let insn = fetchNextInstruction()
         
-        pc += UInt32(insn.data.count)
-        
         switch (insn.op) {
+        case let .bra(_, pc, displacement):
+            self.pc = UInt32(Int64(pc) + Int64(displacement))
         default:
+            pc += UInt32(insn.data.count)
+            
             break
         }
     }
