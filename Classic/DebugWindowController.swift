@@ -23,4 +23,8 @@ class DebugWindowController: NSWindowController {
     @IBAction func step(_ sender: Any) {
         machine?.step()
     }
+    
+    @IBAction func reset(_ sender: Any) {
+        machine?.reset()
+    }
 }

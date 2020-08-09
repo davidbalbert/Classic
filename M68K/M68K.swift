@@ -93,6 +93,10 @@ public class Machine {
         cpu.reset()
     }
     
+    public func reset() {
+        cpu.reset()
+    }
+    
     public func step() {
         cpu.step()
     }

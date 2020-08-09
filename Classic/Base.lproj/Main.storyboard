@@ -705,9 +705,24 @@
                                         <action selector="step:" target="jGA-0Y-lOj" id="4cl-Cu-Aa0"/>
                                     </connections>
                                 </toolbarItem>
+                                <toolbarItem implicitItemIdentifier="23D63D99-50A3-4CFD-9358-1EA7632EA246" label="Reset" paletteLabel="Reset" sizingBehavior="auto" id="msa-MQ-p6k">
+                                    <nil key="toolTip"/>
+                                    <button key="view" verticalHuggingPriority="750" id="aPj-ub-95x">
+                                        <rect key="frame" x="0.0" y="14" width="48" height="25"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="roundTextured" title="Reset" bezelStyle="texturedRounded" alignment="center" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="4yX-dg-QFX">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                    </button>
+                                    <connections>
+                                        <action selector="reset:" target="jGA-0Y-lOj" id="xSK-pb-luk"/>
+                                    </connections>
+                                </toolbarItem>
                             </allowedToolbarItems>
                             <defaultToolbarItems>
                                 <toolbarItem reference="ocd-Hm-PQi"/>
+                                <toolbarItem reference="msa-MQ-p6k"/>
                             </defaultToolbarItems>
                         </toolbar>
                         <connections>
