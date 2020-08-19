@@ -313,6 +313,10 @@ public struct CPU {
             sr = sr.union(newValue.intersection(.ccr))            
         }
     }
+    
+    var inSupervisorMode: Bool {
+        sr.contains(.s)
+    }
 
     public var usp: UInt32
     public var isp: UInt32
@@ -467,7 +471,14 @@ public struct CPU {
                 fatalError("movem: unsupported address type")
             }
             
+        case let .moveToSR(address):
+            if !inSupervisorMode {
+                fatalError("moveToSR but not supervisor, should trap here")
+            }
+                
+            let value = UInt16(truncatingIfNeeded: readEffectiveAddress(address, size: .w))
             
+            sr = StatusRegister(rawValue: value)
         default:
             break
         }
