@@ -45,7 +45,7 @@ extension Disassembler {
 }
 
 class Content: NSObject {
-    var machine: Machine?
+    var machine: MacPlus?
     
     lazy var instructions: [Instruction] = {
         guard let machine = machine else {
@@ -97,6 +97,6 @@ class Content: NSObject {
     }
     
     func read(from data: Data) {
-        machine = Machine(rom: data)
+        machine = MacPlus(rom: data)
     }
 }

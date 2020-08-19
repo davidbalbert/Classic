@@ -61,6 +61,28 @@ protocol AddressableDevice {
     var readableWithoutSideEffects: Bool { get }
 }
 
+public protocol InstructionStorage {
+    func read16(_ address: UInt32) -> UInt16
+    func read32(_ address: UInt32) -> UInt32
+    func readRange(_ range: Range<UInt32>) -> Data
+
+    func canReadWithoutSideEffects(_ address: UInt32) -> Bool
+}
+
+protocol Bus: class {
+    func read8(_ address: UInt32) -> UInt8
+    func read16(_ address: UInt32) -> UInt16
+    func read32(_ address: UInt32) -> UInt32
+
+    func write8(_ address: UInt32, value: UInt8)
+    func write16(_ address: UInt32, value: UInt16)
+    func write32(_ address: UInt32, value: UInt32)
+}
+
+protocol Machine: Bus, InstructionStorage {
+    
+}
+
 struct Mapping {
     let range: Range<UInt32>
     let device: AddressableDevice
@@ -74,7 +96,7 @@ struct Mapping {
     }
 }
 
-public class Machine {
+public class MacPlus: Machine {
     let ram = RAM(count: 0x400000)
     let rom: ROM
     @Published public var cpu = CPU()
@@ -166,7 +188,7 @@ public class Machine {
     }
 }
 
-extension Machine: InstructionStorage {
+extension MacPlus: InstructionStorage {
     public func readRange(_ range: Range<UInt32>) -> Data {
         let r24 = (range.lowerBound & 0x00ffffff)..<(range.upperBound & 0x00ffffff)
         let ms = mappings(for: r24)
@@ -262,6 +284,20 @@ class ROM: AddressableDevice {
     func write32(_ address: UInt32, value: UInt32) {}
 }
 
+
+// overflow
+func vsub(_ s: UInt8, _ d: UInt8, _ r: UInt8) -> Bool {
+    return ((s^d) & (r^d)) >> 7 == 1
+}
+
+func vsub(_ s: UInt16, _ d: UInt16, _ r: UInt16) -> Bool {
+    return ((s^d) & (r^d)) >> 15 == 1
+}
+
+func vsub(_ s: UInt32, _ d: UInt32, _ r: UInt32) -> Bool {
+    return ((s^d) & (r^d)) >> 31 == 1
+}
+
 public struct CPU {
     public var pc: UInt32
     public var sr: StatusRegister
@@ -273,7 +309,8 @@ public struct CPU {
         }
 
         set {
-            sr = sr.union(newValue.intersection(.ccr))
+            sr.remove(.ccr)
+            sr = sr.union(newValue.intersection(.ccr))            
         }
     }
 
@@ -354,28 +391,64 @@ public struct CPU {
     
     mutating func step() {
         let insn = fetchNextInstruction()
-        executeInstruction(insn)
+        execute(insn.op, length: insn.length)
     }
     
-    mutating func executeInstruction(_ insn: Instruction) {
-        pc += UInt32(insn.data.count)
+    mutating func execute(_ op: Operation, length: Int) {
+        pc += UInt32(length)
         
-        switch (insn.op) {
+        switch (op) {
         case let .bra(_, pc, displacement):
             self.pc = UInt32(Int64(pc) + Int64(displacement))
-        case let .bcc(size, condition, pc, displacement):
+        case let .bcc(_, condition, pc, displacement):
             if conditionIsSatisfied(condition) {
                 self.pc = UInt32(Int64(pc) + Int64(displacement))
             }
-        case let .cmpi(size, data, address):
-            assert(size == .l)
-            if case let .dd(register) = address {
-                let res = Int32(bitPattern: self[keyPath: register.keyPath]) - data
-                
-                setConditionCodes(value: res, mask: [.n, .z, .v, .c])
-            } else {
-                fatalError("only dd is supported")
-            }
+        case let .cmpi(.b, source, destination):
+            let destination = UInt8(truncatingIfNeeded: readEffectiveAddress(destination, size: .b))
+            let source = UInt8(truncatingIfNeeded: source)
+            let res = destination &- source
+            
+            var cc = ccr.intersection(.x)
+            
+            let overflow = vsub(source, destination, res)
+                        
+            if res >= 0x80          { cc.insert(.n) }
+            if res == 0             { cc.insert(.z) }
+            if overflow             { cc.insert(.v) }
+            if source > destination { cc.insert(.c) }
+            
+            ccr = cc
+        case let .cmpi(.w, source, destination):
+            let destination = UInt16(truncatingIfNeeded: readEffectiveAddress(destination, size: .w))
+            let source = UInt16(truncatingIfNeeded: source)
+            let res = destination &- source
+            
+            var cc = ccr.intersection(.x)
+            
+            let overflow = vsub(source, destination, res)
+                        
+            if res >= 0x8000        { cc.insert(.n) }
+            if res == 0             { cc.insert(.z) }
+            if overflow             { cc.insert(.v) }
+            if source > destination { cc.insert(.c) }
+            
+            ccr = cc
+        case let .cmpi(.l, source, destination):
+            let destination = readEffectiveAddress(destination, size: .l)
+            let source = UInt32(bitPattern: source)
+            let res = destination &- source
+            
+            var cc = ccr.intersection(.x)
+            
+            let overflow = vsub(source, destination, res)
+                        
+            if res >= 0x80000000    { cc.insert(.n) }
+            if res == 0             { cc.insert(.z) }
+            if overflow             { cc.insert(.v) }
+            if source > destination { cc.insert(.c) }
+            
+            ccr = cc
         case let .movem(size, .mToR, address, registers):
             let inc: UInt32
             switch size {
@@ -404,32 +477,11 @@ public struct CPU {
         disassembler.instruction(at: pc, storage: bus!)
     }
     
-    mutating func setConditionCodes(value: Int32, mask: StatusRegister) {
-        if mask.contains(.x) {
-            fatalError("setConditionCodes x not implemented yet")
-        }
-        
-        if mask.contains(.n) && value < 0 {
-            sr.insert(.n)
-        } else {
-            sr.remove(.n)
-        }
-        
-        if mask.contains(.z) && value == 0 {
-            sr.insert(.z)
-        } else {
-            sr.remove(.z)
-        }
-
-        // TODO: overflow
-        // TODO: borrow
-    }
-    
     func conditionIsSatisfied(_ conditionCode: Condition) -> Bool {
         switch conditionCode {
         case .t: return true
         case .f: return false
-        case .hi: return !sr.isSuperset(of: [.c, .z])
+        case .hi: return !sr.contains(.c) && !sr.contains(.z)
         case .ls: return sr.contains(.c) || sr.contains(.z)
         case .cc: return !sr.contains(.c)
         case .cs: return sr.contains(.c)
@@ -441,8 +493,57 @@ public struct CPU {
         case .mi: return sr.contains(.n)
         case .ge: return sr.contains(.n) == sr.contains(.v)
         case .lt: return sr.contains(.n) != sr.contains(.v)
-        case .gt: return !(sr.contains(.z) && (sr.contains(.n) != sr.contains(.v)))
-        case .le: return sr.contains(.z) && (sr.contains(.n) != sr.contains(.v))
+        case .gt: return !sr.contains(.z) && (sr.contains(.n) == sr.contains(.v))
+        case .le: return sr.contains(.z) || (sr.contains(.n) != sr.contains(.v))
+        }
+    }
+    
+    mutating func readEffectiveAddress(_ effectiveAddress: EffectiveAddress, size: Size) -> UInt32 {
+        switch effectiveAddress {
+        case let .dd(Dn):
+            return self[keyPath: Dn.keyPath]
+        case let .ad(An):
+            return self[keyPath: An.keyPath]
+        case let .ind(An):
+            let address = self[keyPath: An.keyPath]
+            
+            return read(address, size: size)
+        case let .postInc(An):
+            let address = self[keyPath: An.keyPath]
+            self[keyPath: An.keyPath] += size.byteCount
+            
+            return read(address, size: size)
+        case let .preDec(An):
+            self[keyPath: An.keyPath] -= size.byteCount
+            let address = self[keyPath: An.keyPath]
+            
+            return read(address, size: size)
+        case let .d16An(displacement, An):
+            let address = UInt32(Int64(self[keyPath: An.keyPath]) + Int64(displacement))
+            
+            return read(address, size: size)
+        case .d8AnXn(_, _, _, _):
+            fatalError("d8AnXn not implemented")
+        case let .XXXw(address):
+            return read(address, size: size)
+        case let .XXXl(address):
+            return read(address, size: size)
+        case let .d16PC(pc, displacement):
+            let address = UInt32(Int64(pc) + Int64(displacement))
+            
+            return read(address, size: size)
+        case .d8PCXn(_, _, _, _):
+            fatalError("d8PCXn not implemented yet")
+        case let .imm(value):
+            return UInt32(value)
+        }
+    }
+    
+    func read(_ address: UInt32, size: Size) -> UInt32 {
+        switch size {
+        case .b: return UInt32(read8(address))
+        case .w: return UInt32(read16(address))
+        case .l: return read32(address)
         }
     }
     

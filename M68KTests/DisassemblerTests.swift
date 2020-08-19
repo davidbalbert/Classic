@@ -174,7 +174,7 @@ class DisassemblerTests: XCTestCase {
         storage = TestInstructionStorage([0x1b, 0x7c, 0x00, 0x87, 0x04, 0x00])
         op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.move(.b, .imm(.b(-0x79)), .d16An(0x400, .a5)))
+        XCTAssertEqual(op, Operation.move(.b, .imm(-0x79), .d16An(0x400, .a5)))
     }
 
     
@@ -377,7 +377,7 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x46, 0xfc, 0x27, 0x00])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.moveToSR(.imm(.w(0x2700))))
+        XCTAssertEqual(op, Operation.moveToSR(.imm(0x2700)))
     }
     
     func testMoveFromSR() throws {

@@ -78,20 +78,6 @@ enum Register: Equatable, CustomStringConvertible {
     }
 }
 
-enum ImmediateValue: Equatable, CustomStringConvertible {
-    case b(Int8)
-    case w(Int16)
-    case l(Int32)
-    
-    var description: String {
-        switch self {
-        case let .b(value): return "#$\(String(value, radix: 16))"
-        case let .w(value): return "#$\(String(value, radix: 16))"
-        case let .l(value): return "#$\(String(value, radix: 16))"
-        }
-    }
-}
-
 // List of instructions for the 68000 - p608
 
 
@@ -150,7 +136,7 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
     case XXXl(UInt32)
     case d16PC(UInt32, Int16)
     case d8PCXn(UInt32, Int8, Register, Size)
-    case imm(ImmediateValue)
+    case imm(Int32)
     
     var description: String {
         switch self {
@@ -165,7 +151,7 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
         case let .XXXl(address):      return "($\(String(address, radix: 16)))"
         case let .d16PC(pc, d16):     return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
         case let .d8PCXn(pc, d8, Xn, size): return "$\(String(Int(pc) + Int(d8), radix: 16))(PC, \(Xn).\(size))"
-        case let .imm(value):         return "\(value)"
+        case let .imm(value):         return "#$\(String(value, radix: 16))"
         }
     }
 }
@@ -190,6 +176,14 @@ enum Size: Equatable {
         switch sizeWL {
         case .w: self = .w
         case .l: self = .l
+        }
+    }
+    
+    var byteCount: UInt32 {
+        switch self {
+        case .b: return 1
+        case .w: return 2
+        case .l: return 3
         }
     }
 }
@@ -875,14 +869,6 @@ let ops = [
     OpInfo(name: .mulu,     opClass: .mulu,     mask: 0xf1c0, value: 0xc0c0),
 //    OpInfo(name: "exg", mask: 0xf130, value: 0xc100)
 ]
-
-public protocol InstructionStorage {
-    func read16(_ address: UInt32) -> UInt16
-    func read32(_ address: UInt32) -> UInt32
-    func readRange(_ range: Range<UInt32>) -> Data
-
-    func canReadWithoutSideEffects(_ address: UInt32) -> Bool
-}
 
 class DisassemblyState {
     var address: UInt32
@@ -2259,13 +2245,13 @@ public struct Disassembler {
             switch size {
             case .b:
                 let w = state.readWord()
-                return .imm(.b(Int8(truncatingIfNeeded: w)))
+                return .imm(Int32(Int8(truncatingIfNeeded: w)))
             case .w:
                 let w = state.readWord()
-                return .imm(.w(Int16(bitPattern: w)))
+                return .imm(Int32(Int16(bitPattern: w)))
             case .l:
                 let l = state.readLong()
-                return .imm(.l(Int32(bitPattern: l)))
+                return .imm(Int32(bitPattern: l))
             }
         }
     }

@@ -12,7 +12,7 @@ import M68K
 class DebugWindowController: NSWindowController {
     @IBOutlet var toolbar: NSToolbar!
     
-    var machine: Machine?
+    var machine: MacPlus?
     
     override func windowDidLoad() {
         super.windowDidLoad()

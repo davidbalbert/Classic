@@ -193,7 +193,7 @@ struct StatusRegisterItem: Register, NameValueConvertible {
 class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutlineViewDataSource {
     @IBOutlet var outlineView: NSOutlineView!
     
-    var machine: Machine?
+    var machine: MacPlus?
     var cpu: CPU? {
         didSet {
             outlineView.reloadData()
