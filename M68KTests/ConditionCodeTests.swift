@@ -139,4 +139,54 @@ class ConditionCodeTests: XCTestCase {
         XCTAssert(cpu.conditionIsSatisfied(.ls))
         XCTAssert(!cpu.conditionIsSatisfied(.hi))
     }
+    
+    func testCs() throws {
+        cpu.d0 = 4
+        
+        let op = Operation.cmpi(.b, 5, .dd(.d0))
+        cpu.execute(op, length: 0)
+
+        XCTAssert(cpu.conditionIsSatisfied(.cs))
+        XCTAssert(!cpu.conditionIsSatisfied(.cc))
+    }
+    
+    func testCc() throws {
+        cpu.d0 = 5
+        
+        let op = Operation.cmpi(.b, 4, .dd(.d0))
+        cpu.execute(op, length: 0)
+
+        XCTAssert(cpu.conditionIsSatisfied(.cc))
+        XCTAssert(!cpu.conditionIsSatisfied(.cs))
+    }
+    
+    func testVs() throws {
+        cpu.d0 = 127
+        
+        let op = Operation.cmpi(.b, -1, .dd(.d0))
+        cpu.execute(op, length: 0)
+        
+        XCTAssert(cpu.conditionIsSatisfied(.vs))
+        XCTAssert(!cpu.conditionIsSatisfied(.vc))
+    }
+    
+    func testVc() throws {
+        cpu.d0 = 0
+        
+        let op = Operation.cmpi(.b, -1, .dd(.d0))
+        cpu.execute(op, length: 0)
+        
+        XCTAssert(cpu.conditionIsSatisfied(.vc))
+        XCTAssert(!cpu.conditionIsSatisfied(.vs))
+    }
+    
+    func testTf() throws {
+        cpu.d0 = UInt32.random(in: 0...UInt32.max)
+        
+        let op = Operation.cmpi(.b, Int32.random(in: Int32.min...Int32.max), .dd(.d0))
+        cpu.execute(op, length: 0)
+
+        XCTAssert(cpu.conditionIsSatisfied(.t))
+        XCTAssert(!cpu.conditionIsSatisfied(.f))
+    }
 }
