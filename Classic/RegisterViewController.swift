@@ -46,7 +46,7 @@ extension BitField {
     }
 }
 
-struct StatusRegisterBitField: BitField, NameValueConvertible {
+struct StatusRegisterBitField: BitField, NameValueConvertible, Hashable {
     let name: String
     let bit: StatusRegister
     let bitNumber: Int
@@ -75,7 +75,7 @@ protocol Register {
     var children: [BitField] { get }
 }
 
-struct DataRegisterItem: Register, NameValueConvertible {
+struct DataRegisterItem: Register, NameValueConvertible, Hashable {
     let name: String
     let keyPath: KeyPath<CPU, UInt32>
     
@@ -100,7 +100,7 @@ struct DataRegisterItem: Register, NameValueConvertible {
     }
 }
 
-struct AddressRegisterItem: Register, NameValueConvertible {
+struct AddressRegisterItem: Register, NameValueConvertible, Hashable {
     let name: String
     let keyPath: KeyPath<CPU, UInt32>
     
@@ -125,7 +125,7 @@ struct AddressRegisterItem: Register, NameValueConvertible {
     }
 }
 
-struct StackPointerItem: Register, NameValueConvertible {
+struct StackPointerItem: Register, NameValueConvertible, Hashable {
     weak var viewController: RegisterViewController?
     
     var value: UInt32 {
@@ -154,7 +154,7 @@ struct StackPointerItem: Register, NameValueConvertible {
     }
 }
 
-struct StatusRegisterItem: Register, NameValueConvertible {
+struct StatusRegisterItem: Register, NameValueConvertible, Hashable {
     weak var viewController: RegisterViewController?
     
     var nameDescription: String {

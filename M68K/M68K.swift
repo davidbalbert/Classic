@@ -584,7 +584,7 @@ public struct CPU {
 }
 
 
-public struct StatusRegister: OptionSet {
+public struct StatusRegister: OptionSet, Hashable {
     public let rawValue: UInt16
 
     public init(rawValue: RawValue) {
