@@ -476,7 +476,15 @@ public struct CPU {
             default:
                 fatalError("movem: unsupported address type")
             }
+        case let .moveq(data, Dn):
+            self[keyPath: Dn.keyPath] = UInt32(truncatingIfNeeded: data)
             
+            var cc = ccr.intersection(.x)
+
+            if data < 0             { cc.insert(.n) }
+            if data == 0            { cc.insert(.z) }
+
+            ccr = cc
         case let .moveToSR(address):
             if !inSupervisorMode {
                 fatalError("moveToSR but not supervisor, should trap here")
