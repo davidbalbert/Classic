@@ -460,11 +460,7 @@ public struct CPU {
             
             self[keyPath: register.keyPath] = value
         case let .movem(size, .mToR, address, registers):
-            let inc: UInt32
-            switch size {
-            case .l: inc = 4
-            case .w: inc = 2
-            }
+            let inc = Size(size).byteCount
 
             switch address {
             case let .XXXl(addr):
@@ -493,6 +489,33 @@ public struct CPU {
             let value = UInt16(truncatingIfNeeded: readEffectiveAddress(address, size: .w))
             
             sr = StatusRegister(rawValue: value)
+        case let .tst(.b, destination):
+            let destination = UInt8(truncatingIfNeeded: readEffectiveAddress(destination, size: .b))
+            
+            var cc = ccr.intersection(.x)
+
+            if destination > 0x80   { cc.insert(.n) }
+            if destination == 0     { cc.insert(.z) }
+
+            ccr = cc
+        case let .tst(.w, destination):
+            let destination = UInt16(truncatingIfNeeded: readEffectiveAddress(destination, size: .b))
+            
+            var cc = ccr.intersection(.x)
+
+            if destination > 0x8000 { cc.insert(.n) }
+            if destination == 0     { cc.insert(.z) }
+
+            ccr = cc
+        case let .tst(.l, destination):
+            let destination = readEffectiveAddress(destination, size: .b)
+            
+            var cc = ccr.intersection(.x)
+
+            if destination > 0x80000000 { cc.insert(.n) }
+            if destination == 0         { cc.insert(.z) }
+
+            ccr = cc
         default:
             break
         }
