@@ -453,6 +453,12 @@ public struct CPU {
             if source > destination { cc.insert(.c) }
             
             ccr = cc
+        case let .jmp(address):
+            pc = loadEffectiveAddress(address)!
+        case let .lea(address, register):
+            let value = loadEffectiveAddress(address)!
+            
+            self[keyPath: register.keyPath] = value
         case let .movem(size, .mToR, address, registers):
             let inc: UInt32
             switch size {
@@ -547,6 +553,27 @@ public struct CPU {
             fatalError("d8PCXn not implemented yet")
         case let .imm(value):
             return UInt32(value)
+        }
+    }
+    
+    func loadEffectiveAddress(_ address: EffectiveAddress) -> UInt32? {
+        switch address {
+        case let .ind(An):
+            return self[keyPath: An.keyPath]
+        case let .d16An(d, An):
+            return UInt32(Int64(self[keyPath: An.keyPath]) + Int64(d))
+        case .d8AnXn(_, _, _, _):
+            fatalError("d8AnXn not implemented")
+        case let .XXXl(address):
+            return address
+        case let .XXXw(address):
+            return address
+        case let .d16PC(pc, d):
+            return UInt32(Int64(pc) + Int64(d))
+        case .d8PCXn(_, _, _, _):
+            fatalError("d8PCXn not implemented")
+        default:
+            return nil
         }
     }
     
