@@ -402,6 +402,28 @@ public struct CPU {
         pc += UInt32(length)
         
         switch (op) {
+        case let .and(.b, direction, address, Dn):
+            break
+        case let .and(.w, direction, address, Dn):
+            let v1 = UInt16(truncatingIfNeeded: readEffectiveAddress(address, size: .b))
+            let v2 = UInt16(truncatingIfNeeded: self[keyPath: Dn.keyPath])
+            
+            let res = v1 & v2
+            
+            if direction == .mToR {
+                self[keyPath: Dn.keyPath] = UInt32(res)
+            } else {
+                writeEffectiveAddress(address, value: res)
+            }
+            
+            var cc = ccr.intersection(.x)
+
+            if res >= 0x80 { cc.insert(.n) }
+            if res == 0    { cc.insert(.z) }
+
+            ccr = cc
+        case let .and(.l, direction, address, Dn):
+            break
         case let .bra(_, pc, displacement):
             self.pc = UInt32(Int64(pc) + Int64(displacement))
         case let .bcc(_, condition, pc, displacement):
@@ -584,6 +606,49 @@ public struct CPU {
             fatalError("d8PCXn not implemented yet")
         case let .imm(value):
             return UInt32(value)
+        }
+    }
+    
+    mutating func writeEffectiveAddress(_ effectiveAddress: EffectiveAddress, value: UInt16) {
+        switch effectiveAddress {
+        case let .dd(Dn):
+            let existing = self[keyPath: Dn.keyPath] & 0xffff0000
+            
+            self[keyPath: Dn.keyPath] = existing | UInt32(value)
+        case let .ad(An):
+            self[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: value)
+        case let .ind(An):
+            let address = self[keyPath: An.keyPath]
+            
+            write16(address, value: value)
+        case let .postInc(An):
+            let address = self[keyPath: An.keyPath]
+            self[keyPath: An.keyPath] += 2
+            
+            write16(address, value: value)
+        case let .preDec(An):
+            self[keyPath: An.keyPath] -= 2
+            let address = self[keyPath: An.keyPath]
+            
+            write16(address, value: value)
+        case let .d16An(d, An):
+            let address = UInt32(Int64(self[keyPath: An.keyPath]) + Int64(d))
+            
+            write16(address, value: value)
+        case .d8AnXn(_, _, _, _):
+            fatalError("d8AnXn not implemented")
+        case let .XXXw(address):
+            write16(address, value: value)
+        case let .XXXl(address):
+            write16(address, value: value)
+        case let .d16PC(pc, d):
+            let address = UInt32(Int64(pc) + Int64(d))
+
+            write16(address, value: value)
+        case .d8PCXn(_, _, _, _):
+            fatalError("d8PCXn not implemented")
+        case .imm(_):
+            fatalError("can't write to an immediate value")
         }
     }
     
