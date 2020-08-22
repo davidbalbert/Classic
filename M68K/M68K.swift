@@ -403,17 +403,15 @@ public struct CPU {
         
         switch (op) {
         case let .and(.b, direction, address, Dn):
-            break
-        case let .and(.w, direction, address, Dn):
-            let v1 = UInt16(truncatingIfNeeded: readEffectiveAddress(address, size: .b))
-            let v2 = UInt16(truncatingIfNeeded: self[keyPath: Dn.keyPath])
+            let v1 = UInt8(truncatingIfNeeded: readEffectiveAddress(address, size: .b))
+            let v2 = UInt8(truncatingIfNeeded: self[keyPath: Dn.keyPath])
             
             let res = v1 & v2
             
             if direction == .mToR {
                 self[keyPath: Dn.keyPath] = UInt32(res)
             } else {
-                writeEffectiveAddress(address, value: res)
+                writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .b)
             }
             
             var cc = ccr.intersection(.x)
@@ -422,8 +420,42 @@ public struct CPU {
             if res == 0    { cc.insert(.z) }
 
             ccr = cc
+        case let .and(.w, direction, address, Dn):
+            let v1 = UInt16(truncatingIfNeeded: readEffectiveAddress(address, size: .w))
+            let v2 = UInt16(truncatingIfNeeded: self[keyPath: Dn.keyPath])
+            
+            let res = v1 & v2
+            
+            if direction == .mToR {
+                self[keyPath: Dn.keyPath] = UInt32(res)
+            } else {
+                writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .w)
+            }
+            
+            var cc = ccr.intersection(.x)
+
+            if res >= 0x8000 { cc.insert(.n) }
+            if res == 0      { cc.insert(.z) }
+
+            ccr = cc
         case let .and(.l, direction, address, Dn):
-            break
+            let v1 = readEffectiveAddress(address, size: .l)
+            let v2 = self[keyPath: Dn.keyPath]
+            
+            let res = v1 & v2
+            
+            if direction == .mToR {
+                self[keyPath: Dn.keyPath] = UInt32(res)
+            } else {
+                writeEffectiveAddress(address, value: res, size: .l)
+            }
+            
+            var cc = ccr.intersection(.x)
+
+            if res >= 0x80000000 { cc.insert(.n) }
+            if res == 0          { cc.insert(.z) }
+
+            ccr = cc
         case let .bra(_, pc, displacement):
             self.pc = UInt32(Int64(pc) + Int64(displacement))
         case let .bcc(_, condition, pc, displacement):
@@ -609,42 +641,49 @@ public struct CPU {
         }
     }
     
-    mutating func writeEffectiveAddress(_ effectiveAddress: EffectiveAddress, value: UInt16) {
+    mutating func writeEffectiveAddress(_ effectiveAddress: EffectiveAddress, value: UInt32, size: Size) {
         switch effectiveAddress {
         case let .dd(Dn):
-            let existing = self[keyPath: Dn.keyPath] & 0xffff0000
+            let mask: UInt32
+            switch size {
+            case .b: mask = 0xffffff00
+            case .w: mask = 0xffff0000
+            case .l: mask = 0x00000000
+            }
             
-            self[keyPath: Dn.keyPath] = existing | UInt32(value)
+            let existing = self[keyPath: Dn.keyPath] & mask
+            
+            self[keyPath: Dn.keyPath] = existing | value
         case let .ad(An):
             self[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: value)
         case let .ind(An):
             let address = self[keyPath: An.keyPath]
             
-            write16(address, value: value)
+            write(address, value, size: size)
         case let .postInc(An):
             let address = self[keyPath: An.keyPath]
             self[keyPath: An.keyPath] += 2
             
-            write16(address, value: value)
+            write(address, value, size: size)
         case let .preDec(An):
             self[keyPath: An.keyPath] -= 2
             let address = self[keyPath: An.keyPath]
             
-            write16(address, value: value)
+            write(address, value, size: size)
         case let .d16An(d, An):
             let address = UInt32(Int64(self[keyPath: An.keyPath]) + Int64(d))
             
-            write16(address, value: value)
+            write(address, value, size: size)
         case .d8AnXn(_, _, _, _):
             fatalError("d8AnXn not implemented")
         case let .XXXw(address):
-            write16(address, value: value)
+            write(address, value, size: size)
         case let .XXXl(address):
-            write16(address, value: value)
+            write(address, value, size: size)
         case let .d16PC(pc, d):
             let address = UInt32(Int64(pc) + Int64(d))
 
-            write16(address, value: value)
+            write(address, value, size: size)
         case .d8PCXn(_, _, _, _):
             fatalError("d8PCXn not implemented")
         case .imm(_):
@@ -678,6 +717,14 @@ public struct CPU {
         case .b: return UInt32(read8(address))
         case .w: return UInt32(read16(address))
         case .l: return read32(address)
+        }
+    }
+    
+    func write(_ address: UInt32, _ value: UInt32, size: Size) {
+        switch size {
+        case .b: write8(address, value: UInt8(truncatingIfNeeded: value))
+        case .w: write16(address, value: UInt16(truncatingIfNeeded: value))
+        case .l: write32(address, value: value)
         }
     }
     
