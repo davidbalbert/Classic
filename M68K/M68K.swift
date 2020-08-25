@@ -616,6 +616,19 @@ public struct StatusRegister: OptionSet, Hashable {
 
 
 // overflow
+private func vadd(_ s: UInt8, _ d: UInt8, _ r: UInt8) -> Bool {
+    return ((s^r) & (d^r)) >> 7 == 1
+}
+
+private func vadd(_ s: UInt16, _ d: UInt16, _ r: UInt16) -> Bool {
+    return ((s^r) & (d^r)) >> 15 == 1
+}
+
+private func vadd(_ s: UInt32, _ d: UInt32, _ r: UInt32) -> Bool {
+    return ((s^r) & (d^r)) >> 31 == 1
+}
+
+
 private func vsub(_ s: UInt8, _ d: UInt8, _ r: UInt8) -> Bool {
     return ((s^d) & (r^d)) >> 7 == 1
 }
@@ -628,8 +641,95 @@ private func vsub(_ s: UInt32, _ d: UInt32, _ r: UInt32) -> Bool {
     return ((s^d) & (r^d)) >> 31 == 1
 }
 
-
 private enum Handlers {
+    static func addb(_ cpu: inout CPU, _ op: Operation) {
+        guard case let .add(.b, direction, address, Dn) = op else {
+            fatalError("unexpected operation")
+        }
+        
+        let v1 = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .b))
+        let v2 = UInt8(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+        
+        let res = v1 &+ v2
+        
+        switch direction {
+        case .mToR:
+            cpu[keyPath: Dn.keyPath] = UInt32(res)
+        case .rToM:
+            cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .b)
+        }
+        
+        var cc = StatusRegister()
+        
+        let overflow = vadd(v1, v2, res)
+        
+        if res >= 0x80          { cc.insert(.n) }
+        if res == 0             { cc.insert(.z) }
+        if overflow             { cc.insert(.v) }
+        if res < v1             { cc.insert(.c); cc.insert(.x) }
+        
+        cpu.ccr = cc
+    }
+    
+    static func addw(_ cpu: inout CPU, _ op: Operation) {
+        guard case let .add(.w, direction, address, Dn) = op else {
+            fatalError("unexpected operation")
+        }
+        
+        let v1 = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
+        let v2 = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+        
+        let res = v1 &+ v2
+        
+        switch direction {
+        case .mToR:
+            cpu[keyPath: Dn.keyPath] = UInt32(res)
+        case .rToM:
+            cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .w)
+        }
+        
+        var cc = StatusRegister()
+        
+        let overflow = vadd(v1, v2, res)
+        
+        if res >= 0x8000        { cc.insert(.n) }
+        if res == 0             { cc.insert(.z) }
+        if overflow             { cc.insert(.v) }
+        if res < v1             { cc.insert(.c); cc.insert(.x) }
+        
+        cpu.ccr = cc
+    }
+
+    static func addl(_ cpu: inout CPU, _ op: Operation) {
+        guard case let .add(.w, direction, address, Dn) = op else {
+            fatalError("unexpected operation")
+        }
+        
+        let v1 = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
+        let v2 = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+        
+        let res = v1 &+ v2
+        
+        switch direction {
+        case .mToR:
+            cpu[keyPath: Dn.keyPath] = UInt32(res)
+        case .rToM:
+            cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .w)
+        }
+        
+        var cc = StatusRegister()
+        
+        let overflow = vadd(v1, v2, res)
+        
+        if res >= 0x8000        { cc.insert(.n) }
+        if res == 0             { cc.insert(.z) }
+        if overflow             { cc.insert(.v) }
+        if res < v1             { cc.insert(.c); cc.insert(.x) }
+        
+        cpu.ccr = cc
+    }
+
+
     static func andb(_ cpu: inout CPU, _ op: Operation) {
         guard case let .and(.b, direction, address, Dn) = op else {
             fatalError("unexpected operation")
@@ -902,6 +1002,14 @@ typealias InstructionHandler = (inout CPU, Operation) -> Void
 extension Operation {
     var handler: InstructionHandler? {
         switch self {
+        case .add(.b, _, _, _):
+//            return H.addb
+            return nil
+        case .add(.w, _, _, _):
+            return H.addw
+        case .add(.l, _, _, _):
+//            return H.addl
+            return nil
         case .and(.b, _, _, _):
             return H.andb
         case .and(.w, _, _, _):

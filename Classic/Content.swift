@@ -73,7 +73,7 @@ class Content: NSObject {
                 attributes[.backgroundColor] = NSColor.red
             } else if !(machine?.cpu.implements(insn) ?? true) {
                 s += String(describing: insn)
-                attributes[.backgroundColor] = NSColor.yellow
+                attributes[.backgroundColor] = NSColor.orange
             } else {
                 s += String(describing: insn)
             }
