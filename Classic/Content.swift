@@ -71,6 +71,9 @@ class Content: NSObject {
             } else if insn.isUnknown {
                 s += String(describing: insn)
                 attributes[.backgroundColor] = NSColor.red
+            } else if !(machine?.cpu.implements(insn) ?? true) {
+                s += String(describing: insn)
+                attributes[.backgroundColor] = NSColor.yellow
             } else {
                 s += String(describing: insn)
             }
