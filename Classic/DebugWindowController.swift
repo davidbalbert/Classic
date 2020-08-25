@@ -7,12 +7,31 @@
 //
 
 import Cocoa
+import Combine
+
 import M68K
 
 class DebugWindowController: NSWindowController {
     @IBOutlet var toolbar: NSToolbar!
+    @IBOutlet var stepButton: NSButton!
     
-    var machine: MacPlus?
+    var canceller: AnyCancellable?
+
+    var machine: MacPlus? {
+        didSet {
+            guard let machine = machine else {
+                return
+            }
+            
+            canceller?.cancel()
+            
+            canceller = machine.$cpu.sink { [weak self] cpu in
+                let insn = cpu.fetchNextInstruction()
+                
+                self?.stepButton.isEnabled = cpu.implements(insn)
+            }
+        }
+    }
     
     override func windowDidLoad() {
         super.windowDidLoad()

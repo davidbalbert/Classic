@@ -396,7 +396,7 @@ public struct CPU {
         insn.op.handler != nil
     }
     
-    func fetchNextInstruction() -> Instruction {
+    public func fetchNextInstruction() -> Instruction {
         disassembler.instruction(at: pc, storage: bus!)
     }
     
