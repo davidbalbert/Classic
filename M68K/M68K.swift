@@ -563,6 +563,51 @@ public struct CPU {
 
                 cpu.ccr = cc
             }
+        case let .andi(.b, data, destination):
+            return { cpu in
+                let current = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
+                let data = UInt8(truncatingIfNeeded: data)
+                let res = current & data
+                
+                cpu.writeEffectiveAddress(destination, value: UInt32(truncatingIfNeeded: res), size: .b)
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                if res >= 0x80 { cc.insert(.n) }
+                if res == 0    { cc.insert(.z) }
+                
+                cpu.ccr = cc
+            }
+        case let .andi(.w, data, destination):
+            return { cpu in
+                let current = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .w))
+                let data = UInt16(truncatingIfNeeded: data)
+                let res = current & data
+                
+                cpu.writeEffectiveAddress(destination, value: UInt32(truncatingIfNeeded: res), size: .w)
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                if res >= 0x8000 { cc.insert(.n) }
+                if res == 0      { cc.insert(.z) }
+                
+                cpu.ccr = cc
+            }
+        case let .andi(.l, data, destination):
+            return { cpu in
+                let current = cpu.readEffectiveAddress(destination, size: .l)
+                let data = UInt32(bitPattern: data)
+                let res = current & data
+                
+                cpu.writeEffectiveAddress(destination, value: res, size: .l)
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                if res >= 0x8000_0000 { cc.insert(.n) }
+                if res == 0           { cc.insert(.z) }
+                
+                cpu.ccr = cc
+            }
         case let .bra(_, pc, displacement):
             return { cpu in
                 cpu.pc = UInt32(Int64(pc) + Int64(displacement))
@@ -909,16 +954,23 @@ public struct CPU {
     mutating func writeEffectiveAddress(_ effectiveAddress: EffectiveAddress, value: UInt32, size: Size) {
         switch effectiveAddress {
         case let .dd(Dn):
-            let mask: UInt32
+            let existingMask: UInt32
+            let newMask: UInt32
             switch size {
-            case .b: mask = 0xffffff00
-            case .w: mask = 0xffff0000
-            case .l: mask = 0x00000000
+            case .b:
+                existingMask = 0xffffff00
+                newMask      = 0x000000ff
+            case .w:
+                existingMask = 0xffff0000
+                newMask      = 0x0000ffff
+            case .l:
+                existingMask = 0x00000000
+                newMask      = 0xffffffff
             }
             
-            let existing = self[keyPath: Dn.keyPath] & mask
+            let existing = self[keyPath: Dn.keyPath]
             
-            self[keyPath: Dn.keyPath] = existing | value
+            self[keyPath: Dn.keyPath] = (existing & existingMask) | (value & newMask)
         case let .ad(An):
             self[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: value)
         case let .ind(An):
