@@ -634,6 +634,42 @@ public struct CPU {
                 
                 cpu[keyPath: An.keyPath] = value
             }
+        case let .move(.b, source, destination):
+            return { cpu in
+                let data = cpu.readEffectiveAddress(source, size: .b)
+                cpu.writeEffectiveAddress(destination, value: data, size: .b)
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                if data >= 0x80 { cc.insert(.n) }
+                if data == 0    { cc.insert(.z) }
+
+                cpu.ccr = cc
+            }
+        case let .move(.w, source, destination):
+            return { cpu in
+                let data = cpu.readEffectiveAddress(source, size: .w)
+                cpu.writeEffectiveAddress(destination, value: data, size: .w)
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                if data >= 0x8000 { cc.insert(.n) }
+                if data == 0      { cc.insert(.z) }
+
+                cpu.ccr = cc
+            }
+        case let .move(.l, source, destination):
+            return { cpu in
+                let data = cpu.readEffectiveAddress(source, size: .l)
+                cpu.writeEffectiveAddress(destination, value: data, size: .l)
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                if data >= 0x8000_0000 { cc.insert(.n) }
+                if data == 0           { cc.insert(.z) }
+
+                cpu.ccr = cc
+            }
         case let .movem(size, .mToR, address, registers):
             return { cpu in
                 let inc = Size(size).byteCount
@@ -856,7 +892,7 @@ public struct CPU {
         case .d8PCXn(_, _, _, _):
             fatalError("d8PCXn not implemented yet")
         case let .imm(value):
-            return UInt32(value)
+            return UInt32(truncatingIfNeeded: value)
         }
     }
     
