@@ -761,6 +761,72 @@ public struct CPU {
                 let current = cpu.sr.rawValue
                 cpu.sr = StatusRegister(rawValue: value | current)
             }
+        case let .ror(.b, .imm(count), Dn):
+            return { cpu in
+                var v = UInt8(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                
+                // starting carry at 0 clears the carry bit if count == 0
+                var carry: UInt8 = 0
+                
+                for _ in 0..<count {
+                    carry = v & 1
+                    v >>= 1
+                }
+                
+                cpu.writeEffectiveAddress(.dd(Dn), value: UInt32(truncatingIfNeeded: v), size: .b)
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                if v >= 0x80     { cc.insert(.n) }
+                if v == 0        { cc.insert(.z) }
+                if carry == 1    { cc.insert(.c) }
+                
+                cpu.ccr = cc
+            }
+        case let .ror(.w, .imm(count), Dn):
+            return { cpu in
+                var v = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                
+                // starting carry at 0 clears the carry bit if count == 0
+                var carry: UInt16 = 0
+                
+                for _ in 0..<count {
+                    carry = v & 1
+                    v >>= 1
+                }
+                
+                cpu.writeEffectiveAddress(.dd(Dn), value: UInt32(truncatingIfNeeded: v), size: .b)
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                if v >= 0x8000   { cc.insert(.n) }
+                if v == 0        { cc.insert(.z) }
+                if carry == 1    { cc.insert(.c) }
+                
+                cpu.ccr = cc
+            }
+        case let .ror(.l, .imm(count), Dn):
+            return { cpu in
+                var v = cpu[keyPath: Dn.keyPath]
+                
+                // starting carry at 0 clears the carry bit if count == 0
+                var carry: UInt32 = 0
+                
+                for _ in 0..<count {
+                    carry = v & 1
+                    v >>= 1
+                }
+                
+                cpu.writeEffectiveAddress(.dd(Dn), value: UInt32(truncatingIfNeeded: v), size: .b)
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                if v >= 0x8000_0000   { cc.insert(.n) }
+                if v == 0             { cc.insert(.z) }
+                if carry == 1         { cc.insert(.c) }
+                
+                cpu.ccr = cc
+            }
         case let .suba(.w, sourceAddress, An):
             return { cpu in
                 let destination = UInt16(truncatingIfNeeded: cpu[keyPath: An.keyPath])
