@@ -706,6 +706,16 @@ public struct CPU {
                 
                 cpu.sr = StatusRegister(rawValue: value)
             }
+        case let .oriToSR(value):
+            return { cpu in
+                if !cpu.inSupervisorMode {
+                    fatalError("moveToSR but not supervisor, should trap here")
+                }
+
+                let value = UInt16(truncatingIfNeeded: value)
+                let current = cpu.sr.rawValue
+                cpu.sr = StatusRegister(rawValue: value | current)
+            }
         case let .suba(.w, sourceAddress, An):
             return { cpu in
                 let destination = UInt16(truncatingIfNeeded: cpu[keyPath: An.keyPath])
