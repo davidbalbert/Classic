@@ -489,7 +489,7 @@ enum Operation: Equatable {
     case rts
     case scc(Condition, EffectiveAddress)
     case sub(Size, Direction, EffectiveAddress, DataRegister)
-    case suba(Size, EffectiveAddress, AddressRegister)
+    case suba(SizeWL, EffectiveAddress, AddressRegister)
     case subi(Size, Int32, EffectiveAddress)
     case subq(Size, UInt8, EffectiveAddress)
     case cmp(Size, EffectiveAddress, DataRegister)
@@ -1483,7 +1483,7 @@ public struct Disassembler {
             }
             
             let opmode = (instructionWord >> 6) & 7
-            let size: Size
+            let size: SizeWL
             if opmode == 7 {
                 size = .l
             } else if opmode == 3 {
@@ -1493,7 +1493,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(state, eaMode, Int(eaReg), size: size) else {
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: Size(size)) else {
                 op = .unknown(instructionWord)
                 break
             }

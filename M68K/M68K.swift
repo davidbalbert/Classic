@@ -670,6 +670,22 @@ public struct CPU {
                 
                 cpu.sr = StatusRegister(rawValue: value)
             }
+        case let .suba(.w, sourceAddress, An):
+            return { cpu in
+                let destination = UInt16(truncatingIfNeeded: cpu[keyPath: An.keyPath])
+                let source = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(sourceAddress, size: .w))
+                let res = destination &- source
+                
+                cpu[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: res)
+            }
+        case let .suba(.l, sourceAddress, An):
+            return { cpu in
+                let destination = cpu[keyPath: An.keyPath]
+                let source = cpu.readEffectiveAddress(sourceAddress, size: .l)
+                let res = destination &- source
+                
+                cpu[keyPath: An.keyPath] = res
+            }
         case let .subq(.b, data, destination):
             return { cpu in
                 let v = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
