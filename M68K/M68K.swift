@@ -284,6 +284,35 @@ class ROM: AddressableDevice {
     func write32(_ address: UInt32, value: UInt32) {}
 }
 
+
+// overflow
+private func vadd(_ s: UInt8, _ d: UInt8, _ r: UInt8) -> Bool {
+    return ((s^r) & (d^r)) >> 7 == 1
+}
+
+private func vadd(_ s: UInt16, _ d: UInt16, _ r: UInt16) -> Bool {
+    return ((s^r) & (d^r)) >> 15 == 1
+}
+
+private func vadd(_ s: UInt32, _ d: UInt32, _ r: UInt32) -> Bool {
+    return ((s^r) & (d^r)) >> 31 == 1
+}
+
+
+private func vsub(_ s: UInt8, _ d: UInt8, _ r: UInt8) -> Bool {
+    return ((s^d) & (r^d)) >> 7 == 1
+}
+
+private func vsub(_ s: UInt16, _ d: UInt16, _ r: UInt16) -> Bool {
+    return ((s^d) & (r^d)) >> 15 == 1
+}
+
+private func vsub(_ s: UInt32, _ d: UInt32, _ r: UInt32) -> Bool {
+    return ((s^d) & (r^d)) >> 31 == 1
+}
+
+typealias InstructionHandler = (inout CPU) -> Void
+
 public struct CPU {
     public var pc: UInt32
     public var sr: StatusRegister
@@ -387,13 +416,296 @@ public struct CPU {
     mutating func execute(_ op: Operation, length: Int) {
         pc += UInt32(length)
         
-        guard let handler = op.handler else { return }
+        guard let handler = handler(for: op) else { return }
         
-        handler(&self, op)
+        handler(&self)
     }
     
     public func implements(_ insn: Instruction) -> Bool {
-        insn.op.handler != nil
+        handler(for: insn.op) != nil
+    }
+    
+    func handler(for op: Operation) -> InstructionHandler? {
+        switch op {
+        case let .add(.b, direction, address, Dn):
+            return { cpu in
+                let v1 = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .b))
+                let v2 = UInt8(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                
+                let res = v1 &+ v2
+                
+                switch direction {
+                case .mToR:
+                    cpu[keyPath: Dn.keyPath] = UInt32(res)
+                case .rToM:
+                    cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .b)
+                }
+                
+                var cc = StatusRegister()
+                
+                let overflow = vadd(v1, v2, res)
+                
+                if res >= 0x80          { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if res < v1             { cc.insert(.c); cc.insert(.x) }
+                
+                cpu.ccr = cc
+            }
+        case let .add(.w, direction, address, Dn):
+            return { cpu in
+                let v1 = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
+                let v2 = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                
+                let res = v1 &+ v2
+                
+                switch direction {
+                case .mToR:
+                    cpu[keyPath: Dn.keyPath] = UInt32(res)
+                case .rToM:
+                    cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .w)
+                }
+                
+                var cc = StatusRegister()
+                
+                let overflow = vadd(v1, v2, res)
+                
+                if res >= 0x8000        { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if res < v1             { cc.insert(.c); cc.insert(.x) }
+                
+                cpu.ccr = cc
+            }
+        case let .add(.l, direction, address, Dn):
+            return { cpu in
+                let v1 = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
+                let v2 = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                
+                let res = v1 &+ v2
+                
+                switch direction {
+                case .mToR:
+                    cpu[keyPath: Dn.keyPath] = UInt32(res)
+                case .rToM:
+                    cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .w)
+                }
+                
+                var cc = StatusRegister()
+                
+                let overflow = vadd(v1, v2, res)
+                
+                if res >= 0x8000        { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if res < v1             { cc.insert(.c); cc.insert(.x) }
+                
+                cpu.ccr = cc
+            }
+        case let .and(.b, direction, address, Dn):
+            return { cpu in
+                let v1 = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .b))
+                let v2 = UInt8(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                
+                let res = v1 & v2
+                
+                if direction == .mToR {
+                    cpu[keyPath: Dn.keyPath] = UInt32(res)
+                } else {
+                    cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .b)
+                }
+                
+                var cc = cpu.ccr.intersection(.x)
+
+                if res >= 0x80 { cc.insert(.n) }
+                if res == 0    { cc.insert(.z) }
+
+                cpu.ccr = cc
+
+            }
+        case let .and(.w, direction, address, Dn):
+            return { cpu in
+                let v1 = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
+                let v2 = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                
+                let res = v1 & v2
+                
+                if direction == .mToR {
+                    cpu[keyPath: Dn.keyPath] = UInt32(res)
+                } else {
+                    cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .w)
+                }
+                
+                var cc = cpu.ccr.intersection(.x)
+
+                if res >= 0x8000 { cc.insert(.n) }
+                if res == 0      { cc.insert(.z) }
+
+                cpu.ccr = cc
+            }
+        case let .and(.l, direction, address, Dn):
+            return { cpu in
+                let v1 = cpu.readEffectiveAddress(address, size: .l)
+                let v2 = cpu[keyPath: Dn.keyPath]
+                
+                let res = v1 & v2
+                
+                if direction == .mToR {
+                    cpu[keyPath: Dn.keyPath] = UInt32(res)
+                } else {
+                    cpu.writeEffectiveAddress(address, value: res, size: .l)
+                }
+                
+                var cc = cpu.ccr.intersection(.x)
+
+                if res >= 0x80000000 { cc.insert(.n) }
+                if res == 0          { cc.insert(.z) }
+
+                cpu.ccr = cc
+            }
+        case let .bra(_, pc, displacement):
+            return { cpu in
+                cpu.pc = UInt32(Int64(pc) + Int64(displacement))
+            }
+        case let .bcc(_, condition, pc, displacement):
+            return { cpu in
+                if cpu.conditionIsSatisfied(condition) {
+                    cpu.pc = UInt32(Int64(pc) + Int64(displacement))
+                }
+            }
+        case let .cmpi(.b, source, destination):
+            return { cpu in
+                let destination = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
+                let source = UInt8(truncatingIfNeeded: source)
+                let res = destination &- source
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                let overflow = vsub(source, destination, res)
+                            
+                if res >= 0x80          { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if source > destination { cc.insert(.c) }
+                
+                cpu.ccr = cc
+            }
+        case let .cmpi(.w, source, destination):
+            return { cpu in
+                let destination = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .w))
+                let source = UInt16(truncatingIfNeeded: source)
+                let res = destination &- source
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                let overflow = vsub(source, destination, res)
+                            
+                if res >= 0x8000        { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if source > destination { cc.insert(.c) }
+                
+                cpu.ccr = cc
+            }
+        case let .cmpi(.l, source, destination):
+            return { cpu in
+                let destination = cpu.readEffectiveAddress(destination, size: .l)
+                let source = UInt32(bitPattern: source)
+                let res = destination &- source
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                let overflow = vsub(source, destination, res)
+                            
+                if res >= 0x80000000    { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if source > destination { cc.insert(.c) }
+                
+                cpu.ccr = cc
+            }
+        case let .jmp(address):
+            return { cpu in
+                cpu.pc = cpu.loadEffectiveAddress(address)!
+            }
+        case let .lea(address, An):
+            return { cpu in
+                let value = cpu.loadEffectiveAddress(address)!
+                
+                cpu[keyPath: An.keyPath] = value
+            }
+        case let .movem(size, .mToR, address, registers):
+            return { cpu in
+                let inc = Size(size).byteCount
+
+                switch address {
+                case let .XXXl(addr):
+                    var a = addr
+                    for path in registers.keyPaths {
+                        cpu[keyPath: path] = cpu.read32(a)
+                        a += inc
+                    }
+                default:
+                    fatalError("movem: unsupported address type")
+                }
+            }
+        case let .moveq(data, Dn):
+            return { cpu in
+                cpu[keyPath: Dn.keyPath] = UInt32(truncatingIfNeeded: data)
+                
+                var cc = cpu.ccr.intersection(.x)
+
+                if data < 0             { cc.insert(.n) }
+                if data == 0            { cc.insert(.z) }
+
+                cpu.ccr = cc
+            }
+        case let .moveToSR(address):
+            return { cpu in
+                if !cpu.inSupervisorMode {
+                    fatalError("moveToSR but not supervisor, should trap here")
+                }
+                    
+                let value = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
+                
+                cpu.sr = StatusRegister(rawValue: value)
+            }
+        case let .tst(.b, destination):
+            return { cpu in
+                let destination = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
+                
+                var cc = cpu.ccr.intersection(.x)
+
+                if destination > 0x80   { cc.insert(.n) }
+                if destination == 0     { cc.insert(.z) }
+
+                cpu.ccr = cc
+            }
+        case let .tst(.w, destination):
+            return { cpu in
+                let destination = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
+                
+                var cc = cpu.ccr.intersection(.x)
+
+                if destination > 0x8000 { cc.insert(.n) }
+                if destination == 0     { cc.insert(.z) }
+
+                cpu.ccr = cc
+            }
+        case let .tst(.l, destination):
+            return { cpu in
+                let destination = cpu.readEffectiveAddress(destination, size: .b)
+                
+                var cc = cpu.ccr.intersection(.x)
+
+                if destination > 0x80000000 { cc.insert(.n) }
+                if destination == 0         { cc.insert(.z) }
+
+                cpu.ccr = cc
+            }
+        default:
+            return nil
+        }
     }
     
     public func fetchNextInstruction() -> Instruction {
@@ -612,438 +924,4 @@ public struct StatusRegister: OptionSet, Hashable {
     // stack selection
     public static let stackSelectionMask: StatusRegister = s
     public static let isp: StatusRegister = s
-}
-
-
-// overflow
-private func vadd(_ s: UInt8, _ d: UInt8, _ r: UInt8) -> Bool {
-    return ((s^r) & (d^r)) >> 7 == 1
-}
-
-private func vadd(_ s: UInt16, _ d: UInt16, _ r: UInt16) -> Bool {
-    return ((s^r) & (d^r)) >> 15 == 1
-}
-
-private func vadd(_ s: UInt32, _ d: UInt32, _ r: UInt32) -> Bool {
-    return ((s^r) & (d^r)) >> 31 == 1
-}
-
-
-private func vsub(_ s: UInt8, _ d: UInt8, _ r: UInt8) -> Bool {
-    return ((s^d) & (r^d)) >> 7 == 1
-}
-
-private func vsub(_ s: UInt16, _ d: UInt16, _ r: UInt16) -> Bool {
-    return ((s^d) & (r^d)) >> 15 == 1
-}
-
-private func vsub(_ s: UInt32, _ d: UInt32, _ r: UInt32) -> Bool {
-    return ((s^d) & (r^d)) >> 31 == 1
-}
-
-private enum Handlers {
-    static func addb(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .add(.b, direction, address, Dn) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        let v1 = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .b))
-        let v2 = UInt8(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
-        
-        let res = v1 &+ v2
-        
-        switch direction {
-        case .mToR:
-            cpu[keyPath: Dn.keyPath] = UInt32(res)
-        case .rToM:
-            cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .b)
-        }
-        
-        var cc = StatusRegister()
-        
-        let overflow = vadd(v1, v2, res)
-        
-        if res >= 0x80          { cc.insert(.n) }
-        if res == 0             { cc.insert(.z) }
-        if overflow             { cc.insert(.v) }
-        if res < v1             { cc.insert(.c); cc.insert(.x) }
-        
-        cpu.ccr = cc
-    }
-    
-    static func addw(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .add(.w, direction, address, Dn) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        let v1 = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
-        let v2 = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
-        
-        let res = v1 &+ v2
-        
-        switch direction {
-        case .mToR:
-            cpu[keyPath: Dn.keyPath] = UInt32(res)
-        case .rToM:
-            cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .w)
-        }
-        
-        var cc = StatusRegister()
-        
-        let overflow = vadd(v1, v2, res)
-        
-        if res >= 0x8000        { cc.insert(.n) }
-        if res == 0             { cc.insert(.z) }
-        if overflow             { cc.insert(.v) }
-        if res < v1             { cc.insert(.c); cc.insert(.x) }
-        
-        cpu.ccr = cc
-    }
-
-    static func addl(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .add(.w, direction, address, Dn) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        let v1 = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
-        let v2 = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
-        
-        let res = v1 &+ v2
-        
-        switch direction {
-        case .mToR:
-            cpu[keyPath: Dn.keyPath] = UInt32(res)
-        case .rToM:
-            cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .w)
-        }
-        
-        var cc = StatusRegister()
-        
-        let overflow = vadd(v1, v2, res)
-        
-        if res >= 0x8000        { cc.insert(.n) }
-        if res == 0             { cc.insert(.z) }
-        if overflow             { cc.insert(.v) }
-        if res < v1             { cc.insert(.c); cc.insert(.x) }
-        
-        cpu.ccr = cc
-    }
-
-
-    static func andb(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .and(.b, direction, address, Dn) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        let v1 = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .b))
-        let v2 = UInt8(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
-        
-        let res = v1 & v2
-        
-        if direction == .mToR {
-            cpu[keyPath: Dn.keyPath] = UInt32(res)
-        } else {
-            cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .b)
-        }
-        
-        var cc = cpu.ccr.intersection(.x)
-
-        if res >= 0x80 { cc.insert(.n) }
-        if res == 0    { cc.insert(.z) }
-
-        cpu.ccr = cc
-    }
-
-    static func andw(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .and(.w, direction, address, Dn) = op else {
-            fatalError("unexpected operation")
-        }
-
-        let v1 = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
-        let v2 = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
-        
-        let res = v1 & v2
-        
-        if direction == .mToR {
-            cpu[keyPath: Dn.keyPath] = UInt32(res)
-        } else {
-            cpu.writeEffectiveAddress(address, value: UInt32(truncatingIfNeeded: res), size: .w)
-        }
-        
-        var cc = cpu.ccr.intersection(.x)
-
-        if res >= 0x8000 { cc.insert(.n) }
-        if res == 0      { cc.insert(.z) }
-
-        cpu.ccr = cc
-    }
-
-    static func andl(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .and(.l, direction, address, Dn) = op else {
-            fatalError("unexpected operation")
-        }
-
-        let v1 = cpu.readEffectiveAddress(address, size: .l)
-        let v2 = cpu[keyPath: Dn.keyPath]
-        
-        let res = v1 & v2
-        
-        if direction == .mToR {
-            cpu[keyPath: Dn.keyPath] = UInt32(res)
-        } else {
-            cpu.writeEffectiveAddress(address, value: res, size: .l)
-        }
-        
-        var cc = cpu.ccr.intersection(.x)
-
-        if res >= 0x80000000 { cc.insert(.n) }
-        if res == 0          { cc.insert(.z) }
-
-        cpu.ccr = cc
-    }
-
-    static func bra(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .bra(_, pc, displacement) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        cpu.pc = UInt32(Int64(pc) + Int64(displacement))
-    }
-
-    static func bcc(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .bcc(_, condition, pc, displacement) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        if cpu.conditionIsSatisfied(condition) {
-            cpu.pc = UInt32(Int64(pc) + Int64(displacement))
-        }
-    }
-    
-    static func cmpib(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .cmpi(.b, source, destination) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        let d = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
-        let s = UInt8(truncatingIfNeeded: source)
-        let res = d &- s
-        
-        var cc = cpu.ccr.intersection(.x)
-        
-        let overflow = vsub(s, d, res)
-                    
-        if res >= 0x80          { cc.insert(.n) }
-        if res == 0             { cc.insert(.z) }
-        if overflow             { cc.insert(.v) }
-        if s > d                { cc.insert(.c) }
-        
-        cpu.ccr = cc
-    }
-    
-    static func cmpiw(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .cmpi(.w, source, destination) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        let d = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .w))
-        let s = UInt16(truncatingIfNeeded: source)
-        let res = d &- s
-        
-        var cc = cpu.ccr.intersection(.x)
-        
-        let overflow = vsub(s, d, res)
-                    
-        if res >= 0x8000        { cc.insert(.n) }
-        if res == 0             { cc.insert(.z) }
-        if overflow             { cc.insert(.v) }
-        if s > d                { cc.insert(.c) }
-        
-        cpu.ccr = cc
-    }
-
-    static func cmpil(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .cmpi(.l, source, destination) = op else {
-            fatalError("unexpected operation")
-        }
-
-        let d = cpu.readEffectiveAddress(destination, size: .l)
-        let s = UInt32(bitPattern: source)
-        let res = d &- s
-        
-        var cc = cpu.ccr.intersection(.x)
-        
-        let overflow = vsub(s, d, res)
-                    
-        if res >= 0x80000000    { cc.insert(.n) }
-        if res == 0             { cc.insert(.z) }
-        if overflow             { cc.insert(.v) }
-        if s > d                { cc.insert(.c) }
-        
-        cpu.ccr = cc
-    }
-    
-    static func jmp(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .jmp(address) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        cpu.pc = cpu.loadEffectiveAddress(address)!
-    }
-    
-    static func lea(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .lea(address, An) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        let value = cpu.loadEffectiveAddress(address)!
-        
-        cpu[keyPath: An.keyPath] = value
-    }
-    
-    static func movemMToR(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .movem(size, .mToR, address, registers) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        let inc = Size(size).byteCount
-
-        switch address {
-        case let .XXXl(addr):
-            var a = addr
-            for path in registers.keyPaths {
-                cpu[keyPath: path] = cpu.read32(a)
-                a += inc
-            }
-        default:
-            fatalError("movem: unsupported address type")
-        }
-    }
-    
-    static func moveq(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .moveq(data, Dn) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        cpu[keyPath: Dn.keyPath] = UInt32(truncatingIfNeeded: data)
-        
-        var cc = cpu.ccr.intersection(.x)
-
-        if data < 0             { cc.insert(.n) }
-        if data == 0            { cc.insert(.z) }
-
-        cpu.ccr = cc
-    }
-    
-    static func moveToSR(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .moveToSR(address) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        if !cpu.inSupervisorMode {
-            fatalError("moveToSR but not supervisor, should trap here")
-        }
-            
-        let value = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(address, size: .w))
-        
-        cpu.sr = StatusRegister(rawValue: value)
-    }
-    
-    static func tstb(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .tst(.b, destination) = op else {
-            fatalError("unexpected operation")
-        }
-        
-        let d = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
-        
-        var cc = cpu.ccr.intersection(.x)
-
-        if d > 0x80   { cc.insert(.n) }
-        if d == 0     { cc.insert(.z) }
-
-        cpu.ccr = cc
-    }
-    
-    static func tstw(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .tst(.w, destination) = op else {
-            fatalError("unexpected operation")
-        }
-
-        let d = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
-        
-        var cc = cpu.ccr.intersection(.x)
-
-        if d > 0x8000 { cc.insert(.n) }
-        if d == 0     { cc.insert(.z) }
-
-        cpu.ccr = cc
-    }
-    
-    static func tstl(_ cpu: inout CPU, _ op: Operation) {
-        guard case let .tst(.l, destination) = op else {
-            fatalError("unexpected operation")
-        }
-
-        let d = cpu.readEffectiveAddress(destination, size: .b)
-        
-        var cc = cpu.ccr.intersection(.x)
-
-        if d > 0x80000000 { cc.insert(.n) }
-        if d == 0         { cc.insert(.z) }
-
-        cpu.ccr = cc
-    }
-}
-
-private typealias H = Handlers
-
-typealias InstructionHandler = (inout CPU, Operation) -> Void
-
-extension Operation {
-    var handler: InstructionHandler? {
-        switch self {
-        case .add(.b, _, _, _):
-//            return H.addb
-            return nil
-        case .add(.w, _, _, _):
-            return H.addw
-        case .add(.l, _, _, _):
-//            return H.addl
-            return nil
-        case .and(.b, _, _, _):
-            return H.andb
-        case .and(.w, _, _, _):
-            return H.andw
-        case .and(.l, _, _, _):
-            return H.andl
-        case .bra(_, _, _):
-            return H.bra
-        case .bcc(_, _, _, _):
-            return H.bcc
-        case .cmpi(.b, _, _):
-            return H.cmpib
-        case .cmpi(.w, _, _):
-            return H.cmpiw
-        case .cmpi(.l, _, _):
-            return H.cmpil
-        case .jmp(_):
-            return H.jmp
-        case .lea(_, _):
-            return H.lea
-        case .movem(_, .mToR, _, _):
-            return H.movemMToR
-        case .moveq(_, _):
-            return H.moveq
-        case .moveToSR(_):
-            return H.moveToSR
-        case .tst(.b, _):
-            return H.tstb
-        case .tst(.w, _):
-            return H.tstw
-        case .tst(.l, _):
-            return H.tstl
-        default:
-            return nil
-        }
-    }
 }
