@@ -292,4 +292,15 @@ class RegisterViewController: NSViewController, NSOutlineViewDelegate, NSOutline
         
         return view
     }
+    
+    @objc func copy(_ sender: Any) {
+        guard outlineView.selectedRow != -1, let item = outlineView.item(atRow: outlineView.selectedRow) as AnyObject as? NameValueConvertible else {
+            return
+        }
+        
+        let pboard = NSPasteboard.general
+        
+        pboard.clearContents()
+        pboard.setString(item.valueDescription, forType: .string)
+    }
 }
