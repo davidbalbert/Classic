@@ -725,6 +725,20 @@ public struct CPU {
                 
                 cpu.ccr = cc
             }
+        case let .dbcc(condition, Dn, pc, displacement):
+            return { cpu in
+                if cpu.conditionIsSatisfied(condition) {
+                    return
+                }
+                
+                var count = cpu[keyPath: Dn.keyPath]
+                count = count &- 1
+                cpu[keyPath: Dn.keyPath] = count
+                
+                if count != UInt32(bitPattern: -1) {
+                    cpu.pc = UInt32(Int64(pc) + Int64(displacement))
+                }
+            }
         case let .jmp(address):
             return { cpu in
                 cpu.pc = cpu.loadEffectiveAddress(address)!
