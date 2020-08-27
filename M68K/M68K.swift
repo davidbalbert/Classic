@@ -635,6 +635,62 @@ public struct CPU {
                 
                 cpu.ccr = cc
             }
+        case let .bset(.imm(n), .dd(Dn)):
+            return { cpu in
+                let bit = UInt32(1 << (n%32))
+                let v = cpu[keyPath: Dn.keyPath]
+                
+                cpu[keyPath: Dn.keyPath] = v | bit
+                
+                var cc = cpu.ccr.intersection([.x, .n, .v, .c])
+                
+                if v & bit == 0 { cc.insert(.z) }
+                
+                cpu.ccr = cc
+            }
+        case let .bset(.imm(n), destination):
+            return { cpu in
+                let bit = 1 << (n%8)
+                let v = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
+                
+                cpu.writeEffectiveAddress(destination, value: UInt32(truncatingIfNeeded: v | bit), size: .b)
+                
+                var cc = cpu.ccr.intersection([.x, .n, .v, .c])
+                
+                if v & bit == 0 { cc.insert(.z) }
+                
+                cpu.ccr = cc
+            }
+        case let .bset(.r(bitNumberRegister), .dd(Dn)):
+            return { cpu in
+                let n = cpu[keyPath: bitNumberRegister.keyPath]
+                
+                let bit = 1 << (n%32)
+                let v = cpu[keyPath: Dn.keyPath]
+                
+                cpu[keyPath: Dn.keyPath] = v | bit
+                
+                var cc = cpu.ccr.intersection([.x, .n, .v, .c])
+                
+                if v & bit == 0 { cc.insert(.z) }
+                
+                cpu.ccr = cc
+            }
+        case let .bset(.r(bitNumberRegister), destination):
+            return { cpu in
+                let n = UInt8(cpu[keyPath: bitNumberRegister.keyPath])
+
+                let bit = 1 << (n%8)
+                let v = UInt8(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .b))
+                
+                cpu.writeEffectiveAddress(destination, value: UInt32(truncatingIfNeeded: v | bit), size: .b)
+                
+                var cc = cpu.ccr.intersection([.x, .n, .v, .c])
+                
+                if v & bit == 0 { cc.insert(.z) }
+                
+                cpu.ccr = cc
+            }
         case let .cmpi(.w, source, destination):
             return { cpu in
                 let destination = UInt16(truncatingIfNeeded: cpu.readEffectiveAddress(destination, size: .w))
