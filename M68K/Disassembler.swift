@@ -197,38 +197,6 @@ enum DataAlterableAddress: Equatable {
     case m(AlterableMemoryAddress)
 }
 
-//enum EffectiveAddress: Equatable, CustomStringConvertible {
-//    case dd(DataRegister)
-//    case ad(AddressRegister)
-//    case ind(AddressRegister)
-//    case postInc(AddressRegister)
-//    case preDec(AddressRegister)
-//    case d16An(Int16, AddressRegister)
-//    case d8AnXn(Int8, AddressRegister, Register, Size)
-//    case XXXw(UInt32)
-//    case XXXl(UInt32)
-//    case d16PC(UInt32, Int16)
-//    case d8PCXn(UInt32, Int8, Register, Size)
-//    case imm(Int32)
-//
-//    var description: String {
-//        switch self {
-//        case let .dd(Dn):             return "\(Dn)"
-//        case let .ad(An):             return "\(An)"
-//        case let .ind(An):            return "(\(An))"
-//        case let .postInc(An):        return "(\(An))+"
-//        case let .preDec(An):         return "-(\(An))"
-//        case let .d16An(d16, An):     return "$\(String(d16, radix: 16))(\(An))"
-//        case let .d8AnXn(d8, An, Xn, size): return "$\(String(d8, radix: 16))(\(An), \(Xn).\(size))"
-//        case let .XXXw(address):      return "($\(String(address, radix: 16)))"
-//        case let .XXXl(address):      return "($\(String(address, radix: 16)))"
-//        case let .d16PC(pc, d16):     return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
-//        case let .d8PCXn(pc, d8, Xn, size): return "$\(String(Int(pc) + Int(d8), radix: 16))(PC, \(Xn).\(size))"
-//        case let .imm(value):         return "#$\(String(value, radix: 16))"
-//        }
-//    }
-//}
-
 struct ExtensionWord {
     let indexRegister: Register
     let indexSize: Size
