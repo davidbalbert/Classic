@@ -134,7 +134,18 @@ enum MemoryAddress: Equatable, CustomStringConvertible {
     case XXXl(UInt32)
     case d16PC(UInt32, Int16)
     case d8PCXn(UInt32, Int8, Register, Size)
-    case imm(Int32)
+    
+    init(_ ea: AlterableMemoryAddress) {
+        switch ea {
+        case let .ind(An):                 self = .ind(An)
+        case let .postInc(An):             self = .postInc(An)
+        case let .preDec(An):              self = .preDec(An)
+        case let .d16An(d, An):            self = .d16An(d, An)
+        case let .d8AnXn(d, An, Xn, size): self = .d8AnXn(d, An, Xn, size)
+        case let .XXXw(address):           self = .XXXw(address)
+        case let .XXXl(address):           self = .XXXl(address)
+        }
+    }
     
     var description: String {
         switch self {
@@ -147,7 +158,6 @@ enum MemoryAddress: Equatable, CustomStringConvertible {
         case let .XXXl(address):      return "($\(String(address, radix: 16)))"
         case let .d16PC(pc, d16):     return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
         case let .d8PCXn(pc, d8, Xn, size): return "$\(String(Int(pc) + Int(d8), radix: 16))(PC, \(Xn).\(size))"
-        case let .imm(value):         return "#$\(String(value, radix: 16))"
         }
     }
 }
@@ -177,11 +187,18 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
     case ad(AddressRegister)
     case m(MemoryAddress)
     
+    // The M68K programmers manual clasifies immediate mode addressing
+    // as part of the "memory" group, but we don't classify it as MemoryAddress
+    // because we want to be able to call address(for:) on MemoryAddress, and
+    // immediate values don't have an address.
+    case imm(Int32)
+    
     var description: String {
         switch self {
         case let .dd(Dn):             return "\(Dn)"
         case let .ad(An):             return "\(An)"
         case let .m(address):         return "\(address)"
+        case let .imm(value):         return "#$\(String(value, radix: 16))"
         }
     }
 }
@@ -512,14 +529,14 @@ enum Operation: Equatable {
     case bcc(Size, Condition, UInt32, Int16)
     case bchg(Size, BitNumber, EffectiveAddress)
     case bclr(BitNumber, EffectiveAddress)
-    case bset(BitNumber, EffectiveAddress)
+    case bset(BitNumber, DataAlterableAddress)
     case btst(BitNumber, EffectiveAddress)
     case dbcc(Condition, DataRegister, UInt32, Int16)
     case eor(Size, DataRegister, EffectiveAddress)
     case ext(Size, DataRegister)
     case extbl(DataRegister)
     case lea(EffectiveAddress, AddressRegister)
-    case move(Size, EffectiveAddress, EffectiveAddress)
+    case move(Size, EffectiveAddress, DataAlterableAddress)
     case movem(SizeWL, Direction, EffectiveAddress, RegisterList)
     case moveq(Int8, DataRegister)
     case moveToSR(EffectiveAddress)
@@ -1415,7 +1432,7 @@ public struct Disassembler {
             }
             
             guard let srcAddr = readAddress(state, srcMode, Int(srcReg), size: size),
-                  let dstAddr = readAddress(state, dstMode, Int(dstReg), size: size) else {
+                  let dstAddr = readDataAlterableAddress(state, dstMode, Int(dstReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1990,7 +2007,14 @@ public struct Disassembler {
             let w = state.readWord()
             
             let bitNumber = UInt8(truncatingIfNeeded: w)
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            
+            let size: Size
+            switch eaMode {
+            case .dd: size = .l
+            default:  size = .b
+            }
+            
+            guard let address = readDataAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2010,7 +2034,13 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            let size: Size
+            switch eaMode {
+            case .dd: size = .l
+            default:  size = .b
+            }
+            
+            guard let address = readDataAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2286,14 +2316,28 @@ public struct Disassembler {
             switch size {
             case .b:
                 let w = state.readWord()
-                return .m(.imm(Int32(Int8(truncatingIfNeeded: w))))
+                return .imm(Int32(Int8(truncatingIfNeeded: w)))
             case .w:
                 let w = state.readWord()
-                return .m(.imm(Int32(Int16(bitPattern: w))))
+                return .imm(Int32(Int16(bitPattern: w)))
             case .l:
                 let l = state.readLong()
-                return .m(.imm(Int32(bitPattern: l)))
+                return .imm(Int32(bitPattern: l))
             }
+        }
+    }
+    
+    func readDataAlterableAddress(_ state: DisassemblyState, _ mode: AddressingMode, _ reg: Int, size: Size) -> DataAlterableAddress? {
+        switch readAddress(state, mode, reg, size: size) {
+        case let .dd(Dn):                      return .dd(Dn)
+        case let .m(.ind(An)):                 return .m(.ind(An))
+        case let .m(.postInc(An)):             return .m(.postInc(An))
+        case let .m(.preDec(An)):              return .m(.preDec(An))
+        case let .m(.d16An(d, An)):            return .m(.d16An(d, An))
+        case let .m(.d8AnXn(d, An, Xn, size)): return .m(.d8AnXn(d, An, Xn, size))
+        case let .m(.XXXw(address)):           return .m(.XXXw(address))
+        case let .m(.XXXl(address)):           return .m(.XXXl(address))
+        default:                               return nil
         }
     }
 
