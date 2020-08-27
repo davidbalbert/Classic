@@ -124,9 +124,7 @@ enum AddressingMode: Int, Equatable {
     }
 }
 
-enum EffectiveAddress: Equatable, CustomStringConvertible {
-    case dd(DataRegister)
-    case ad(AddressRegister)
+enum MemoryAddress: Equatable, CustomStringConvertible {
     case ind(AddressRegister)
     case postInc(AddressRegister)
     case preDec(AddressRegister)
@@ -140,8 +138,6 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
     
     var description: String {
         switch self {
-        case let .dd(Dn):             return "\(Dn)"
-        case let .ad(An):             return "\(An)"
         case let .ind(An):            return "(\(An))"
         case let .postInc(An):        return "(\(An))+"
         case let .preDec(An):         return "-(\(An))"
@@ -155,6 +151,83 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
         }
     }
 }
+
+enum AlterableMemoryAddress: Equatable {
+    case ind(AddressRegister)
+    case postInc(AddressRegister)
+    case preDec(AddressRegister)
+    case d16An(Int16, AddressRegister)
+    case d8AnXn(Int8, AddressRegister, Register, Size)
+    case XXXw(UInt32)
+    case XXXl(UInt32)
+}
+
+enum ControlAddress: Equatable {
+    case ind(AddressRegister)
+    case d16An(Int16, AddressRegister)
+    case d8AnXn(Int8, AddressRegister, Register, Size)
+    case XXXw(UInt32)
+    case XXXl(UInt32)
+    case d16PC(UInt32, Int16)
+    case d8PCXn(UInt32, Int8, Register, Size)
+}
+
+enum EffectiveAddress: Equatable, CustomStringConvertible {
+    case dd(DataRegister)
+    case ad(AddressRegister)
+    case m(MemoryAddress)
+    
+    var description: String {
+        switch self {
+        case let .dd(Dn):             return "\(Dn)"
+        case let .ad(An):             return "\(An)"
+        case let .m(address):         return "\(address)"
+        }
+    }
+}
+
+enum AlterableAddress: Equatable {
+    case dd(DataRegister)
+    case ad(AddressRegister)
+    case m(AlterableMemoryAddress)
+}
+
+enum DataAlterableAddress: Equatable {
+    case dd(DataRegister)
+    case m(AlterableMemoryAddress)
+}
+
+//enum EffectiveAddress: Equatable, CustomStringConvertible {
+//    case dd(DataRegister)
+//    case ad(AddressRegister)
+//    case ind(AddressRegister)
+//    case postInc(AddressRegister)
+//    case preDec(AddressRegister)
+//    case d16An(Int16, AddressRegister)
+//    case d8AnXn(Int8, AddressRegister, Register, Size)
+//    case XXXw(UInt32)
+//    case XXXl(UInt32)
+//    case d16PC(UInt32, Int16)
+//    case d8PCXn(UInt32, Int8, Register, Size)
+//    case imm(Int32)
+//
+//    var description: String {
+//        switch self {
+//        case let .dd(Dn):             return "\(Dn)"
+//        case let .ad(An):             return "\(An)"
+//        case let .ind(An):            return "(\(An))"
+//        case let .postInc(An):        return "(\(An))+"
+//        case let .preDec(An):         return "-(\(An))"
+//        case let .d16An(d16, An):     return "$\(String(d16, radix: 16))(\(An))"
+//        case let .d8AnXn(d8, An, Xn, size): return "$\(String(d8, radix: 16))(\(An), \(Xn).\(size))"
+//        case let .XXXw(address):      return "($\(String(address, radix: 16)))"
+//        case let .XXXl(address):      return "($\(String(address, radix: 16)))"
+//        case let .d16PC(pc, d16):     return "$\(String(Int(pc)+Int(d16), radix: 16))(PC)"
+//        case let .d8PCXn(pc, d8, Xn, size): return "$\(String(Int(pc) + Int(d8), radix: 16))(PC, \(Xn).\(size))"
+//        case let .imm(value):         return "#$\(String(value, radix: 16))"
+//        }
+//    }
+//}
 
 struct ExtensionWord {
     let indexRegister: Register
@@ -1592,7 +1665,7 @@ public struct Disassembler {
             }
             
             let registers: RegisterList
-            if case .preDec(_) = address {
+            if case .m(.preDec(_)) = address {
                 registers = RegisterList(rawValue: registers0.bitSwapped)
             } else {
                 registers = RegisterList(rawValue: registers0)
@@ -2206,52 +2279,52 @@ public struct Disassembler {
         switch mode {
         case .dd: return .dd(DataRegister(rawValue: reg)!)
         case .ad: return .ad(AddressRegister(rawValue: reg)!)
-        case .ind: return .ind(AddressRegister(rawValue: reg)!)
-        case .postInc: return .postInc(AddressRegister(rawValue: reg)!)
-        case .preDec: return .preDec(AddressRegister(rawValue: reg)!)
+        case .ind: return .m(.ind(AddressRegister(rawValue: reg)!))
+        case .postInc: return .m(.postInc(AddressRegister(rawValue: reg)!))
+        case .preDec: return .m(.preDec(AddressRegister(rawValue: reg)!))
         case .d16An:
             let w = state.readWord()
             
             let val = Int16(bitPattern: w)
             
-            return .d16An(val, AddressRegister(rawValue: reg)!)
+            return .m(.d16An(val, AddressRegister(rawValue: reg)!))
         case .d8AnXn:
             guard let ex = readExtensionWord(state) else { return nil }
             let register = AddressRegister(rawValue: reg)!
             
-            return .d8AnXn(ex.displacement, register, ex.indexRegister, ex.indexSize)
+            return .m(.d8AnXn(ex.displacement, register, ex.indexRegister, ex.indexSize))
         case .XXXw:
             let w = state.readWord()
 
             let val = UInt32(truncatingIfNeeded: Int16(bitPattern: w))
             
-            return .XXXw(val)
+            return .m(.XXXw(val))
         case .XXXl:
             let val = state.readLong()
             
-            return .XXXl(val)
+            return .m(.XXXl(val))
         case .d16PC:
             let exAddress = state.address
             let ex = state.readWord()
-            return .d16PC(exAddress, Int16(bitPattern: ex))
+            return .m(.d16PC(exAddress, Int16(bitPattern: ex)))
         case .d8PCXn:
             let exAddress = state.address
             guard let ex = readExtensionWord(state) else { return nil }
             
-            return .d8PCXn(exAddress, ex.displacement, ex.indexRegister, ex.indexSize)
+            return .m(.d8PCXn(exAddress, ex.displacement, ex.indexRegister, ex.indexSize))
         case .imm:
             guard let size = size else { return nil }
             
             switch size {
             case .b:
                 let w = state.readWord()
-                return .imm(Int32(Int8(truncatingIfNeeded: w)))
+                return .m(.imm(Int32(Int8(truncatingIfNeeded: w))))
             case .w:
                 let w = state.readWord()
-                return .imm(Int32(Int16(bitPattern: w)))
+                return .m(.imm(Int32(Int16(bitPattern: w))))
             case .l:
                 let l = state.readLong()
-                return .imm(Int32(bitPattern: l))
+                return .m(.imm(Int32(bitPattern: l)))
             }
         }
     }

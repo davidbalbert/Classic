@@ -790,7 +790,7 @@ public struct CPU {
                 let inc = Size(size).byteCount
 
                 switch address {
-                case let .XXXl(addr):
+                case let .m(.XXXl(addr)):
                     var a = addr
                     for path in registers.keyPaths {
                         cpu[keyPath: path] = cpu.read32(a)
@@ -1118,37 +1118,37 @@ public struct CPU {
             return self[keyPath: Dn.keyPath]
         case let .ad(An):
             return self[keyPath: An.keyPath]
-        case let .ind(An):
+        case let .m(.ind(An)):
             let address = self[keyPath: An.keyPath]
             
             return read(address, size: size)
-        case let .postInc(An):
+        case let .m(.postInc(An)):
             let address = self[keyPath: An.keyPath]
             self[keyPath: An.keyPath] += size.byteCount
             
             return read(address, size: size)
-        case let .preDec(An):
+        case let .m(.preDec(An)):
             self[keyPath: An.keyPath] -= size.byteCount
             let address = self[keyPath: An.keyPath]
             
             return read(address, size: size)
-        case let .d16An(displacement, An):
+        case let .m(.d16An(displacement, An)):
             let address = UInt32(Int64(self[keyPath: An.keyPath]) + Int64(displacement))
             
             return read(address, size: size)
-        case .d8AnXn(_, _, _, _):
+        case .m(.d8AnXn(_, _, _, _)):
             fatalError("d8AnXn not implemented")
-        case let .XXXw(address):
+        case let .m(.XXXw(address)):
             return read(address, size: size)
-        case let .XXXl(address):
+        case let .m(.XXXl(address)):
             return read(address, size: size)
-        case let .d16PC(pc, displacement):
+        case let .m(.d16PC(pc, displacement)):
             let address = UInt32(Int64(pc) + Int64(displacement))
             
             return read(address, size: size)
-        case .d8PCXn(_, _, _, _):
+        case .m(.d8PCXn(_, _, _, _)):
             fatalError("d8PCXn not implemented yet")
-        case let .imm(value):
+        case let .m(.imm(value)):
             return UInt32(truncatingIfNeeded: value)
         }
     }
@@ -1175,56 +1175,56 @@ public struct CPU {
             self[keyPath: Dn.keyPath] = (existing & existingMask) | (value & newMask)
         case let .ad(An):
             self[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: value)
-        case let .ind(An):
+        case let .m(.ind(An)):
             let address = self[keyPath: An.keyPath]
             
             write(address, value, size: size)
-        case let .postInc(An):
+        case let .m(.postInc(An)):
             let address = self[keyPath: An.keyPath]
             self[keyPath: An.keyPath] += 2
             
             write(address, value, size: size)
-        case let .preDec(An):
+        case let .m(.preDec(An)):
             self[keyPath: An.keyPath] -= 2
             let address = self[keyPath: An.keyPath]
             
             write(address, value, size: size)
-        case let .d16An(d, An):
+        case let .m(.d16An(d, An)):
             let address = UInt32(Int64(self[keyPath: An.keyPath]) + Int64(d))
             
             write(address, value, size: size)
-        case .d8AnXn(_, _, _, _):
+        case .m(.d8AnXn(_, _, _, _)):
             fatalError("d8AnXn not implemented")
-        case let .XXXw(address):
+        case let .m(.XXXw(address)):
             write(address, value, size: size)
-        case let .XXXl(address):
+        case let .m(.XXXl(address)):
             write(address, value, size: size)
-        case let .d16PC(pc, d):
+        case let .m(.d16PC(pc, d)):
             let address = UInt32(Int64(pc) + Int64(d))
 
             write(address, value, size: size)
-        case .d8PCXn(_, _, _, _):
+        case .m(.d8PCXn(_, _, _, _)):
             fatalError("d8PCXn not implemented")
-        case .imm(_):
+        case .m(.imm(_)):
             fatalError("can't write to an immediate value")
         }
     }
     
     func loadEffectiveAddress(_ address: EffectiveAddress) -> UInt32? {
         switch address {
-        case let .ind(An):
+        case let .m(.ind(An)):
             return self[keyPath: An.keyPath]
-        case let .d16An(d, An):
+        case let .m(.d16An(d, An)):
             return UInt32(Int64(self[keyPath: An.keyPath]) + Int64(d))
-        case .d8AnXn(_, _, _, _):
+        case .m(.d8AnXn(_, _, _, _)):
             fatalError("d8AnXn not implemented")
-        case let .XXXl(address):
+        case let .m(.XXXl(address)):
             return address
-        case let .XXXw(address):
+        case let .m(.XXXw(address)):
             return address
-        case let .d16PC(pc, d):
+        case let .m(.d16PC(pc, d)):
             return UInt32(Int64(pc) + Int64(d))
-        case .d8PCXn(_, _, _, _):
+        case .m(.d8PCXn(_, _, _, _)):
             fatalError("d8PCXn not implemented")
         default:
             return nil
