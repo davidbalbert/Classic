@@ -81,10 +81,10 @@ struct DataRegisterItem: Register, NameValueConvertible, Hashable {
     
     weak var viewController: RegisterViewController?
     
-    var value: UInt32 {
+    var value: Int32 {
         guard let vc = viewController, let cpu = vc.cpu else { return 0 }
 
-        return cpu[keyPath: keyPath]
+        return Int32(bitPattern: cpu[keyPath: keyPath])
     }
 
     var nameDescription: String {
