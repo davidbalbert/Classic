@@ -49,7 +49,7 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0xd0, 0x42])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.add(.w, .mToR, .dd(.d2), .d0))
+        XCTAssertEqual(op, Operation.addMR(.w, .dd(.d2), .d0))
     }
 
     func testAddAWord() throws {
@@ -110,11 +110,18 @@ class DisassemblerTests: XCTestCase {
         XCTAssertEqual(op, Operation.addq(.l, 1, .dd(.d0)))
     }
     
-    func testAnd() throws {
+    func testAndMR() throws {
         let storage = TestInstructionStorage([0xc0, 0x47])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.and(.w, .mToR, .dd(.d7), .d0))
+        XCTAssertEqual(op, Operation.andMR(.w, .dd(.d7), .d0))
+    }
+    
+    func testAndRM() throws {
+        let storage = TestInstructionStorage([0xc1, 0x52])
+        let op = d.instruction(at: 0, storage: storage).op
+
+        XCTAssertEqual(op, Operation.andRM(.w, .d0, .ind(.a2)))
     }
     
     func testAndi() throws {
