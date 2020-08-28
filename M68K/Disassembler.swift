@@ -463,6 +463,7 @@ enum OpName: String {
     case dbcc
     case lea
     case moveb, movew, movel
+    case moveaw, moveal
     case movem
     case moveq
     case moveToSR, moveFromSR
@@ -513,6 +514,7 @@ enum OpClass: String {
     case ext
     case lea
     case move
+    case movea
     case movem
     case moveq
     case moveToSR, moveFromSR
@@ -573,6 +575,7 @@ enum Operation: Equatable {
     case extbl(DataRegister)
     case lea(ControlAddress, AddressRegister)
     case move(Size, EffectiveAddress, DataAlterableAddress)
+    case movea(SizeWL, EffectiveAddress, AddressRegister)
     case movem(SizeWL, Direction, EffectiveAddress, RegisterList)
     case moveq(Int8, DataRegister)
     case moveToSR(EffectiveAddress)
@@ -662,6 +665,8 @@ extension Operation: CustomStringConvertible {
             return "extb.l \(register)"
         case let .move(size, from, to):
             return "move.\(size) \(from), \(to)"
+        case let .movea(size, from, to):
+            return "movea.\(size) \(from), \(to)"
         case let .lea(address, register):
             return "lea \(address), \(register)"
         case let .scc(condition, address):
@@ -855,6 +860,10 @@ let ops = [
     OpInfo(name: .extbl,    opClass: .ext,      mask: 0xfff8, value: 0x49c0),
 
     OpInfo(name: .lea,      opClass: .lea,      mask: 0xf1c0, value: 0x41c0),
+    
+    // For now, movea must come before move.
+    OpInfo(name: .moveaw,   opClass: .movea,    mask: 0xf1c0, value: 0x3040),
+    OpInfo(name: .moveal,   opClass: .movea,    mask: 0xf1c0, value: 0x2040),
 
     OpInfo(name: .moveb,    opClass: .move,     mask: 0xf000, value: 0x1000),
     OpInfo(name: .movew,    opClass: .move,     mask: 0xf000, value: 0x3000),
@@ -1474,6 +1483,35 @@ public struct Disassembler {
             }
             
             op = .move(size, srcAddr, dstAddr)
+        case .movea:
+            let size0 = (instructionWord >> 12) & 3
+            
+            let size: SizeWL
+            if size0 == 0b11 {
+                size = .w
+            } else if size0 == 0b10 {
+                size = .l
+            } else {
+                op = .unknown(instructionWord)
+                break
+            }
+            
+            let eaModeNum = (instructionWord >> 3) & 7
+            let eaReg = instructionWord & 7
+
+            guard let eaMode = AddressingMode.for(Int(eaModeNum), reg: Int(eaReg)) else {
+                op = .unknown(instructionWord)
+                break
+            }
+            
+            guard let address = readAddress(state, eaMode, Int(eaReg), size: Size(size)) else {
+                op = .unknown(instructionWord)
+                break
+            }
+
+            let dstReg = AddressRegister(rawValue: Int((instructionWord >> 9) & 7))!
+
+            op = .movea(size, address, dstReg)
         case .pea:
             let eaModeNum = (instructionWord >> 3) & 7
             let eaReg = instructionWord & 7

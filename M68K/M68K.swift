@@ -830,6 +830,16 @@ public struct CPU {
                 cpu.ccr = cc
 
             }
+        case let .movea(.w, src, An):
+            return { cpu in
+                let data = cpu.read(src, UInt16.self)
+                cpu.writeReg16(An, value: data)
+            }
+        case let .movea(.l, src, An):
+            return { cpu in
+                let data = cpu.read(src, UInt32.self)
+                cpu.writeReg32(An, value: data)
+            }
         case let .movem(size, .mToR, address, registers):
             return { cpu in
                 let inc = Size(size).byteCount
@@ -1384,6 +1394,10 @@ public struct CPU {
         self[keyPath: Dn.keyPath]
     }
 
+    mutating func writeReg16(_ An: AddressRegister, value: UInt16) {
+        self[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: value)
+    }
+    
     mutating func writeReg32(_ An: AddressRegister, value: UInt32) {
         self[keyPath: An.keyPath] = value
     }

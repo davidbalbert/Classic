@@ -178,6 +178,12 @@ class DisassemblerTests: XCTestCase {
         XCTAssertEqual(op, Operation.move(.b, .imm(-0x79), .m(.d16An(0x400, .a5))))
     }
 
+    func testMoveA() throws {
+        let storage = TestInstructionStorage([0x24, 0x7c, 0x00, 0x3f, 0xa7, 0x00])
+        let op = d.instruction(at: 0, storage: storage).op
+        
+        XCTAssertEqual(op, Operation.movea(.l, .imm(0x3fa700), .a2))
+    }
     
     func testNotByte() throws {
         let storage = TestInstructionStorage([0x46, 0x18])
