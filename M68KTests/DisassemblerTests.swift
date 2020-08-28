@@ -71,21 +71,22 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x06, 0x38, 0x00, 0x15, 0x01, 0x0c])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.addi(.b, 0x15, .XXXw(0x10c)))
+        XCTAssertEqual(op, Operation.addi(.b, 0x15, .m(.XXXw(0x10c))))
+        
     }
     
     func testAddiWord() throws {
         let storage = TestInstructionStorage([0x06, 0x78, 0x04, 0x00, 0x01, 0x0c])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.addi(.w, 0x400, .XXXw(0x10c)))
+        XCTAssertEqual(op, Operation.addi(.w, 0x400, .m(.XXXw(0x10c))))
     }
     
     func testAddiLong() throws {
         let storage = TestInstructionStorage([0x06, 0xb8, 0x00, 0x00, 0x04, 0x00, 0x01, 0x0c])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.addi(.l, 0x400, .XXXw(0x10c)))
+        XCTAssertEqual(op, Operation.addi(.l, 0x400, .m(.XXXw(0x10c))))
     }
 
     func testAddQByte() throws {
@@ -164,7 +165,7 @@ class DisassemblerTests: XCTestCase {
         var storage = TestInstructionStorage([0x10, 0x80])
         var op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.move(.b, .dd(.d0), .ind(.a0)))
+        XCTAssertEqual(op, Operation.move(.b, .dd(.d0), .m(.ind(.a0))))
         
         storage = TestInstructionStorage([0x20, 0x0f])
         op = d.instruction(at: 0, storage: storage).op
@@ -174,7 +175,7 @@ class DisassemblerTests: XCTestCase {
         storage = TestInstructionStorage([0x1b, 0x7c, 0x00, 0x87, 0x04, 0x00])
         op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.move(.b, .imm(-0x79), .d16An(0x400, .a5)))
+        XCTAssertEqual(op, Operation.move(.b, .imm(-0x79), .m(.d16An(0x400, .a5))))
     }
 
     
@@ -182,42 +183,42 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x46, 0x18])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.not(.b, .postInc(.a0)))
+        XCTAssertEqual(op, Operation.not(.b, .m(.postInc(.a0))))
     }
     
     func testNotWord() throws {
         let storage = TestInstructionStorage([0x46, 0x58])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.not(.w, .postInc(.a0)))
+        XCTAssertEqual(op, Operation.not(.w, .m(.postInc(.a0))))
     }
     
     func testNotLong() throws {
         let storage = TestInstructionStorage([0x46, 0x98])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.not(.l, .postInc(.a0)))
+        XCTAssertEqual(op, Operation.not(.l, .m(.postInc(.a0))))
     }
     
     func testEorb() throws {
         let storage = TestInstructionStorage([0xb3, 0x10])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.eor(.b, .d1, .ind(.a0)))
+        XCTAssertEqual(op, Operation.eor(.b, .d1, .m(.ind(.a0))))
     }
     
     func testEorw() throws {
         let storage = TestInstructionStorage([0xb3, 0x50])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.eor(.w, .d1, .ind(.a0)))
+        XCTAssertEqual(op, Operation.eor(.w, .d1, .m(.ind(.a0))))
     }
 
     func testEorl() throws {
         let storage = TestInstructionStorage([0xb3, 0x90])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.eor(.l, .d1, .ind(.a0)))
+        XCTAssertEqual(op, Operation.eor(.l, .d1, .m(.ind(.a0))))
     }
     
     func testExtw() throws {
@@ -253,7 +254,7 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x4c, 0xf9, 0x01, 0x01, 0x00, 0xf8, 0x00, 0x00])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.movem(.l, .mToR, .XXXl(0xf80000), [.d0, .a0]))
+        XCTAssertEqual(op, Operation.movem(.l, .mToR, .m(.XXXl(0xf80000)), [.d0, .a0]))
     }
     
     func testLea() throws {
@@ -314,21 +315,21 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x04, 0x38, 0x00, 0x12, 0x01, 0x0c])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.subi(.b, 0x12, .XXXw(0x10c)))
+        XCTAssertEqual(op, Operation.subi(.b, 0x12, .m(.XXXw(0x10c))))
     }
     
     func testSubiWord() throws {
         let storage = TestInstructionStorage([0x04, 0x78, 0x04, 0x00, 0x01, 0x0c])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.subi(.w, 0x400, .XXXw(0x10c)))
+        XCTAssertEqual(op, Operation.subi(.w, 0x400, .m(.XXXw(0x10c))))
     }
     
     func testSubiLong() throws {
         let storage = TestInstructionStorage([0x04, 0xb8, 0x00, 0x00, 0x04, 0x00, 0x01, 0x0c])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.subi(.l, 0x400, .XXXw(0x10c)))
+        XCTAssertEqual(op, Operation.subi(.l, 0x400, .m(.XXXw(0x10c))))
     }
     
     func testSubq() throws {
@@ -370,7 +371,7 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x4e, 0xba, 0x16, 0x00])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.jsr(.d16PC(0x2, 0x1600)))
+        XCTAssertEqual(op, Operation.jsr(.m(.d16PC(0x2, 0x1600))))
     }
     
     func testMoveToSR() throws {
@@ -391,7 +392,7 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x4a, 0x1e])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.tst(.b, .postInc(.a6)))
+        XCTAssertEqual(op, Operation.tst(.b, .m(.postInc(.a6))))
     }
     
     func testOr() throws {
@@ -631,28 +632,28 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x42, 0x2d, 0x18, 0x00])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.clr(.b, .d16An(0x1800, .a5)))
+        XCTAssertEqual(op, Operation.clr(.b, .m(.d16An(0x1800, .a5))))
     }
     
     func testBsetImmediate() throws {
         let storage = TestInstructionStorage([0x08, 0xd5, 0x00, 0x07])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.bset(.imm(7), .ind(.a5)))
+        XCTAssertEqual(op, Operation.bset(.imm(7), .m(.ind(.a5))))
     }
     
     func testBsetRegister() throws {
         let storage = TestInstructionStorage([0x01, 0xd5])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.bset(.r(.d0), .ind(.a5)))
+        XCTAssertEqual(op, Operation.bset(.r(.d0), .m(.ind(.a5))))
     }
     
     func testBchgImmediateByte() throws {
         let storage = TestInstructionStorage([0x08, 0x51, 0x00, 0x07])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.bchg(.b, .imm(7), .ind(.a1)))
+        XCTAssertEqual(op, Operation.bchg(.b, .imm(7), .m(.ind(.a1))))
     }
     
     func testBchgImmediateLong() throws {
@@ -680,28 +681,28 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x08, 0x91, 0x00, 0x10])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.bclr(.imm(16), .ind(.a1)))
+        XCTAssertEqual(op, Operation.bclr(.imm(16), .m(.ind(.a1))))
     }
     
     func testBclrRegister() throws {
         let storage = TestInstructionStorage([0x0f, 0x91])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.bclr(.r(.d7), .ind(.a1)))
+        XCTAssertEqual(op, Operation.bclr(.r(.d7), .m(.ind(.a1))))
     }
     
     func testBtstImmediate() throws {
         let storage = TestInstructionStorage([0x08, 0x15, 0x00, 0x07])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.btst(.imm(7), .ind(.a5)))
+        XCTAssertEqual(op, Operation.btst(.imm(7), .m(.ind(.a5))))
     }
     
     func testBtstRegister() throws {
         let storage = TestInstructionStorage([0x01, 0x15])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.btst(.r(.d0), .ind(.a5)))
+        XCTAssertEqual(op, Operation.btst(.r(.d0), .m(.ind(.a5))))
     }
     
     func testSwap() throws {
@@ -715,7 +716,7 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x48, 0x6a, 0xff, 0x94])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.pea(.d16An(-0x6c, .a2)))
+        XCTAssertEqual(op, Operation.pea(.m(.d16An(-0x6c, .a2))))
     }
     
     func testRts() throws {

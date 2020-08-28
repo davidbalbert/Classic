@@ -639,8 +639,8 @@ public struct CPU {
             return { cpu in
                 let bit = UInt32(1 << (n%32))
                 
-                let v = cpu.readReg(Dn, UInt32.self)
-                cpu.writeReg(Dn, value: v | bit)
+                let v = cpu.readReg32(Dn)
+                cpu.writeReg32(Dn, value: v | bit)
                 
                 var cc = cpu.ccr.intersection([.x, .n, .v, .c])
                 
@@ -664,12 +664,12 @@ public struct CPU {
             }
         case let .bset(.r(bitNumberRegister), .dd(Dn)):
             return { cpu in
-                let n = cpu.readReg(bitNumberRegister, UInt32.self)
+                let n = cpu.readReg32(bitNumberRegister)
                 
                 let bit = 1 << (n%32)
                 
-                let v = cpu.readReg(Dn, UInt32.self)
-                cpu.writeReg(Dn, value: v | bit)
+                let v = cpu.readReg32(Dn)
+                cpu.writeReg32(Dn, value: v | bit)
                 
                 var cc = cpu.ccr.intersection([.x, .n, .v, .c])
                 
@@ -743,18 +743,18 @@ public struct CPU {
             }
         case let .jmp(address):
             return { cpu in
-                cpu.pc = cpu.loadEffectiveAddress(address)!
+                cpu.pc = cpu.address(for: address)
             }
         case let .lea(address, An):
             return { cpu in
-                let value = cpu.loadEffectiveAddress(address)!
+                let value = cpu.address(for: address)
                 
-                cpu[keyPath: An.keyPath] = value
+                cpu.writeReg32(An, value: value)
             }
         case let .move(.b, src, .dd(Dn)):
             return { cpu in
                 let data = cpu.read(src, UInt8.self)
-                cpu.writeReg(Dn, value: data)
+                cpu.writeReg8(Dn, value: data)
                 
                 var cc = cpu.ccr.intersection(.x)
                 
@@ -780,7 +780,7 @@ public struct CPU {
         case let .move(.w, src, .dd(Dn)):
             return { cpu in
                 let data = cpu.read(src, UInt16.self)
-                cpu.writeReg(Dn, value: data)
+                cpu.writeReg16(Dn, value: data)
                 
                 var cc = cpu.ccr.intersection(.x)
                 
@@ -806,7 +806,7 @@ public struct CPU {
         case let .move(.l, src, .dd(Dn)):
             return { cpu in
                 let data = cpu.read(src, UInt32.self)
-                cpu.writeReg(Dn, value: data)
+                cpu.writeReg32(Dn, value: data)
 
                 var cc = cpu.ccr.intersection(.x)
                 
@@ -1276,6 +1276,12 @@ public struct CPU {
         }
     }
     
+    mutating func address(for ea: ControlAddress) -> UInt32 {
+        // Control addressing modes don't require size to evaluate
+        // the address. The .b is unused.
+        address(for: MemoryAddress(ea), size: .b)
+    }
+    
     mutating func address(for ea: AlterableMemoryAddress, size: Size) -> UInt32 {
         address(for: MemoryAddress(ea), size: size)
     }
@@ -1283,19 +1289,19 @@ public struct CPU {
     mutating func address(for ea: MemoryAddress, size: Size) -> UInt32 {
         switch ea {
         case let .ind(An):
-            return readReg(An, UInt32.self)
+            return readReg32(An)
         case let .postInc(An):
-            let address = readReg(An, UInt32.self)
-            writeReg(An, value: address &+ size.byteCount)
+            let address = readReg32(An)
+            writeReg32(An, value: address &+ size.byteCount)
             
             return address
         case let .preDec(An):
-            let address = readReg(An, UInt32.self) &- size.byteCount
-            writeReg(An, value: address)
+            let address = readReg32(An) &- size.byteCount
+            writeReg32(An, value: address)
             
             return address
         case let .d16An(d, An):
-            return UInt32(truncatingIfNeeded: Int64(readReg(An, UInt32.self)) + Int64(d))
+            return UInt32(truncatingIfNeeded: Int64(readReg32(An)) + Int64(d))
         case .d8AnXn(_, _, _, _):
             fatalError("d8AnXn not implemented")
         case let .XXXw(address):
@@ -1312,9 +1318,9 @@ public struct CPU {
     mutating func read(_ ea: EffectiveAddress, _ size: UInt8.Type) -> UInt8 {
         switch ea {
         case let .dd(Dn):
-            return readReg(Dn, UInt8.self)
+            return readReg8(Dn)
         case let .ad(An):
-            return readReg(An, UInt8.self)
+            return readReg8(An)
         case let .m(mem):
             let addr = address(for: mem, size: .b)
             
@@ -1327,9 +1333,9 @@ public struct CPU {
     mutating func read(_ ea: EffectiveAddress, _ size: UInt16.Type) -> UInt16 {
         switch ea {
         case let .dd(Dn):
-            return readReg(Dn, UInt16.self)
+            return readReg16(Dn)
         case let .ad(An):
-            return readReg(An, UInt16.self)
+            return readReg16(An)
         case let .m(mem):
             let addr = address(for: mem, size: .w)
             
@@ -1342,9 +1348,9 @@ public struct CPU {
     mutating func read(_ ea: EffectiveAddress, _ size: UInt32.Type) -> UInt32 {
         switch ea {
         case let .dd(Dn):
-            return readReg(Dn, UInt32.self)
+            return readReg32(Dn)
         case let .ad(An):
-            return readReg(An, UInt32.self)
+            return readReg32(An)
         case let .m(mem):
             let addr = address(for: mem, size: .l)
             
@@ -1354,49 +1360,49 @@ public struct CPU {
         }
     }
 
-    func readReg(_ An: AddressRegister, _ size: UInt8.Type) -> UInt8 {
+    func readReg8(_ An: AddressRegister) -> UInt8 {
         UInt8(truncatingIfNeeded: self[keyPath: An.keyPath])
     }
     
-    func readReg(_ An: AddressRegister, _ size: UInt16.Type) -> UInt16 {
+    func readReg16(_ An: AddressRegister) -> UInt16 {
         UInt16(truncatingIfNeeded: self[keyPath: An.keyPath])
     }
     
-    func readReg(_ An: AddressRegister, _ size: UInt32.Type) -> UInt32 {
+    func readReg32(_ An: AddressRegister) -> UInt32 {
         self[keyPath: An.keyPath]
     }
     
-    func readReg(_ Dn: DataRegister, _ size: UInt8.Type) -> UInt8 {
+    func readReg8(_ Dn: DataRegister) -> UInt8 {
         UInt8(truncatingIfNeeded: self[keyPath: Dn.keyPath])
     }
     
-    func readReg(_ Dn: DataRegister, _ size: UInt16.Type) -> UInt16 {
+    func readReg16(_ Dn: DataRegister) -> UInt16 {
         UInt16(truncatingIfNeeded: self[keyPath: Dn.keyPath])
     }
 
-    func readReg(_ Dn: DataRegister, _ size: UInt32.Type) -> UInt32 {
+    func readReg32(_ Dn: DataRegister) -> UInt32 {
         self[keyPath: Dn.keyPath]
     }
 
-    mutating func writeReg(_ An: AddressRegister, value: UInt32) {
+    mutating func writeReg32(_ An: AddressRegister, value: UInt32) {
         self[keyPath: An.keyPath] = value
     }
     
-    mutating func writeReg(_ Dn: DataRegister, value: UInt8) {
+    mutating func writeReg8(_ Dn: DataRegister, value: UInt8) {
         let mask: UInt32 = 0xffffff00
-        let existing = readReg(Dn, UInt32.self)
+        let existing = readReg32(Dn)
 
         self[keyPath: Dn.keyPath] = (existing & mask) | UInt32(value)
     }
     
-    mutating func writeReg(_ Dn: DataRegister, value: UInt16) {
+    mutating func writeReg16(_ Dn: DataRegister, value: UInt16) {
         let mask: UInt32 = 0xffff0000
-        let existing = readReg(Dn, UInt32.self)
+        let existing = readReg32(Dn)
 
         self[keyPath: Dn.keyPath] = (existing & mask) | UInt32(value)
     }
     
-    mutating func writeReg(_ Dn: DataRegister, value: UInt32) {
+    mutating func writeReg32(_ Dn: DataRegister, value: UInt32) {
         self[keyPath: Dn.keyPath] = value
     }
     

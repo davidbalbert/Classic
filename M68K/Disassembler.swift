@@ -147,6 +147,19 @@ enum MemoryAddress: Equatable, CustomStringConvertible {
         }
     }
     
+    init(_ ea: ControlAddress) {
+        switch ea {
+        case let .ind(An):                 self = .ind(An)
+        case let .d16An(d, An):            self = .d16An(d, An)
+        case let .d8AnXn(d, An, Xn, size): self = .d8AnXn(d, An, Xn, size)
+        case let .XXXw(address):           self = .XXXw(address)
+        case let .XXXl(address):           self = .XXXl(address)
+        case let .d16PC(pc, d):            self = .d16PC(pc, d)
+        case let .d8PCXn(pc, d, Xn, size): self = .d8PCXn(pc, d, Xn, size)
+        }
+    }
+
+    
     var description: String {
         switch self {
         case let .ind(An):            return "(\(An))"
@@ -162,7 +175,7 @@ enum MemoryAddress: Equatable, CustomStringConvertible {
     }
 }
 
-enum AlterableMemoryAddress: Equatable {
+enum AlterableMemoryAddress: Equatable, CustomStringConvertible {
     case ind(AddressRegister)
     case postInc(AddressRegister)
     case preDec(AddressRegister)
@@ -170,9 +183,13 @@ enum AlterableMemoryAddress: Equatable {
     case d8AnXn(Int8, AddressRegister, Register, Size)
     case XXXw(UInt32)
     case XXXl(UInt32)
+    
+    var description: String {
+        String(describing: MemoryAddress(self))
+    }
 }
 
-enum ControlAddress: Equatable {
+enum ControlAddress: Equatable, CustomStringConvertible {
     case ind(AddressRegister)
     case d16An(Int16, AddressRegister)
     case d8AnXn(Int8, AddressRegister, Register, Size)
@@ -180,6 +197,10 @@ enum ControlAddress: Equatable {
     case XXXl(UInt32)
     case d16PC(UInt32, Int16)
     case d8PCXn(UInt32, Int8, Register, Size)
+    
+    var description: String {
+        String(describing: MemoryAddress(self))
+    }
 }
 
 enum EffectiveAddress: Equatable, CustomStringConvertible {
@@ -203,15 +224,30 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
     }
 }
 
-enum AlterableAddress: Equatable {
+enum AlterableAddress: Equatable, CustomStringConvertible {
     case dd(DataRegister)
     case ad(AddressRegister)
     case m(AlterableMemoryAddress)
+    
+    var description: String {
+        switch self {
+        case let .dd(Dn):     return "\(Dn)"
+        case let .ad(An):     return "\(An)"
+        case let .m(address): return "\(address)"
+        }
+    }
 }
 
-enum DataAlterableAddress: Equatable {
+enum DataAlterableAddress: Equatable, CustomStringConvertible {
     case dd(DataRegister)
     case m(AlterableMemoryAddress)
+    
+    var description: String {
+        switch self {
+        case let .dd(Dn):     return "\(Dn)"
+        case let .m(address): return "\(address)"
+        }
+    }
 }
 
 struct ExtensionWord {
@@ -535,7 +571,7 @@ enum Operation: Equatable {
     case eor(Size, DataRegister, EffectiveAddress)
     case ext(Size, DataRegister)
     case extbl(DataRegister)
-    case lea(EffectiveAddress, AddressRegister)
+    case lea(ControlAddress, AddressRegister)
     case move(Size, EffectiveAddress, DataAlterableAddress)
     case movem(SizeWL, Direction, EffectiveAddress, RegisterList)
     case moveq(Int8, DataRegister)
@@ -553,7 +589,7 @@ enum Operation: Equatable {
     case cmp(Size, EffectiveAddress, DataRegister)
     case cmpa(Size, EffectiveAddress, AddressRegister)
     case cmpi(Size, Int32, EffectiveAddress)
-    case jmp(EffectiveAddress)
+    case jmp(ControlAddress)
     case jsr(EffectiveAddress)
     case tst(Size, EffectiveAddress)
     case or(Size, Direction, EffectiveAddress, DataRegister)
@@ -1468,7 +1504,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let srcAddr = readAddress(state, srcMode, Int(srcReg)) else {
+            guard let srcAddr = readControlAddress(state, srcMode, Int(srcReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1757,7 +1793,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readControlAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2337,6 +2373,19 @@ public struct Disassembler {
         case let .m(.d8AnXn(d, An, Xn, size)): return .m(.d8AnXn(d, An, Xn, size))
         case let .m(.XXXw(address)):           return .m(.XXXw(address))
         case let .m(.XXXl(address)):           return .m(.XXXl(address))
+        default:                               return nil
+        }
+    }
+    
+    func readControlAddress(_ state: DisassemblyState, _ mode: AddressingMode, _ reg: Int) -> ControlAddress? {
+        switch readAddress(state, mode, reg) {
+        case let .m(.ind(An)):                 return .ind(An)
+        case let .m(.d16An(d, An)):            return .d16An(d, An)
+        case let .m(.d8AnXn(d, An, Xn, size)): return .d8AnXn(d, An, Xn, size)
+        case let .m(.XXXw(address)):           return .XXXw(address)
+        case let .m(.XXXl(address)):           return .XXXl(address)
+        case let .m(.d16PC(pc, d)):            return .d16PC(pc, d)
+        case let .m(.d8PCXn(pc, d, Xn, size)): return .d8PCXn(pc, d, Xn, size)
         default:                               return nil
         }
     }
