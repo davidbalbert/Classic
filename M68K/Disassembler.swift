@@ -582,11 +582,11 @@ enum Operation: Equatable {
     case addq(Size, UInt8, AlterableAddress)
     case andMR(Size, DataAddress, DataRegister)
     case andRM(Size, DataRegister, MemoryAlterableAddress)
-    case andi(Size, Int32, EffectiveAddress)
+    case andi(Size, Int32, DataAlterableAddress)
     case asl(Size, ShiftCount, DataRegister)
     case asr(Size, ShiftCount, DataRegister)
-    case aslm(EffectiveAddress)
-    case asrm(EffectiveAddress)
+    case aslm(MemoryAlterableAddress)
+    case asrm(MemoryAlterableAddress)
     case bra(Size, UInt32, Int16)
     case bcc(Size, Condition, UInt32, Int16)
     case bchg(Size, BitNumber, EffectiveAddress)
@@ -1285,7 +1285,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readDataAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1341,7 +1341,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readMemoryAlterableAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
