@@ -740,23 +740,6 @@ public struct CPU {
                     cpu.pc = UInt32(Int64(pc) + Int64(displacement))
                 }
             }
-        case let .cmpi(.b, source, destination):
-            return { cpu in
-                let destination = UInt8(truncatingIfNeeded: cpu.read(from: destination, size: .b))
-                let source = UInt8(truncatingIfNeeded: source)
-                let res = destination &- source
-                
-                var cc = cpu.ccr.intersection(.x)
-                
-                let overflow = vsub(source, destination, res)
-                            
-                if res >= 0x80          { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if source > destination { cc.insert(.c) }
-                
-                cpu.ccr = cc
-            }
         case let .bset(.imm(n), .dd(Dn)):
             return { cpu in
                 let bit = UInt32(1 << (n%32))
@@ -815,9 +798,26 @@ public struct CPU {
                 
                 cpu.ccr = cc
             }
+        case let .cmpi(.b, source, destination):
+            return { cpu in
+                let destination = cpu.read(EffectiveAddress(destination), UInt8.self)
+                let source = UInt8(truncatingIfNeeded: source)
+                let res = destination &- source
+                
+                var cc = cpu.ccr.intersection(.x)
+                
+                let overflow = vsub(source, destination, res)
+                            
+                if res >= 0x80          { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if source > destination { cc.insert(.c) }
+                
+                cpu.ccr = cc
+            }
         case let .cmpi(.w, source, destination):
             return { cpu in
-                let destination = UInt16(truncatingIfNeeded: cpu.read(from: destination, size: .w))
+                let destination = cpu.read(EffectiveAddress(destination), UInt16.self)
                 let source = UInt16(truncatingIfNeeded: source)
                 let res = destination &- source
                 
@@ -834,7 +834,7 @@ public struct CPU {
             }
         case let .cmpi(.l, source, destination):
             return { cpu in
-                let destination = cpu.read(from: destination, size: .l)
+                let destination = cpu.read(EffectiveAddress(destination), UInt32.self)
                 let source = UInt32(bitPattern: source)
                 let res = destination &- source
                 
