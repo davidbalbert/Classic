@@ -9,184 +9,187 @@
 import XCTest
 @testable import M68K
 
-class ConditionCodeTests: XCTestCase {
-    let machine = TestMachine([])
+class CPUWrapper {
     var cpu = CPU()
-    
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-        cpu.bus = machine
-    }
+}
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+class ConditionCodeTests: XCTestCase {
+    static let machine = TestMachine([])
+    static let w = CPUWrapper()
+    
+    override class func setUp() {
+        w.cpu.bus = machine
+    }
+    
+    var w: CPUWrapper {
+        ConditionCodeTests.w
     }
 
     func testEq() throws {
-        cpu.d0 = 5
+        w.cpu.d0 = 5
         let op = Operation.cmpi(.b, 5, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.eq))
+        XCTAssert(w.cpu.conditionIsSatisfied(.eq))
     }
     
     func testNe() throws {
-        cpu.d0 = 5
+        w.cpu.d0 = 5
         let op = Operation.cmpi(.b, 6, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.ne))
+        XCTAssert(w.cpu.conditionIsSatisfied(.ne))
     }
     
     func testMi() throws {
-        cpu.d0 = 5
+        w.cpu.d0 = 5
         let op = Operation.cmpi(.b, 6, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.mi))
-        XCTAssert(!cpu.conditionIsSatisfied(.pl))
+        XCTAssert(w.cpu.conditionIsSatisfied(.mi))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.pl))
     }
 
     func testPl() throws {
-        cpu.d0 = 6
+        w.cpu.d0 = 6
         let op = Operation.cmpi(.b, 5, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.pl))
-        XCTAssert(!cpu.conditionIsSatisfied(.mi))
+        XCTAssert(w.cpu.conditionIsSatisfied(.pl))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.mi))
     }
     
     func testGt() throws {
-        cpu.d0 = 6
+        w.cpu.d0 = 6
         var op = Operation.cmpi(.b, 5, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.gt))
-        XCTAssert(!cpu.conditionIsSatisfied(.le))
+        XCTAssert(w.cpu.conditionIsSatisfied(.gt))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.le))
         
-        cpu.d0 = UInt32(bitPattern: -5)
+        w.cpu.d0 = UInt32(bitPattern: -5)
         op = Operation.cmpi(.b, -6, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.gt))
-        XCTAssert(!cpu.conditionIsSatisfied(.le))
+        XCTAssert(w.cpu.conditionIsSatisfied(.gt))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.le))
     }
     
     func testLt() throws {
-        cpu.d0 = 4
+        w.cpu.d0 = 4
         var op = Operation.cmpi(.b, 5, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.lt))
-        XCTAssert(!cpu.conditionIsSatisfied(.ge))
+        XCTAssert(w.cpu.conditionIsSatisfied(.lt))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.ge))
         
-        cpu.d0 = UInt32(bitPattern: -6)
+        w.cpu.d0 = UInt32(bitPattern: -6)
         op = Operation.cmpi(.b, -5, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
 
-        XCTAssert(cpu.conditionIsSatisfied(.lt))
-        XCTAssert(!cpu.conditionIsSatisfied(.ge))
+        XCTAssert(w.cpu.conditionIsSatisfied(.lt))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.ge))
     }
     
     func testGe() throws {
-        cpu.d0 = UInt32(bitPattern: -4)
+        w.cpu.d0 = UInt32(bitPattern: -4)
         let op = Operation.cmpi(.b, -5, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.ge))
+        XCTAssert(w.cpu.conditionIsSatisfied(.ge))
         
-        cpu.d0 = UInt32(bitPattern: -5)
-        cpu.execute(op, length: 0)
+        w.cpu.d0 = UInt32(bitPattern: -5)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.ge))
+        XCTAssert(w.cpu.conditionIsSatisfied(.ge))
     }
     
     func testLe() throws {
-        cpu.d0 = UInt32(bitPattern: -5)
+        w.cpu.d0 = UInt32(bitPattern: -5)
         let op = Operation.cmpi(.b, -4, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.le))
+        XCTAssert(w.cpu.conditionIsSatisfied(.le))
         
-        cpu.d0 = UInt32(bitPattern: -5)
-        cpu.execute(op, length: 0)
+        w.cpu.d0 = UInt32(bitPattern: -5)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.le))
+        XCTAssert(w.cpu.conditionIsSatisfied(.le))
     }
     
     func testHi() throws {
-        cpu.d0 = 5
+        w.cpu.d0 = 5
         
         let op = Operation.cmpi(.b, 4, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.hi))
-        XCTAssert(!cpu.conditionIsSatisfied(.ls))
+        XCTAssert(w.cpu.conditionIsSatisfied(.hi))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.ls))
     }
     
     func testLs() throws {
-        cpu.d0 = 4
+        w.cpu.d0 = 4
         
         let op = Operation.cmpi(.b, 5, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.ls))
-        XCTAssert(!cpu.conditionIsSatisfied(.hi))
+        XCTAssert(w.cpu.conditionIsSatisfied(.ls))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.hi))
         
-        cpu.d0 = 5
-        cpu.execute(op, length: 0)
+        w.cpu.d0 = 5
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.ls))
-        XCTAssert(!cpu.conditionIsSatisfied(.hi))
+        XCTAssert(w.cpu.conditionIsSatisfied(.ls))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.hi))
     }
     
     func testCs() throws {
-        cpu.d0 = 4
+        w.cpu.d0 = 4
         
         let op = Operation.cmpi(.b, 5, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
 
-        XCTAssert(cpu.conditionIsSatisfied(.cs))
-        XCTAssert(!cpu.conditionIsSatisfied(.cc))
+        XCTAssert(w.cpu.conditionIsSatisfied(.cs))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.cc))
     }
     
     func testCc() throws {
-        cpu.d0 = 5
+        w.cpu.d0 = 5
         
         let op = Operation.cmpi(.b, 4, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
 
-        XCTAssert(cpu.conditionIsSatisfied(.cc))
-        XCTAssert(!cpu.conditionIsSatisfied(.cs))
+        XCTAssert(w.cpu.conditionIsSatisfied(.cc))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.cs))
     }
     
     func testVs() throws {
-        cpu.d0 = 127
+        w.cpu.d0 = 127
         
         let op = Operation.cmpi(.b, -1, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.vs))
-        XCTAssert(!cpu.conditionIsSatisfied(.vc))
+        XCTAssert(w.cpu.conditionIsSatisfied(.vs))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.vc))
     }
     
     func testVc() throws {
-        cpu.d0 = 0
+        w.cpu.d0 = 0
         
         let op = Operation.cmpi(.b, -1, .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
         
-        XCTAssert(cpu.conditionIsSatisfied(.vc))
-        XCTAssert(!cpu.conditionIsSatisfied(.vs))
+        XCTAssert(w.cpu.conditionIsSatisfied(.vc))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.vs))
     }
     
     func testTf() throws {
-        cpu.d0 = UInt32.random(in: 0...UInt32.max)
+        w.cpu.d0 = UInt32.random(in: 0...UInt32.max)
         
         let op = Operation.cmpi(.b, Int32.random(in: Int32.min...Int32.max), .dd(.d0))
-        cpu.execute(op, length: 0)
+        w.cpu.execute(op, length: 0)
 
-        XCTAssert(cpu.conditionIsSatisfied(.t))
-        XCTAssert(!cpu.conditionIsSatisfied(.f))
+        XCTAssert(w.cpu.conditionIsSatisfied(.t))
+        XCTAssert(!w.cpu.conditionIsSatisfied(.f))
     }
 }

@@ -35,14 +35,10 @@ struct TestInstructionStorage: InstructionStorage {
 
 
 class DisassemblerTests: XCTestCase {
-    static var d: Disassembler!
+    static var d = Disassembler()
     
     var d: Disassembler {
         DisassemblerTests.d
-    }
-    
-    override class func setUp() {
-        d = Disassembler()
     }
     
     override func setUpWithError() throws {
