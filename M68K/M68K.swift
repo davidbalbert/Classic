@@ -637,13 +637,13 @@ public struct CPU {
 
                 cpu.ccr = cc
             }
-        case let .andi(.b, data, destination):
+        case let .andi(.b, data, .dd(Dn)):
             return { cpu in
-                let current = UInt8(truncatingIfNeeded: cpu.read(from: destination, size: .b))
+                let current = cpu.readReg8(Dn)
                 let data = UInt8(truncatingIfNeeded: data)
+
                 let res = current & data
-                
-                cpu.writeEffectiveAddress(destination, value: UInt32(truncatingIfNeeded: res), size: .b)
+                cpu.writeReg8(Dn, value: res)
                 
                 var cc = cpu.ccr.intersection(.x)
                 
@@ -652,14 +652,30 @@ public struct CPU {
                 
                 cpu.ccr = cc
             }
-        case let .andi(.w, data, destination):
+        case let .andi(.b, data, .m(ea)):
             return { cpu in
-                let current = UInt16(truncatingIfNeeded: cpu.read(from: destination, size: .w))
-                let data = UInt16(truncatingIfNeeded: data)
+                let addr = cpu.address(for: ea, size: .b)
+                let current = cpu.read8(addr)
+                let data = UInt8(truncatingIfNeeded: data)
+
                 let res = current & data
+                cpu.write8(addr, value: res)
+                                
+                var cc = cpu.ccr.intersection(.x)
                 
-                cpu.writeEffectiveAddress(destination, value: UInt32(truncatingIfNeeded: res), size: .w)
+                if res >= 0x80 { cc.insert(.n) }
+                if res == 0    { cc.insert(.z) }
                 
+                cpu.ccr = cc
+            }
+        case let .andi(.w, data, .dd(Dn)):
+            return { cpu in
+                let current = cpu.readReg16(Dn)
+                let data = UInt16(truncatingIfNeeded: data)
+
+                let res = current & data
+                cpu.writeReg16(Dn, value: res)
+
                 var cc = cpu.ccr.intersection(.x)
                 
                 if res >= 0x8000 { cc.insert(.n) }
@@ -667,14 +683,46 @@ public struct CPU {
                 
                 cpu.ccr = cc
             }
-        case let .andi(.l, data, destination):
+        case let .andi(.w, data, .m(ea)):
             return { cpu in
-                let current = cpu.read(from: destination, size: .l)
-                let data = UInt32(bitPattern: data)
+                let addr = cpu.address(for: ea, size: .b)
+                let current = cpu.read16(addr)
+                let data = UInt16(truncatingIfNeeded: data)
+
                 let res = current & data
+                cpu.write16(addr, value: res)
+
+                var cc = cpu.ccr.intersection(.x)
                 
-                cpu.writeEffectiveAddress(destination, value: res, size: .l)
+                if res >= 0x8000 { cc.insert(.n) }
+                if res == 0      { cc.insert(.z) }
                 
+                cpu.ccr = cc
+            }
+        case let .andi(.l, data, .dd(Dn)):
+            return { cpu in
+                let current = cpu.readReg32(Dn)
+                let data = UInt32(bitPattern: data)
+
+                let res = current & data
+                cpu.writeReg32(Dn, value: res)
+
+                var cc = cpu.ccr.intersection(.x)
+                
+                if res >= 0x8000_0000 { cc.insert(.n) }
+                if res == 0           { cc.insert(.z) }
+                
+                cpu.ccr = cc
+            }
+        case let .andi(.l, data, .m(ea)):
+            return { cpu in
+                let addr = cpu.address(for: ea, size: .b)
+                let current = cpu.read32(addr)
+                let data = UInt32(bitPattern: data)
+
+                let res = current & data
+                cpu.write32(addr, value: res)
+
                 var cc = cpu.ccr.intersection(.x)
                 
                 if res >= 0x8000_0000 { cc.insert(.n) }
@@ -914,12 +962,12 @@ public struct CPU {
                 let data = cpu.read(src, UInt32.self)
                 cpu.writeReg32(An, value: data)
             }
-        case let .movem(size, .mToR, address, registers):
+        case let .movemMR(size, address, registers):
             return { cpu in
                 let inc = Size(size).byteCount
 
                 switch address {
-                case let .m(.XXXl(addr)):
+                case let .XXXl(addr):
                     var a = addr
                     for path in registers.keyPaths {
                         cpu[keyPath: path] = cpu.read32(a)

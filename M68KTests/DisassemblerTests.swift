@@ -267,7 +267,7 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x4c, 0xf9, 0x01, 0x01, 0x00, 0xf8, 0x00, 0x00])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.movem(.l, .mToR, .m(.XXXl(0xf80000)), [.d0, .a0]))
+        XCTAssertEqual(op, Operation.movemMR(.l, .XXXl(0xf80000), [.d0, .a0]))
     }
     
     func testLea() throws {
@@ -463,17 +463,17 @@ class DisassemblerTests: XCTestCase {
     }
     
     func testArithmeticShiftRightMemory() throws {
-        let storage = TestInstructionStorage([0xe0, 0xc2])
+        let storage = TestInstructionStorage([0xe0, 0xd2])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.asrm(.dd(.d2)))
+        XCTAssertEqual(op, Operation.asrm(.ind(.a2)))
     }
     
     func testArithmeticShiftLeftMemory() throws {
-        let storage = TestInstructionStorage([0xe1, 0xc2])
+        let storage = TestInstructionStorage([0xe1, 0xd2])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.aslm(.dd(.d2)))
+        XCTAssertEqual(op, Operation.aslm(.ind(.a2)))
     }
 
     func testLogicalShiftImmediate() throws {
@@ -677,10 +677,10 @@ class DisassemblerTests: XCTestCase {
     }
     
     func testBchgRegisterByte() throws {
-        let storage = TestInstructionStorage([0x03, 0x48])
+        let storage = TestInstructionStorage([0x03, 0x50])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.bchg(.b, .r(.d1), .ad(.a0)))
+        XCTAssertEqual(op, Operation.bchg(.b, .r(.d1), .m(.ind(.a0))))
     }
     
     func testBchgRegisterLong() throws {
