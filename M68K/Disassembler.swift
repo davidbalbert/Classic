@@ -684,16 +684,16 @@ enum Operation: Equatable {
     case lsr(Size, ShiftCount, DataRegister)
     case lslm(MemoryAlterableAddress)
     case lsrm(MemoryAlterableAddress)
-    case clr(Size, EffectiveAddress)
+    case clr(Size, DataAlterableAddress)
     case swap(DataRegister)
     case rol(Size, RotateCount, DataRegister)
     case ror(Size, RotateCount, DataRegister)
-    case rolm(EffectiveAddress)
-    case rorm(EffectiveAddress)
+    case rolm(MemoryAlterableAddress)
+    case rorm(MemoryAlterableAddress)
     case roxl(Size, RotateCount, DataRegister)
     case roxr(Size, RotateCount, DataRegister)
-    case roxlm(EffectiveAddress)
-    case roxrm(EffectiveAddress)
+    case roxlm(MemoryAlterableAddress)
+    case roxrm(MemoryAlterableAddress)
     case mulu(EffectiveAddress, DataRegister)
     
     case unknown(UInt16)
@@ -2200,7 +2200,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readDataAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2419,7 +2419,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readMemoryAlterableAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2498,7 +2498,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readMemoryAlterableAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
