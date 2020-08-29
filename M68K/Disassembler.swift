@@ -654,10 +654,11 @@ enum Operation: Equatable {
     case moveFromSR(DataAlterableAddress)
     case nop
     case not(Size, DataAlterableAddress)
-    case pea(EffectiveAddress)
+    case pea(ControlAddress)
     case rts
-    case scc(Condition, EffectiveAddress)
-    case sub(Size, Direction, EffectiveAddress, DataRegister)
+    case scc(Condition, DataAlterableAddress)
+    case subMR(Size, EffectiveAddress, DataRegister)
+    case subRM(Size, DataRegister, MemoryAlterableAddress)
     case suba(SizeWL, EffectiveAddress, AddressRegister)
     case subi(Size, Int32, EffectiveAddress)
     case subq(Size, UInt8, EffectiveAddress)
@@ -743,9 +744,9 @@ extension Operation: CustomStringConvertible {
             return "lea \(address), \(register)"
         case let .scc(condition, address):
             return "s\(condition) \(address)"
-        case let .sub(size, .mToR, address, register):
+        case let .subMR(size, address, register):
             return "sub.\(size) \(address), \(register)"
-        case let .sub(size, .rToM, address, register):
+        case let .subRM(size, register, address):
             return "sub.\(size) \(register), \(address)"
         case let .suba(size, address, register):
             return "suba.\(size) \(address), \(register)"
@@ -1611,7 +1612,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readControlAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1652,7 +1653,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readDataAlterableAddress(state, eaMode, Int(eaReg), size: .b) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1685,15 +1686,23 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
-                op = .unknown(instructionWord)
-                break
+            let direction = (instructionWord >> 8) & 1
+            
+            if direction == 1 {
+                guard let address = readMemoryAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .subRM(size, register, address)
+            } else {
+                guard let address = readAddress(state, eaMode, Int(eaReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+                
+                op = .subMR(size, address, register)
             }
-
-            let direction0 = (instructionWord >> 8) & 1
-            let direction: Direction = direction0 == 1 ? .rToM : .mToR
-
-            op = .sub(size, direction, address, register)
         case .suba:
             let eaModeNum = (instructionWord >> 3) & 7
             let eaReg = instructionWord & 7
