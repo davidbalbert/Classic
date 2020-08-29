@@ -673,8 +673,8 @@ enum Operation: Equatable {
     case oriToSR(Int16)
     case lsl(Size, ShiftCount, DataRegister)
     case lsr(Size, ShiftCount, DataRegister)
-    case lslm(EffectiveAddress)
-    case lsrm(EffectiveAddress)
+    case lslm(MemoryAlterableAddress)
+    case lsrm(MemoryAlterableAddress)
     case clr(Size, EffectiveAddress)
     case swap(DataRegister)
     case rol(Size, RotateCount, DataRegister)
@@ -2148,7 +2148,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readMemoryAlterableAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
