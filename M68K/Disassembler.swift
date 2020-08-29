@@ -653,7 +653,7 @@ enum Operation: Equatable {
     case moveToSR(DataAddress)
     case moveFromSR(DataAlterableAddress)
     case nop
-    case not(Size, EffectiveAddress)
+    case not(Size, DataAlterableAddress)
     case pea(EffectiveAddress)
     case rts
     case scc(Condition, EffectiveAddress)
@@ -2010,7 +2010,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(state, eaMode, Int(eaReg), size: .w) else {
+            guard let address = readDataAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
