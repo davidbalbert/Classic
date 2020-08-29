@@ -328,6 +328,14 @@ struct ExtensionWord {
 enum SizeWL: Equatable {
     case w
     case l
+    
+    init?(_ size: Size) {
+        switch size {
+        case .b: return nil
+        case .w: self = .w
+        case .l: self = .l
+        }
+    }
 }
 
 enum Size: Equatable {
@@ -663,8 +671,9 @@ enum Operation: Equatable {
     case subMR(Size, EffectiveAddress, DataRegister)
     case subRM(Size, DataRegister, MemoryAlterableAddress)
     case suba(SizeWL, EffectiveAddress, AddressRegister)
-    case subi(Size, Int32, EffectiveAddress)
-    case subq(Size, UInt8, EffectiveAddress)
+    case subi(Size, Int32, DataAlterableAddress)
+    case subqB(UInt8, DataAlterableAddress)
+    case subqWL(SizeWL, UInt8, AlterableAddress)
     case jmp(ControlAddress)
     case jsr(ControlAddress)
     case tst(Size, EffectiveAddress)
@@ -753,7 +762,9 @@ extension Operation: CustomStringConvertible {
             return "suba.\(size) \(address), \(register)"
         case let .subi(size, data, address):
             return "sub.\(size) #$\(String(data, radix: 16)), \(address)"
-        case let .subq(size, data, address):
+        case let .subqB(data, address):
+            return "subq.b #$\(String(data, radix: 16)), \(address)"
+        case let .subqWL(size, data, address):
             return "subq.\(size) #$\(String(data, radix: 16)), \(address)"
         case let .movemRM(size, registers, address):
             return "movem.\(size) \(registers), \(address)"
@@ -1764,7 +1775,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readDataAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1798,12 +1809,21 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
-                op = .unknown(instructionWord)
-                break
-            }
+            if size == .b {
+                guard let address = readDataAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
 
-            op = .subq(size, data, address)
+                op = .subqB(data, address)
+            } else {
+                guard let address = readAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .subqWL(SizeWL(size)!, data, address)
+            }
         case .movem:
             let direction = (instructionWord >> 10) & 1
             let size0 = (instructionWord >> 6) & 1

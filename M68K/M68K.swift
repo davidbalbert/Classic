@@ -1156,13 +1156,29 @@ public struct CPU {
                 
                 cpu[keyPath: An.keyPath] = res
             }
-        case let .subq(.b, data, destination):
+        case let .subqB(data, .dd(Dn)):
             return { cpu in
-                let v = UInt8(truncatingIfNeeded: cpu.read(from: destination, size: .b))
-                let data = UInt8(data)
+                let v = cpu.readReg8(Dn)
                 let res = v &- data
+                cpu.writeReg8(Dn, value: res)
                 
-                cpu.writeEffectiveAddress(destination, value: UInt32(truncatingIfNeeded: res), size: .b)
+                let overflow = vsub(data, v, res)
+                var cc = StatusRegister()
+
+                if res >= 0x80          { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if data > v             { cc.insert(.c); cc.insert(.x) }
+                
+                cpu.ccr = cc
+            }
+        case let .subqB(data, .m(ea)):
+            return { cpu in
+                let addr = cpu.address(for: ea, size: .b)
+                let v = cpu.read8(addr)
+                
+                let res = v &- data
+                cpu.write8(addr, value: res)
                                 
                 let overflow = vsub(data, v, res)
                 var cc = StatusRegister()
@@ -1174,21 +1190,40 @@ public struct CPU {
                 
                 cpu.ccr = cc
             }
-        case let .subq(.w, data, .ad(An)):
+        case let .subqWL(.w, data, .dd(Dn)):
             return { cpu in
-                let v = UInt16(truncatingIfNeeded: cpu.read(from: .ad(An), size: .w))
-                let data = UInt16(data)
-                let res = v &- data
-
-                cpu.writeEffectiveAddress(.ad(An), value: UInt32(truncatingIfNeeded: res), size: .w)
-            }
-        case let .subq(.w, data, destination):
-            return { cpu in
-                let v = UInt16(truncatingIfNeeded: cpu.read(from: destination, size: .w))
+                let v = cpu.readReg16(Dn)
                 let data = UInt16(data)
                 let res = v &- data
                 
-                cpu.writeEffectiveAddress(destination, value: UInt32(truncatingIfNeeded: res), size: .w)
+                cpu.writeReg16(Dn, value: res)
+                
+                let overflow = vsub(data, v, res)
+                var cc = StatusRegister()
+
+                if res >= 0x8000        { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if data > v             { cc.insert(.c); cc.insert(.x) }
+                
+                cpu.ccr = cc
+            }
+        case let .subqWL(.w, data, .ad(An)):
+            return { cpu in
+                let v = cpu.readReg16(An)
+                let data = UInt16(data)
+                let res = v &- data
+                
+                cpu.writeReg16(An, value: res)
+            }
+        case let .subqWL(.w, data, .m(ea)):
+            return { cpu in
+                let addr = cpu.address(for: ea, size: .w)
+                let v = cpu.read16(addr)
+                let data = UInt16(data)
+                
+                let res = v &- data
+                cpu.write16(addr, value: res)
                                 
                 let overflow = vsub(data, v, res)
                 var cc = StatusRegister()
@@ -1200,7 +1235,25 @@ public struct CPU {
                 
                 cpu.ccr = cc
             }
-        case let .subq(.l, data, .ad(An)):
+        case let .subqWL(.l, data, .dd(Dn)):
+            return { cpu in
+                let v = cpu.readReg32(Dn)
+                let data = UInt32(data)
+                let res = v &- data
+                
+                cpu.writeReg32(Dn, value: res)
+                
+                let overflow = vsub(data, v, res)
+                var cc = StatusRegister()
+
+                if res >= 0x8000_0000   { cc.insert(.n) }
+                if res == 0             { cc.insert(.z) }
+                if overflow             { cc.insert(.v) }
+                if data > v             { cc.insert(.c); cc.insert(.x) }
+                
+                cpu.ccr = cc
+            }
+        case let .subqWL(.l, data, .ad(An)):
             return { cpu in
                 let v = cpu.read(from: .ad(An), size: .l)
                 let data = UInt32(data)
@@ -1208,14 +1261,15 @@ public struct CPU {
 
                 cpu.writeEffectiveAddress(.ad(An), value: UInt32(truncatingIfNeeded: res), size: .l)
             }
-        case let .subq(.l, data, destination):
+        case let .subqWL(.l, data, .m(ea)):
             return { cpu in
-                let v = cpu.read(from: destination, size: .l)
+                let addr = cpu.address(for: ea, size: .l)
+                let v = cpu.read32(addr)
                 let data = UInt32(data)
-                let res = v &- data
                 
-                cpu.writeEffectiveAddress(destination, value: res, size: .l)
-                                
+                let res = v &- data
+                cpu.write32(addr, value: data)
+                                                
                 let overflow = vsub(data, v, res)
                 var cc = StatusRegister()
 
