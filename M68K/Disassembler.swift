@@ -650,8 +650,8 @@ enum Operation: Equatable {
     case movemMR(SizeWL, ControlAlterableOrPostIncrementAddress, RegisterList)
     case movemRM(SizeWL, RegisterList, ControlAlterableOrPreDecrementAddress)
     case moveq(Int8, DataRegister)
-    case moveToSR(EffectiveAddress)
-    case moveFromSR(EffectiveAddress)
+    case moveToSR(DataAddress)
+    case moveFromSR(DataAlterableAddress)
     case nop
     case not(Size, EffectiveAddress)
     case pea(EffectiveAddress)
@@ -1958,7 +1958,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(state, eaMode, Int(eaReg), size: .w) else {
+            guard let address = readDataAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -1972,7 +1972,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(state, eaMode, Int(eaReg), size: .w) else {
+            guard let address = readDataAlterableAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }

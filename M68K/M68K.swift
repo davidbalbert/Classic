@@ -994,8 +994,8 @@ public struct CPU {
                     fatalError("moveToSR but not supervisor, should trap here")
                 }
                     
-                let value = UInt16(truncatingIfNeeded: cpu.read(from: address, size: .w))
-                
+                let value = cpu.read(EffectiveAddress(address), UInt16.self)
+
                 cpu.sr = StatusRegister(rawValue: value)
             }
         case let .oriToSR(value):
