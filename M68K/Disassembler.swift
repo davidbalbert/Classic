@@ -666,9 +666,10 @@ enum Operation: Equatable {
     case subi(Size, Int32, EffectiveAddress)
     case subq(Size, UInt8, EffectiveAddress)
     case jmp(ControlAddress)
-    case jsr(EffectiveAddress)
+    case jsr(ControlAddress)
     case tst(Size, EffectiveAddress)
-    case or(Size, Direction, EffectiveAddress, DataRegister)
+    case orMR(Size, DataAddress, DataRegister)
+    case orRM(Size, DataRegister, MemoryAlterableAddress)
     case oriToSR(Int16)
     case lsl(Size, ShiftCount, DataRegister)
     case lsr(Size, ShiftCount, DataRegister)
@@ -784,9 +785,9 @@ extension Operation: CustomStringConvertible {
             return "jsr \(address)"
         case let .tst(size, address):
             return "tst.\(size) \(address)"
-        case let .or(size, .mToR, address, register):
+        case let .orMR(size, address, register):
             return "or.\(size) \(address), \(register)"
-        case let .or(size, .rToM, address, register):
+        case let .orRM(size, register, address):
             return "or.\(size) \(register), \(address)"
         case let .oriToSR(data):
             return "or #$\(String(data, radix: 16)), SR"
@@ -1953,7 +1954,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readControlAddress(state, eaMode, Int(eaReg)) else {
                 op = .unknown(instructionWord)
                 break
             }
@@ -2076,15 +2077,23 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
-                op = .unknown(instructionWord)
-                break
-            }
-
-            let direction0 = (instructionWord >> 8) & 1
-            let direction: Direction = direction0 == 1 ? .rToM : .mToR
+            let direction = (instructionWord >> 8) & 1
             
-            op = .or(size, direction, address, register)
+            if direction == 1 {
+                guard let address = readMemoryAlterableAddress(state, eaMode, Int(eaReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .orRM(size, register, address)
+            } else {
+                guard let address = readDataAddress(state, eaMode, Int(eaReg), size: size) else {
+                    op = .unknown(instructionWord)
+                    break
+                }
+
+                op = .orMR(size, address, register)
+            }
         case .oriToSR:
             let w = state.readWord()
             
