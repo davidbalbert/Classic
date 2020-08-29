@@ -35,7 +35,15 @@ struct TestInstructionStorage: InstructionStorage {
 
 
 class DisassemblerTests: XCTestCase {
-    var d = Disassembler()
+    static var d: Disassembler!
+    
+    var d: Disassembler {
+        DisassemblerTests.d
+    }
+    
+    override class func setUp() {
+        d = Disassembler()
+    }
     
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
