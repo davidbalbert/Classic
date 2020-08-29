@@ -640,6 +640,9 @@ enum Operation: Equatable {
     case bclr(BitNumber, DataAlterableAddress)
     case bset(BitNumber, DataAlterableAddress)
     case btst(BitNumber, DataAddress)
+    case cmp(Size, EffectiveAddress, DataRegister)
+    case cmpa(Size, EffectiveAddress, AddressRegister)
+    case cmpi(Size, Int32, DataAddress)
     case dbcc(Condition, DataRegister, UInt32, Int16)
     case eor(Size, DataRegister, DataAlterableAddress)
     case ext(Size, DataRegister)
@@ -662,9 +665,6 @@ enum Operation: Equatable {
     case suba(SizeWL, EffectiveAddress, AddressRegister)
     case subi(Size, Int32, EffectiveAddress)
     case subq(Size, UInt8, EffectiveAddress)
-    case cmp(Size, EffectiveAddress, DataRegister)
-    case cmpa(Size, EffectiveAddress, AddressRegister)
-    case cmpi(Size, Int32, EffectiveAddress)
     case jmp(ControlAddress)
     case jsr(EffectiveAddress)
     case tst(Size, EffectiveAddress)
@@ -1925,7 +1925,7 @@ public struct Disassembler {
                 break
             }
 
-            guard let address = readAddress(state, eaMode, Int(eaReg)) else {
+            guard let address = readDataAddress(state, eaMode, Int(eaReg), size: size) else {
                 op = .unknown(instructionWord)
                 break
             }
