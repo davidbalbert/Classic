@@ -60,7 +60,7 @@ class AndTests: XCTestCase {
         XCTAssertEqual(m.cpu.ccr, [.x])
     }
     
-    func testAndMRBWord() throws {
+    func testAndMRWord() throws {
         m.cpu.ccr = []
         m.cpu.d0 = 0xaaaa
         
@@ -101,7 +101,7 @@ class AndTests: XCTestCase {
     }
     
 
-    func testAndMRBLong() throws {
+    func testAndMRLong() throws {
         m.cpu.ccr = []
         m.cpu.d0 = 0xaaaa_aaaa
         
@@ -138,6 +138,62 @@ class AndTests: XCTestCase {
         m.cpu.execute(.andMR(.l, .imm(0x0f0f_0f0f), .d0), length: 0)
         
         XCTAssertEqual(m.cpu.d0, 0x0a0a_0a0a)
+        XCTAssertEqual(m.cpu.ccr, [.x])
+    }
+    
+    func testAndRMByte() throws {
+        m.cpu.ccr = []
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write8(0x2, value: 0xaa)
+        
+        m.cpu.d0 = 0xff0f
+        
+        m.cpu.execute(.andRM(.b, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(0x2), 0x0a)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testAndRMByteNegative() throws {
+        m.cpu.ccr = []
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write8(0x2, value: 0xaa)
+        
+        m.cpu.d0 = 0xfff0
+        
+        m.cpu.execute(.andRM(.b, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(0x2), 0xa0)
+        XCTAssertEqual(m.cpu.ccr, [.n])
+    }
+    
+    func testAndRMByteZero() throws {
+        m.cpu.ccr = []
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write8(0x2, value: 0xaa)
+        
+        m.cpu.d0 = 0xff00
+        
+        m.cpu.execute(.andRM(.b, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(0x2), 0x00)
+        XCTAssertEqual(m.cpu.ccr, [.z])
+    }
+
+    func testAndRMOBytetherFlags() throws {
+        m.cpu.ccr = [.x, .v, .c]
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write8(0x2, value: 0xaa)
+        
+        m.cpu.d0 = 0xff0f
+        
+        m.cpu.execute(.andRM(.b, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(0x2), 0x0a)
         XCTAssertEqual(m.cpu.ccr, [.x])
     }
 }

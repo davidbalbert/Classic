@@ -636,12 +636,10 @@ public struct CPU {
                 let res = v1 & v2
                 cpu.write8(addr, value: res)
                 
-                var cc = cpu.ccr.intersection(.x)
-
-                if res >= 0x80 { cc.insert(.n) }
-                if res == 0    { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andRM(.w, Dn, ea):
             return { cpu in
