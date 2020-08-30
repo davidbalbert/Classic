@@ -311,6 +311,20 @@ private func vsub(_ s: UInt32, _ d: UInt32, _ r: UInt32) -> Bool {
     return ((s^d) & (r^d)) >> 31 == 1
 }
 
+// negative flag
+private func neg(_ v: UInt8) -> Bool {
+    v >= 0x80
+}
+
+private func neg(_ v: UInt16) -> Bool {
+    v >= 0x8000
+}
+
+private func neg(_ v: UInt32) -> Bool {
+    v >= 0x8000_0000
+}
+
+
 typealias InstructionHandler = (inout CPU) -> Void
 
 public struct CPU {
@@ -495,7 +509,7 @@ public struct CPU {
                 let res = v1 &+ v2
                 cpu.writeReg8(Dn, value: res)
                 
-                cpu.n = res >= 0x80
+                cpu.n = neg(res)
                 cpu.z = res == 0
                 cpu.v = vadd(v1, v2, res)
                 cpu.c = res < v1
