@@ -17,7 +17,7 @@ class AddTests: XCTestCase {
     }
     
     var m: TestMachine {
-        InstructionTests.m
+        AddTests.m
     }
 
     func testAddMRByte() throws {
