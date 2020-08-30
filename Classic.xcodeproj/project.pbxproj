@@ -15,7 +15,7 @@
 		6321D9C4245F61DC00C73B5F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6321D9C2245F61DC00C73B5F /* Main.storyboard */; };
 		63229391249D50C4006460CC /* LineNumberRulerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63229390249D50C4006460CC /* LineNumberRulerView.swift */; };
 		6329F3B924EC11440038A1D1 /* CCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6329F3B824EC11440038A1D1 /* CCRTests.swift */; };
-		6329F3BB24FC0FB30038A1D1 /* InstructionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6329F3BA24FC0FB30038A1D1 /* InstructionTests.swift */; };
+		6329F3BB24FC0FB30038A1D1 /* AddTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6329F3BA24FC0FB30038A1D1 /* AddTests.swift */; };
 		6332243D24DF14EE00157207 /* DebugWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6332243C24DF14EE00157207 /* DebugWindowController.swift */; };
 		6332243F24E09DD500157207 /* ConditionCodeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6332243E24E09DD500157207 /* ConditionCodeTests.swift */; };
 		6332244124E0AA3900157207 /* TestMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6332244024E0AA3900157207 /* TestMachine.swift */; };
@@ -86,7 +86,7 @@
 		6321D9D4245F7FE500C73B5F /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		63229390249D50C4006460CC /* LineNumberRulerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberRulerView.swift; sourceTree = "<group>"; };
 		6329F3B824EC11440038A1D1 /* CCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCRTests.swift; sourceTree = "<group>"; };
-		6329F3BA24FC0FB30038A1D1 /* InstructionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstructionTests.swift; sourceTree = "<group>"; };
+		6329F3BA24FC0FB30038A1D1 /* AddTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTests.swift; sourceTree = "<group>"; };
 		6332243C24DF14EE00157207 /* DebugWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugWindowController.swift; sourceTree = "<group>"; };
 		6332243E24E09DD500157207 /* ConditionCodeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionCodeTests.swift; sourceTree = "<group>"; };
 		6332244024E0AA3900157207 /* TestMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestMachine.swift; sourceTree = "<group>"; };
@@ -175,6 +175,14 @@
 			path = Classic;
 			sourceTree = "<group>";
 		};
+		6329F3BC24FC2F1E0038A1D1 /* InstructionTests */ = {
+			isa = PBXGroup;
+			children = (
+				6329F3BA24FC0FB30038A1D1 /* AddTests.swift */,
+			);
+			path = InstructionTests;
+			sourceTree = "<group>";
+		};
 		63827EF724AAB0B0003DB88F /* M68K */ = {
 			isa = PBXGroup;
 			children = (
@@ -189,8 +197,8 @@
 		63827F0424AAB0B0003DB88F /* M68KTests */ = {
 			isa = PBXGroup;
 			children = (
+				6329F3BC24FC2F1E0038A1D1 /* InstructionTests */,
 				6332243E24E09DD500157207 /* ConditionCodeTests.swift */,
-				6329F3BA24FC0FB30038A1D1 /* InstructionTests.swift */,
 				6329F3B824EC11440038A1D1 /* CCRTests.swift */,
 				6332244024E0AA3900157207 /* TestMachine.swift */,
 				63827F0524AAB0B0003DB88F /* DisassemblerTests.swift */,
@@ -370,7 +378,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6329F3BB24FC0FB30038A1D1 /* InstructionTests.swift in Sources */,
+				6329F3BB24FC0FB30038A1D1 /* AddTests.swift in Sources */,
 				6329F3B924EC11440038A1D1 /* CCRTests.swift in Sources */,
 				63827F0624AAB0B0003DB88F /* DisassemblerTests.swift in Sources */,
 				6332244124E0AA3900157207 /* TestMachine.swift in Sources */,

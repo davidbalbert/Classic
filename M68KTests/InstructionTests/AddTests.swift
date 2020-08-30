@@ -1,5 +1,5 @@
 //
-//  InstructionTests.swift
+//  AddTests.swift
 //  M68KTests
 //
 //  Created by David Albert on 8/30/20.
@@ -9,7 +9,7 @@
 import XCTest
 @testable import M68K
 
-class InstructionTests: XCTestCase {
+class AddTests: XCTestCase {
     static var m = TestMachine([0, 0, 0, 0, 0, 0, 0, 0])
     
     override class func setUp() {
