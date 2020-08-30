@@ -694,7 +694,7 @@ enum Operation: Equatable {
     case roxr(Size, RotateCount, DataRegister)
     case roxlm(MemoryAlterableAddress)
     case roxrm(MemoryAlterableAddress)
-    case mulu(EffectiveAddress, DataRegister)
+    case mulu(DataAddress, DataRegister)
     
     case unknown(UInt16)
 }
@@ -2443,7 +2443,7 @@ public struct Disassembler {
                 break
             }
             
-            guard let address = readAddress(state, eaMode, Int(eaReg), size: .w) else {
+            guard let address = readDataAddress(state, eaMode, Int(eaReg), size: .w) else {
                 op = .unknown(instructionWord)
                 break
             }
