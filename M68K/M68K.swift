@@ -332,6 +332,66 @@ public struct CPU {
     var inSupervisorMode: Bool {
         sr.contains(.s)
     }
+    
+    var c: Bool {
+        get { sr.contains(.c) }
+        
+        set {
+            if newValue {
+                sr.insert(.c)
+            } else {
+                sr.remove(.c)
+            }
+        }
+    }
+    
+    var v: Bool {
+        get { sr.contains(.v) }
+        
+        set {
+            if newValue {
+                sr.insert(.v)
+            } else {
+                sr.remove(.v)
+            }
+        }
+    }
+    
+    var z: Bool {
+        get { sr.contains(.z) }
+        
+        set {
+            if newValue {
+                sr.insert(.z)
+            } else {
+                sr.remove(.z)
+            }
+        }
+    }
+    
+    var n: Bool {
+        get { sr.contains(.n) }
+        
+        set {
+            if newValue {
+                sr.insert(.n)
+            } else {
+                sr.remove(.n)
+            }
+        }
+    }
+    
+    var x: Bool {
+        get { sr.contains(.x) }
+        
+        set {
+            if newValue {
+                sr.insert(.x)
+            } else {
+                sr.remove(.x)
+            }
+        }
+    }
 
     public var usp: UInt32
     public var isp: UInt32
@@ -435,16 +495,11 @@ public struct CPU {
                 let res = v1 &+ v2
                 cpu.writeReg8(Dn, value: res)
                 
-                var cc = StatusRegister()
-                
-                let overflow = vadd(v1, v2, res)
-                
-                if res >= 0x80          { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if res < v1             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.n = res >= 0x80
+                cpu.z = res == 0
+                cpu.v = vadd(v1, v2, res)
+                cpu.c = res < v1
+                cpu.x = cpu.c
             }
         case let .addMR(.w, address, Dn):
             return { cpu in
@@ -1657,7 +1712,7 @@ public struct StatusRegister: OptionSet, Hashable {
     public static let x = StatusRegister(rawValue: 1 << 4)
 
     public static let ccr: StatusRegister = [x, n, z, v, c]
-
+    
     // System bits
 
     // Interrupt priority mask
