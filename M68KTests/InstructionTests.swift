@@ -46,4 +46,32 @@ class InstructionTests: XCTestCase {
         XCTAssertEqual(m.cpu.d0, 0xff83)
         XCTAssertEqual(m.cpu.ccr, [.v, .n])
     }
+    
+    func testAddMRWord() throws {
+        m.cpu.ccr = StatusRegister()
+        m.cpu.d0 = 0xffff0005
+        m.cpu.execute(.addMR(.w, .imm(4), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xffff0009)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testAddMRWordCarry() throws {
+        m.cpu.ccr = StatusRegister()
+        m.cpu.d0 = 0xffff0005
+        m.cpu.execute(.addMR(.w, .imm(0xfffb), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xffff0000)
+        XCTAssertEqual(m.cpu.ccr, [.c, .z, .x])
+    }
+    
+    func testAddMRWordOverflow() throws {
+        m.cpu.ccr = StatusRegister()
+        m.cpu.d0 = 0xffff0005
+        m.cpu.execute(.addMR(.w, .imm(0x7ffe), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xffff8003)
+        XCTAssertEqual(m.cpu.ccr, [.v, .n])
+
+    }
 }
