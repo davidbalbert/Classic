@@ -10,7 +10,7 @@ import XCTest
 @testable import M68K
 
 class InstructionTests: XCTestCase {
-    static var m = TestMachine([])
+    static var m = TestMachine([0, 0, 0, 0, 0, 0, 0, 0])
     
     override class func setUp() {
         m.cpu.bus = m
@@ -98,6 +98,132 @@ class InstructionTests: XCTestCase {
         m.cpu.execute(.addMR(.l, .imm(0x1000_0004), .d0), length: 0)
         
         XCTAssertEqual(m.cpu.d0, 0x8afe_0009)
+        XCTAssertEqual(m.cpu.ccr, [.v, .n])
+    }
+    
+    func testAddRMByte() throws {
+        m.cpu.ccr = StatusRegister()
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write8(0x2, value: 5)
+        
+        m.cpu.d0 = 0xff04
+        
+        m.cpu.execute(.addRM(.b, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(0x2), 0x09)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testAddRMByteCarry() throws {
+        m.cpu.ccr = StatusRegister()
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write8(0x2, value: 5)
+        
+        m.cpu.d0 = 4
+        
+        m.cpu.execute(.addRM(.b, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(0x2), 0x09)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testAddRMByteOverflow() throws {
+        m.cpu.ccr = StatusRegister()
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write8(0x2, value: 0x7e)
+        
+        m.cpu.d0 = 0xff05
+        
+        m.cpu.execute(.addRM(.b, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(0x2), 0x83)
+        XCTAssertEqual(m.cpu.ccr, [.v, .n])
+    }
+    
+    func testAddRMWord() throws {
+        m.cpu.ccr = StatusRegister()
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write16(0x2, value: 0x4)
+        
+        m.cpu.d0 = 0xffff0005
+        
+        m.cpu.execute(.addRM(.w, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(0x2), 0x0009)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testAddRMWordCarry() throws {
+        m.cpu.ccr = StatusRegister()
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write16(0x2, value: 0xfffb)
+        
+        m.cpu.d0 = 0xffff0005
+        
+        m.cpu.execute(.addRM(.w, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(0x2), 0x0)
+        XCTAssertEqual(m.cpu.ccr, [.c, .z, .x])
+    }
+    
+    func testAddRMWordOverflow() throws {
+        m.cpu.ccr = StatusRegister()
+        
+        m.cpu.a0 = 0x2
+        m.cpu.write16(0x2, value: 0x7ffe)
+        
+        m.cpu.d0 = 0xffff0005
+        
+        m.cpu.execute(.addRM(.w, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(0x2), 0x8003)
+        XCTAssertEqual(m.cpu.ccr, [.v, .n])
+    }
+    
+    func testAddRMLong() throws {
+        m.cpu.ccr = StatusRegister()
+        
+        m.cpu.a0 = 0x4
+        m.cpu.write32(0x4, value: 0x0000_0005)
+        
+        m.cpu.d0 = 0x1000_0004
+        
+        m.cpu.execute(.addRM(.l, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(0x4), 0x1000_0009)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testAddRMLongCarry() throws {
+        m.cpu.ccr = StatusRegister()
+        
+        m.cpu.a0 = 0x4
+        m.cpu.write32(0x4, value: 0x0000_0005)
+        
+        m.cpu.d0 = 0xffff_fffb
+        
+        m.cpu.execute(.addRM(.l, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(0x4), 0x0)
+        XCTAssertEqual(m.cpu.ccr, [.z, .c, .x])
+    }
+    
+    func testAddRMLongOverflow() throws {
+        m.cpu.ccr = StatusRegister()
+        
+        m.cpu.a0 = 0x4
+        m.cpu.write32(0x4, value: 0x7afe_0005)
+        
+        m.cpu.d0 = 0x1000_0004
+        
+        m.cpu.execute(.addRM(.l, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(0x4), 0x8afe_0009)
         XCTAssertEqual(m.cpu.ccr, [.v, .n])
     }
 }

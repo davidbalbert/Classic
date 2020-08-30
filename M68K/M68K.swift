@@ -552,16 +552,11 @@ public struct CPU {
                 let res = v1 &+ v2
                 cpu.write8(addr, value: res)
                 
-                var cc = StatusRegister()
-                
-                let overflow = vadd(v1, v2, res)
-                
-                if res >= 0x80          { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if res < v1             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vadd(v1, v2, res)
+                cpu.c = res < v1
+                cpu.x = cpu.c
             }
         case let .addRM(.w, Dn, ea):
             return { cpu in
@@ -572,16 +567,11 @@ public struct CPU {
                 let res = v1 &+ v2
                 cpu.write16(addr, value: res)
                 
-                var cc = StatusRegister()
-                
-                let overflow = vadd(v1, v2, res)
-                
-                if res >= 0x8000        { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if res < v1             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vadd(v1, v2, res)
+                cpu.c = res < v1
+                cpu.x = cpu.c
             }
         case let .addRM(.l, Dn, ea):
             return { cpu in
@@ -592,16 +582,11 @@ public struct CPU {
                 let res = v1 &+ v2
                 cpu.write32(addr, value: res)
                 
-                var cc = StatusRegister()
-                
-                let overflow = vadd(v1, v2, res)
-                
-                if res >= 0x8000_0000   { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if res < v1             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vadd(v1, v2, res)
+                cpu.c = res < v1
+                cpu.x = cpu.c
             }
         case let .andMR(.b, ea, Dn):
             return { cpu in
