@@ -595,13 +595,11 @@ public struct CPU {
                                 
                 let res = v1 & v2
                 cpu.writeReg8(Dn, value: res)
-                                
-                var cc = cpu.ccr.intersection(.x)
-
-                if res >= 0x80 { cc.insert(.n) }
-                if res == 0    { cc.insert(.z) }
-
-                cpu.ccr = cc
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andMR(.w, ea, Dn):
             return { cpu in
@@ -611,12 +609,10 @@ public struct CPU {
                 let res = v1 & v2
                 cpu.writeReg16(Dn, value: res)
 
-                var cc = cpu.ccr.intersection(.x)
-
-                if res >= 0x8000 { cc.insert(.n) }
-                if res == 0      { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andMR(.l, ea, Dn):
             return { cpu in
@@ -626,12 +622,10 @@ public struct CPU {
                 let res = v1 & v2
                 cpu.writeReg32(Dn, value: res)
 
-                var cc = cpu.ccr.intersection(.x)
-
-                if res >= 0x80000000 { cc.insert(.n) }
-                if res == 0          { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andRM(.b, Dn, ea):
             return { cpu in

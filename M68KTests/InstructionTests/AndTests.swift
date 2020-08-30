@@ -1,0 +1,143 @@
+//
+//  AndTests.swift
+//  M68KTests
+//
+//  Created by David Albert on 8/30/20.
+//  Copyright © 2020 David Albert. All rights reserved.
+//
+
+import XCTest
+@testable import M68K
+
+class AndTests: XCTestCase {
+    static var m = TestMachine([0, 0, 0, 0, 0, 0, 0, 0])
+    
+    override class func setUp() {
+        m.cpu.bus = m
+    }
+    
+    var m: TestMachine {
+        AndTests.m
+    }
+    
+    func testAndMRByte() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0b1010_1010
+        
+        m.cpu.execute(.andMR(.b, .imm(0x0f), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b0000_1010)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+
+    func testAndMRByteNegative() throws {
+        m.cpu.ccr = StatusRegister()
+        m.cpu.d0 = 0b1010_1010
+        
+        m.cpu.execute(.andMR(.b, .imm(0xf0), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b1010_0000)
+        XCTAssertEqual(m.cpu.ccr, [.n])
+    }
+    
+    func testAndMRByteZero() throws {
+        m.cpu.ccr = StatusRegister()
+        m.cpu.d0 = 0b1010_1010
+        
+        m.cpu.execute(.andMR(.b, .imm(0x00), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0)
+        XCTAssertEqual(m.cpu.ccr, [.z])
+    }
+    
+    func testAndMRByteOtherFlags() throws {
+        m.cpu.ccr = [.x, .v, .c]
+        m.cpu.d0 = 0b1010_1010
+        
+        m.cpu.execute(.andMR(.b, .imm(0x0f), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0a)
+        XCTAssertEqual(m.cpu.ccr, [.x])
+    }
+    
+    func testAndMRBWord() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0xaaaa
+        
+        m.cpu.execute(.andMR(.w, .imm(0x0f0f), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0a0a)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+
+    func testAndMRWordNegative() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0xaaaa
+        
+        m.cpu.execute(.andMR(.w, .imm(0xf0f0), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xa0a0)
+        XCTAssertEqual(m.cpu.ccr, [.n])
+    }
+    
+    func testAndMRWordZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0xaaaa
+        
+        m.cpu.execute(.andMR(.w, .imm(0x0), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0)
+        XCTAssertEqual(m.cpu.ccr, [.z])
+    }
+    
+    func testAndMRWordOtherFlags() throws {
+        m.cpu.ccr = [.x, .v, .c]
+        m.cpu.d0 = 0xaaaa
+        
+        m.cpu.execute(.andMR(.w, .imm(0x0f0f), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0a0a)
+        XCTAssertEqual(m.cpu.ccr, [.x])
+    }
+    
+
+    func testAndMRBLong() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0xaaaa_aaaa
+        
+        m.cpu.execute(.andMR(.l, .imm(0x0f0f_0f0f), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0a0a_0a0a)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+
+    func testAndMRLongNegative() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0xaaaa_aaaa
+        
+        m.cpu.execute(.andMR(.l, .imm(Int32(bitPattern: 0xf0f0_f0f0)), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xa0a0_a0a0)
+        XCTAssertEqual(m.cpu.ccr, [.n])
+    }
+    
+    func testAndMRLongZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0xaaaa_aaaa
+        
+        m.cpu.execute(.andMR(.l, .imm(0x0), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0)
+        XCTAssertEqual(m.cpu.ccr, [.z])
+    }
+    
+    func testAndMRLongOtherFlags() throws {
+        m.cpu.ccr = [.x, .v, .c]
+        m.cpu.d0 = 0xaaaa_aaaa
+        
+        m.cpu.execute(.andMR(.l, .imm(0x0f0f_0f0f), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0a0a_0a0a)
+        XCTAssertEqual(m.cpu.ccr, [.x])
+    }
+}

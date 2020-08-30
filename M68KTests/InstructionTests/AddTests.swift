@@ -21,7 +21,7 @@ class AddTests: XCTestCase {
     }
 
     func testAddMRByte() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         m.cpu.d0 = 0xff05
         m.cpu.execute(.addMR(.b, .imm(4), .d0), length: 0)
         
@@ -30,7 +30,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddMRByteCarry() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         m.cpu.d0 = 0xff05
         m.cpu.execute(.addMR(.b, .imm(0xfb), .d0), length: 0)
         
@@ -39,7 +39,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddMRByteOverflow() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         m.cpu.d0 = 0xff05
         m.cpu.execute(.addMR(.b, .imm(0x7e), .d0), length: 0)
         
@@ -48,7 +48,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddMRWord() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         m.cpu.d0 = 0xffff0005
         m.cpu.execute(.addMR(.w, .imm(4), .d0), length: 0)
         
@@ -57,7 +57,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddMRWordCarry() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         m.cpu.d0 = 0xffff0005
         m.cpu.execute(.addMR(.w, .imm(0xfffb), .d0), length: 0)
         
@@ -66,7 +66,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddMRWordOverflow() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         m.cpu.d0 = 0xffff0005
         m.cpu.execute(.addMR(.w, .imm(0x7ffe), .d0), length: 0)
         
@@ -75,7 +75,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddMRLong() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         m.cpu.d0 = 0x0000_0005
         m.cpu.execute(.addMR(.l, .imm(0x1000_0004), .d0), length: 0)
         
@@ -84,7 +84,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddMRLongCarry() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         m.cpu.d0 = 0x0000_0005
         m.cpu.execute(.addMR(.l, .imm(Int32(bitPattern: 0xffff_fffb)), .d0), length: 0)
         
@@ -93,7 +93,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddMRLongOverflow() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         m.cpu.d0 = 0x7afe_0005
         m.cpu.execute(.addMR(.l, .imm(0x1000_0004), .d0), length: 0)
         
@@ -102,7 +102,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddRMByte() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         
         m.cpu.a0 = 0x2
         m.cpu.write8(0x2, value: 5)
@@ -116,7 +116,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddRMByteCarry() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         
         m.cpu.a0 = 0x2
         m.cpu.write8(0x2, value: 5)
@@ -130,7 +130,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddRMByteOverflow() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         
         m.cpu.a0 = 0x2
         m.cpu.write8(0x2, value: 0x7e)
@@ -144,7 +144,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddRMWord() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         
         m.cpu.a0 = 0x2
         m.cpu.write16(0x2, value: 0x4)
@@ -158,7 +158,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddRMWordCarry() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         
         m.cpu.a0 = 0x2
         m.cpu.write16(0x2, value: 0xfffb)
@@ -172,7 +172,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddRMWordOverflow() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         
         m.cpu.a0 = 0x2
         m.cpu.write16(0x2, value: 0x7ffe)
@@ -186,7 +186,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddRMLong() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         
         m.cpu.a0 = 0x4
         m.cpu.write32(0x4, value: 0x0000_0005)
@@ -200,7 +200,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddRMLongCarry() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         
         m.cpu.a0 = 0x4
         m.cpu.write32(0x4, value: 0x0000_0005)
@@ -214,7 +214,7 @@ class AddTests: XCTestCase {
     }
     
     func testAddRMLongOverflow() throws {
-        m.cpu.ccr = StatusRegister()
+        m.cpu.ccr = []
         
         m.cpu.a0 = 0x4
         m.cpu.write32(0x4, value: 0x7afe_0005)
