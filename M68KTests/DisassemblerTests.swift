@@ -353,7 +353,7 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x53, 0x8f])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.subq(.l, 1, .ad(.a7)))
+        XCTAssertEqual(op, Operation.subqWL(.l, 1, .ad(.a7)))
     }
     
     func testCmpaWord() throws {
@@ -577,17 +577,17 @@ class DisassemblerTests: XCTestCase {
     }
     
     func testRotateRightMemory() throws {
-        let storage = TestInstructionStorage([0xe6, 0xc1])
+        let storage = TestInstructionStorage([0xe6, 0xd1])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.rorm(.dd(.d1)))
+        XCTAssertEqual(op, Operation.rorm(.ind(.a1)))
     }
     
     func testRotateLeftMemory() throws {
-        let storage = TestInstructionStorage([0xe7, 0xc1])
+        let storage = TestInstructionStorage([0xe7, 0xd1])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.rolm(.dd(.d1)))
+        XCTAssertEqual(op, Operation.rolm(.ind(.a1)))
     }
 
 
@@ -632,17 +632,17 @@ class DisassemblerTests: XCTestCase {
     }
     
     func testRotateExtendRightMemory() throws {
-        let storage = TestInstructionStorage([0xe4, 0xc0])
+        let storage = TestInstructionStorage([0xe4, 0xd0])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.roxrm(.dd(.d0)))
+        XCTAssertEqual(op, Operation.roxrm(.ind(.a0)))
     }
     
     func testRotateExtendLeftMemory() throws {
-        let storage = TestInstructionStorage([0xe5, 0xc0])
+        let storage = TestInstructionStorage([0xe5, 0xd0])
         let op = d.instruction(at: 0, storage: storage).op
         
-        XCTAssertEqual(op, Operation.roxlm(.dd(.d0)))
+        XCTAssertEqual(op, Operation.roxlm(.ind(.a0)))
     }
 
     func testClr() throws {
