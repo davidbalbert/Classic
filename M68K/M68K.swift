@@ -537,16 +537,11 @@ public struct CPU {
                 let res = v1 &+ v2
                 cpu.writeReg32(Dn, value: res)
                 
-                var cc = StatusRegister()
-                
-                let overflow = vadd(v1, v2, res)
-                
-                if res >= 0x8000_0000   { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if res < v1             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vadd(v1, v2, res)
+                cpu.c = res < v1
+                cpu.x = cpu.c
             }
         case let .addRM(.b, Dn, ea):
             return { cpu in

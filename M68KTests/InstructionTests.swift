@@ -72,6 +72,32 @@ class InstructionTests: XCTestCase {
         
         XCTAssertEqual(m.cpu.d0, 0xffff8003)
         XCTAssertEqual(m.cpu.ccr, [.v, .n])
-
+    }
+    
+    func testAddMRLong() throws {
+        m.cpu.ccr = StatusRegister()
+        m.cpu.d0 = 0x0000_0005
+        m.cpu.execute(.addMR(.l, .imm(0x1000_0004), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x1000_0009)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testAddMRLongCarry() throws {
+        m.cpu.ccr = StatusRegister()
+        m.cpu.d0 = 0x0000_0005
+        m.cpu.execute(.addMR(.l, .imm(Int32(bitPattern: 0xffff_fffb)), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0000_0000)
+        XCTAssertEqual(m.cpu.ccr, [.c, .z, .x])
+    }
+    
+    func testAddMRLongOverflow() throws {
+        m.cpu.ccr = StatusRegister()
+        m.cpu.d0 = 0x7afe_0005
+        m.cpu.execute(.addMR(.l, .imm(0x1000_0004), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x8afe_0009)
+        XCTAssertEqual(m.cpu.ccr, [.v, .n])
     }
 }
