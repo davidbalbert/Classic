@@ -10,6 +10,7 @@ import Foundation
 @testable import M68K
 
 class TestMachine: Machine {
+    var cpu = CPU()
     var data: Data
     
     init(_ bytes: [UInt8]) {
