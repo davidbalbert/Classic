@@ -762,16 +762,12 @@ public struct CPU {
             }
         case let .bset(.imm(n), .dd(Dn)):
             return { cpu in
-                let bit = UInt32(1 << (n%32))
+                let bit: UInt32 = 1 << (UInt32(n) % 32)
                 
                 let v = cpu.readReg32(Dn)
                 cpu.writeReg32(Dn, value: v | bit)
                 
-                var cc = cpu.ccr.intersection([.x, .n, .v, .c])
-                
-                if v & bit == 0 { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.z = v & bit == 0
             }
         case let .bset(.imm(n), .m(ea)):
             return { cpu in
@@ -781,11 +777,7 @@ public struct CPU {
                 let v = cpu.read8(address)
                 cpu.write8(address, value: v | bit)
                 
-                var cc = cpu.ccr.intersection([.x, .n, .v, .c])
-                
-                if v & bit == 0 { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.z = v & bit == 0
             }
         case let .bset(.r(bitNumberRegister), .dd(Dn)):
             return { cpu in
@@ -796,11 +788,7 @@ public struct CPU {
                 let v = cpu.readReg32(Dn)
                 cpu.writeReg32(Dn, value: v | bit)
                 
-                var cc = cpu.ccr.intersection([.x, .n, .v, .c])
-                
-                if v & bit == 0 { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.z = v & bit == 0
             }
         case let .bset(.r(bitNumberRegister), .m(ea)):
             return { cpu in
