@@ -1,5 +1,5 @@
 //
-//  AndTests.swift
+//  AndiTests.swift
 //  M68KTests
 //
 //  Created by David Albert on 8/30/20.
@@ -9,7 +9,7 @@
 import XCTest
 @testable import M68K
 
-class AndTests: XCTestCase {
+class AndiTests: XCTestCase {
     static var m = TestMachine([0, 0, 0, 0, 0, 0, 0, 0])
     
     override func setUp() {
@@ -19,293 +19,269 @@ class AndTests: XCTestCase {
     var m: TestMachine {
         AndTests.m
     }
-    
-    func testAndMRByte() throws {
+
+    func testAndiDdByte() throws {
         m.cpu.ccr = []
-        m.cpu.d0 = 0b1010_1010
-        
-        m.cpu.execute(.andMR(.b, .imm(0x0f), .d0), length: 0)
-        
-        XCTAssertEqual(m.cpu.d0, 0b0000_1010)
+        m.cpu.d0 = 0xffff_ffaa
+
+        m.cpu.execute(.andi(.b, 0xff0f, .dd(.d0)), length: 0)
+
+        XCTAssertEqual(m.cpu.d0, 0xffff_ff0a)
         XCTAssertEqual(m.cpu.ccr, [])
     }
 
-    func testAndMRByteNegative() throws {
-        m.cpu.ccr = StatusRegister()
-        m.cpu.d0 = 0b1010_1010
-        
-        m.cpu.execute(.andMR(.b, .imm(0xf0), .d0), length: 0)
-        
-        XCTAssertEqual(m.cpu.d0, 0b1010_0000)
+    func testAndiDdByteNegative() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0xaa
+
+        m.cpu.execute(.andi(.b, 0xf0, .dd(.d0)), length: 0)
+
+        XCTAssertEqual(m.cpu.d0, 0xa0)
         XCTAssertEqual(m.cpu.ccr, [.n])
     }
-    
-    func testAndMRByteZero() throws {
-        m.cpu.ccr = StatusRegister()
-        m.cpu.d0 = 0b1010_1010
-        
-        m.cpu.execute(.andMR(.b, .imm(0x00), .d0), length: 0)
-        
-        XCTAssertEqual(m.cpu.d0, 0x0)
+
+    func testAndiDdByteZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0xaa
+
+        m.cpu.execute(.andi(.b, 0x00, .dd(.d0)), length: 0)
+
+        XCTAssertEqual(m.cpu.d0, 0x00)
         XCTAssertEqual(m.cpu.ccr, [.z])
     }
-    
-    func testAndMRByteOtherFlags() throws {
+
+    func testAndiDdByteOtherFlags() throws {
         m.cpu.ccr = [.x, .v, .c]
-        m.cpu.d0 = 0b1010_1010
-        
-        m.cpu.execute(.andMR(.b, .imm(0x0f), .d0), length: 0)
-        
+        m.cpu.d0 = 0xaa
+
+        m.cpu.execute(.andi(.b, 0x0f, .dd(.d0)), length: 0)
+
         XCTAssertEqual(m.cpu.d0, 0x0a)
         XCTAssertEqual(m.cpu.ccr, [.x])
     }
-    
-    func testAndMRWord() throws {
+
+
+    func testAndiDdWord() throws {
         m.cpu.ccr = []
         m.cpu.d0 = 0xaaaa
-        
-        m.cpu.execute(.andMR(.w, .imm(0x0f0f), .d0), length: 0)
-        
+
+        m.cpu.execute(.andi(.w, 0x0f0f, .dd(.d0)), length: 0)
+
         XCTAssertEqual(m.cpu.d0, 0x0a0a)
         XCTAssertEqual(m.cpu.ccr, [])
     }
 
-    func testAndMRWordNegative() throws {
+    func testAndiDdWordNegative() throws {
         m.cpu.ccr = []
         m.cpu.d0 = 0xaaaa
-        
-        m.cpu.execute(.andMR(.w, .imm(0xf0f0), .d0), length: 0)
-        
+
+        m.cpu.execute(.andi(.w, 0xf0f0, .dd(.d0)), length: 0)
+
         XCTAssertEqual(m.cpu.d0, 0xa0a0)
         XCTAssertEqual(m.cpu.ccr, [.n])
     }
-    
-    func testAndMRWordZero() throws {
+
+    func testAndiDdWordZero() throws {
         m.cpu.ccr = []
         m.cpu.d0 = 0xaaaa
-        
-        m.cpu.execute(.andMR(.w, .imm(0x0), .d0), length: 0)
-        
+
+        m.cpu.execute(.andi(.w, 0x0, .dd(.d0)), length: 0)
+
         XCTAssertEqual(m.cpu.d0, 0x0)
         XCTAssertEqual(m.cpu.ccr, [.z])
     }
-    
-    func testAndMRWordOtherFlags() throws {
+
+    func testAndiDdWordOtherFlags() throws {
         m.cpu.ccr = [.x, .v, .c]
         m.cpu.d0 = 0xaaaa
-        
-        m.cpu.execute(.andMR(.w, .imm(0x0f0f), .d0), length: 0)
-        
+
+        m.cpu.execute(.andi(.w, 0x0f0f, .dd(.d0)), length: 0)
+
         XCTAssertEqual(m.cpu.d0, 0x0a0a)
         XCTAssertEqual(m.cpu.ccr, [.x])
     }
-    
 
-    func testAndMRLong() throws {
+    func testAndiDdLong() throws {
         m.cpu.ccr = []
         m.cpu.d0 = 0xaaaa_aaaa
-        
-        m.cpu.execute(.andMR(.l, .imm(0x0f0f_0f0f), .d0), length: 0)
-        
+
+        m.cpu.execute(.andi(.l, 0x0f0f_0f0f, .dd(.d0)), length: 0)
+
         XCTAssertEqual(m.cpu.d0, 0x0a0a_0a0a)
         XCTAssertEqual(m.cpu.ccr, [])
     }
 
-    func testAndMRLongNegative() throws {
+    func testAndiDdLongNegative() throws {
         m.cpu.ccr = []
         m.cpu.d0 = 0xaaaa_aaaa
-        
-        m.cpu.execute(.andMR(.l, .imm(Int32(bitPattern: 0xf0f0_f0f0)), .d0), length: 0)
-        
+
+        m.cpu.execute(.andi(.l, Int32(bitPattern: 0xf0f0_f0f0), .dd(.d0)), length: 0)
+
         XCTAssertEqual(m.cpu.d0, 0xa0a0_a0a0)
         XCTAssertEqual(m.cpu.ccr, [.n])
     }
-    
-    func testAndMRLongZero() throws {
+
+    func testAndiDdLongZero() throws {
         m.cpu.ccr = []
         m.cpu.d0 = 0xaaaa_aaaa
-        
-        m.cpu.execute(.andMR(.l, .imm(0x0), .d0), length: 0)
-        
+
+        m.cpu.execute(.andi(.l, 0x0, .dd(.d0)), length: 0)
+
         XCTAssertEqual(m.cpu.d0, 0x0)
         XCTAssertEqual(m.cpu.ccr, [.z])
     }
-    
-    func testAndMRLongOtherFlags() throws {
+
+    func testAndiDdLongOtherFlags() throws {
         m.cpu.ccr = [.x, .v, .c]
         m.cpu.d0 = 0xaaaa_aaaa
-        
-        m.cpu.execute(.andMR(.l, .imm(0x0f0f_0f0f), .d0), length: 0)
-        
+
+        m.cpu.execute(.andi(.l, 0x0f0f_0f0f, .dd(.d0)), length: 0)
+
         XCTAssertEqual(m.cpu.d0, 0x0a0a_0a0a)
         XCTAssertEqual(m.cpu.ccr, [.x])
     }
     
-    func testAndRMByte() throws {
+    func testAndiMemByte() throws {
         m.cpu.ccr = []
         
         m.cpu.a0 = 0x2
         m.cpu.write8(0x2, value: 0xaa)
-        
-        m.cpu.d0 = 0xff0f
-        
-        m.cpu.execute(.andRM(.b, .d0, .ind(.a0)), length: 0)
+                
+        m.cpu.execute(.andi(.b, 0x0f, .m(.ind(.a0))), length: 0)
         
         XCTAssertEqual(m.cpu.read8(0x2), 0x0a)
         XCTAssertEqual(m.cpu.ccr, [])
     }
     
-    func testAndRMByteNegative() throws {
+    func testAndiMemByteNegative() throws {
         m.cpu.ccr = []
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write8(0x2, value: 0xaa)
-        
-        m.cpu.d0 = 0xfff0
-        
-        m.cpu.execute(.andRM(.b, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.b, 0xf0, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read8(0x2), 0xa0)
         XCTAssertEqual(m.cpu.ccr, [.n])
     }
-    
-    func testAndRMByteZero() throws {
+
+    func testAndiMemByteZero() throws {
         m.cpu.ccr = []
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write8(0x2, value: 0xaa)
-        
-        m.cpu.d0 = 0xff00
-        
-        m.cpu.execute(.andRM(.b, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.b, 0x00, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read8(0x2), 0x00)
         XCTAssertEqual(m.cpu.ccr, [.z])
     }
 
-    func testAndRMByteOtherFlags() throws {
+    func testAndiMemByteOtherFlags() throws {
         m.cpu.ccr = [.x, .v, .c]
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write8(0x2, value: 0xaa)
-        
-        m.cpu.d0 = 0xff0f
-        
-        m.cpu.execute(.andRM(.b, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.b, 0x0f, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read8(0x2), 0x0a)
         XCTAssertEqual(m.cpu.ccr, [.x])
     }
-    
-    
-    func testAndRMWord() throws {
+
+
+    func testAndiMemWord() throws {
         m.cpu.ccr = []
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write16(0x2, value: 0xaaaa)
-        
-        m.cpu.d0 = 0xffff_0f0f
-        
-        m.cpu.execute(.andRM(.w, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.w, 0x0f0f, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read16(0x2), 0x0a0a)
         XCTAssertEqual(m.cpu.ccr, [])
     }
-    
-    func testAndRMWordNegative() throws {
+
+    func testAndiMemWordNegative() throws {
         m.cpu.ccr = []
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write16(0x2, value: 0xaaaa)
-        
-        m.cpu.d0 = 0xffff_f0f0
-        
-        m.cpu.execute(.andRM(.w, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.w, 0xf0f0, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read16(0x2), 0xa0a0)
         XCTAssertEqual(m.cpu.ccr, [.n])
     }
-    
-    func testAndRMWordZero() throws {
+
+    func testAndiMemWordZero() throws {
         m.cpu.ccr = []
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write16(0x2, value: 0xaaaa)
-        
-        m.cpu.d0 = 0xffff_0000
-        
-        m.cpu.execute(.andRM(.w, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.w, 0x0000, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read16(0x2), 0x0000)
         XCTAssertEqual(m.cpu.ccr, [.z])
     }
 
-    func testAndRMWordOtherFlags() throws {
+    func testAndiMemWordOtherFlags() throws {
         m.cpu.ccr = [.x, .v, .c]
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write16(0x2, value: 0xaaaa)
-        
-        m.cpu.d0 = 0xffff_0f0f
-        
-        m.cpu.execute(.andRM(.w, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.w, 0x0f0f, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read16(0x2), 0x0a0a)
         XCTAssertEqual(m.cpu.ccr, [.x])
     }
-    
-    func testAndRMLong() throws {
+
+    func testAndiMemLong() throws {
         m.cpu.ccr = []
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write32(0x2, value: 0xaaaa_aaaa)
-        
-        m.cpu.d0 = 0x0f0f_0f0f
-        
-        m.cpu.execute(.andRM(.l, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.l, 0x0f0f_0f0f, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read32(0x2), 0x0a0a_0a0a)
         XCTAssertEqual(m.cpu.ccr, [])
     }
-    
-    func testAndRMLongNegative() throws {
+
+    func testAndiMemLongNegative() throws {
         m.cpu.ccr = []
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write32(0x2, value: 0xaaaa_aaaa)
-        
-        m.cpu.d0 = 0xf0f0_f0f0
-        
-        m.cpu.execute(.andRM(.l, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.l, Int32(bitPattern: 0xf0f0_f0f0), .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read32(0x2), 0xa0a0_a0a0)
         XCTAssertEqual(m.cpu.ccr, [.n])
     }
-    
-    func testAndRMLongZero() throws {
+
+    func testAndiMemLongZero() throws {
         m.cpu.ccr = []
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write32(0x2, value: 0xaaaa_aaaa)
-        
-        m.cpu.d0 = 0x0000_0000
-        
-        m.cpu.execute(.andRM(.l, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.l, 0x0000_0000, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read32(0x2), 0x0000_0000)
         XCTAssertEqual(m.cpu.ccr, [.z])
     }
 
-    func testAndRMLongOtherFlags() throws {
+    func testAndiMemLongOtherFlags() throws {
         m.cpu.ccr = [.x, .v, .c]
-        
+
         m.cpu.a0 = 0x2
         m.cpu.write32(0x2, value: 0xaaaa_aaaa)
-        
-        m.cpu.d0 = 0x0f0f_0f0f
-        
-        m.cpu.execute(.andRM(.l, .d0, .ind(.a0)), length: 0)
-        
+
+        m.cpu.execute(.andi(.l, 0x0f0f_0f0f, .m(.ind(.a0))), length: 0)
+
         XCTAssertEqual(m.cpu.read32(0x2), 0x0a0a_0a0a)
         XCTAssertEqual(m.cpu.ccr, [.x])
     }

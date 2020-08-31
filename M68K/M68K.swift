@@ -677,12 +677,10 @@ public struct CPU {
                 let res = current & data
                 cpu.writeReg8(Dn, value: res)
                 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if res >= 0x80 { cc.insert(.n) }
-                if res == 0    { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andi(.b, data, .m(ea)):
             return { cpu in
@@ -693,12 +691,10 @@ public struct CPU {
                 let res = current & data
                 cpu.write8(addr, value: res)
                                 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if res >= 0x80 { cc.insert(.n) }
-                if res == 0    { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andi(.w, data, .dd(Dn)):
             return { cpu in
@@ -708,12 +704,10 @@ public struct CPU {
                 let res = current & data
                 cpu.writeReg16(Dn, value: res)
 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if res >= 0x8000 { cc.insert(.n) }
-                if res == 0      { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andi(.w, data, .m(ea)):
             return { cpu in
@@ -724,12 +718,10 @@ public struct CPU {
                 let res = current & data
                 cpu.write16(addr, value: res)
 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if res >= 0x8000 { cc.insert(.n) }
-                if res == 0      { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andi(.l, data, .dd(Dn)):
             return { cpu in
@@ -739,12 +731,10 @@ public struct CPU {
                 let res = current & data
                 cpu.writeReg32(Dn, value: res)
 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if res >= 0x8000_0000 { cc.insert(.n) }
-                if res == 0           { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andi(.l, data, .m(ea)):
             return { cpu in
@@ -755,12 +745,10 @@ public struct CPU {
                 let res = current & data
                 cpu.write32(addr, value: res)
 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if res >= 0x8000_0000 { cc.insert(.n) }
-                if res == 0           { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .bra(_, pc, displacement):
             return { cpu in
