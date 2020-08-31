@@ -10,7 +10,7 @@ import XCTest
 @testable import M68K
 
 class AndTests: XCTestCase {
-    static var m = TestMachine([0, 0, 0, 0, 0, 0, 0, 0])
+    private static var m = TestMachine([0, 0, 0, 0, 0, 0, 0, 0])
     
     override class func setUp() {
         m.cpu.bus = m
