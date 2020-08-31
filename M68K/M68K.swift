@@ -750,15 +750,15 @@ public struct CPU {
                 cpu.v = false
                 cpu.c = false
             }
-        case let .bra(_, pc, displacement):
-            return { cpu in
-                cpu.pc = UInt32(Int64(pc) + Int64(displacement))
-            }
         case let .bcc(_, condition, pc, displacement):
             return { cpu in
                 if cpu.conditionIsSatisfied(condition) {
                     cpu.pc = UInt32(Int64(pc) + Int64(displacement))
                 }
+            }
+        case let .bra(_, pc, displacement):
+            return { cpu in
+                cpu.pc = UInt32(Int64(pc) + Int64(displacement))
             }
         case let .bset(.imm(n), .dd(Dn)):
             return { cpu in

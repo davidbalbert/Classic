@@ -12,7 +12,7 @@ import XCTest
 class AddTests: XCTestCase {
     static var m = TestMachine([0, 0, 0, 0, 0, 0, 0, 0])
     
-    override func setUp() {
+    override class func setUp() {
         m.cpu.bus = m
     }
     

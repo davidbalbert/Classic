@@ -12,12 +12,12 @@ import XCTest
 class AndiTests: XCTestCase {
     static var m = TestMachine([0, 0, 0, 0, 0, 0, 0, 0])
     
-    override func setUp() {
+    override class func setUp() {
         m.cpu.bus = m
     }
     
     var m: TestMachine {
-        AndTests.m
+        AndiTests.m
     }
 
     func testAndiDdByte() throws {
