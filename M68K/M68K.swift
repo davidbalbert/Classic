@@ -650,12 +650,10 @@ public struct CPU {
                 let res = v1 & v2
                 cpu.write16(addr, value: res)
                 
-                var cc = cpu.ccr.intersection(.x)
-
-                if res >= 0x8000 { cc.insert(.n) }
-                if res == 0      { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andRM(.l, Dn, ea):
             return { cpu in
@@ -666,12 +664,10 @@ public struct CPU {
                 let res = v1 & v2
                 cpu.write32(addr, value: res)
                 
-                var cc = cpu.ccr.intersection(.x)
-
-                if res >= 0x8000_0000 { cc.insert(.n) }
-                if res == 0           { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .andi(.b, data, .dd(Dn)):
             return { cpu in
