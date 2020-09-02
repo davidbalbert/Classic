@@ -800,11 +800,7 @@ public struct CPU {
                 let v = cpu.read8(address)
                 cpu.write8(address, value: v | bit)
                 
-                var cc = cpu.ccr.intersection([.x, .n, .v, .c])
-                
-                if v & bit == 0 { cc.insert(.z) }
-                
-                cpu.ccr = cc
+                cpu.z = v & bit == 0
             }
         case let .cmpi(.b, source, destination):
             return { cpu in

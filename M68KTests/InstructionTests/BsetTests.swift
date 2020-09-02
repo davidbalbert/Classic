@@ -63,7 +63,50 @@ class BsetTests: XCTestCase {
     }
     
     func testBsetRegByte() throws {
+        m.cpu.ccr = []
+        m.cpu.a0 = 2
+        m.cpu.write8(2, value: 0)
+
+        m.cpu.d1 = 0
+        m.cpu.execute(.bset(.r(.d1), .m(.ind(.a0))), length: 0)
+
+        XCTAssertEqual(m.cpu.read8(2), 1)
+        XCTAssertEqual(m.cpu.ccr, .z)
+
+        m.cpu.execute(.bset(.r(.d1), .m(.ind(.a0))), length: 0)
         
+        XCTAssertEqual(m.cpu.read8(2), 1)
+        XCTAssertEqual(m.cpu.ccr, [])
+
+
+        m.cpu.d1 = 2
+        m.cpu.execute(.bset(.r(.d1), .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(2), 5)
+        XCTAssertEqual(m.cpu.ccr, .z)
+
+        m.cpu.write8(2, value: 0)
+        m.cpu.d1 = 7
+        m.cpu.execute(.bset(.r(.d1), .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(2), 0x80)
+        XCTAssertEqual(m.cpu.ccr, .z)
+        
+        m.cpu.write8(2, value: 0)
+        m.cpu.d1 = 9
+        m.cpu.execute(.bset(.r(.d1), .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(2), 2)
+        XCTAssertEqual(m.cpu.ccr, .z)
+        
+        m.cpu.write8(2, value: 0)
+        m.cpu.d1 = 1
+        m.cpu.ccr = [.v, .n, .x, .c]
+        
+        m.cpu.execute(.bset(.r(.d1), .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(2), 2)
+        XCTAssertEqual(m.cpu.ccr, [.v, .n, .x, .c, .z])
     }
     
     func testBsetImmLong() throws {
