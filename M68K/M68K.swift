@@ -841,11 +841,11 @@ public struct CPU {
                     return
                 }
                 
-                var count = cpu[keyPath: Dn.keyPath]
+                var count = cpu.readReg16(Dn)
                 count = count &- 1
-                cpu[keyPath: Dn.keyPath] = count
+                cpu.writeReg16(Dn, value: count)
                 
-                if count != UInt32(bitPattern: -1) {
+                if count != UInt16(bitPattern: -1) {
                     cpu.pc = UInt32(Int64(pc) + Int64(displacement))
                 }
             }

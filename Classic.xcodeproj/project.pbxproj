@@ -32,6 +32,7 @@
 		63827F0C24AAB0B0003DB88F /* M68K.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 63827EF624AAB0B0003DB88F /* M68K.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		63827F1424AAB0C1003DB88F /* M68K.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6321D9CC245F635900C73B5F /* M68K.swift */; };
 		63CA1BED2500698800D4B630 /* CmpiTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CA1BEC2500698800D4B630 /* CmpiTests.swift */; };
+		63CA1BEF2500881000D4B630 /* DbccTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CA1BEE2500881000D4B630 /* DbccTests.swift */; };
 		63CE822624D7A3510065EE11 /* LineHighlightingTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CE822524D7A3510065EE11 /* LineHighlightingTextView.swift */; };
 		63E0A07724C38D27000348D7 /* ATrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E0A07624C38D27000348D7 /* ATrap.swift */; };
 		63EBB8D224CA558D006165DC /* MemoryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EBB8D124CA558D006165DC /* MemoryViewController.swift */; };
@@ -109,6 +110,7 @@
 		63827F0524AAB0B0003DB88F /* DisassemblerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisassemblerTests.swift; sourceTree = "<group>"; };
 		63827F0724AAB0B0003DB88F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		63CA1BEC2500698800D4B630 /* CmpiTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmpiTests.swift; sourceTree = "<group>"; };
+		63CA1BEE2500881000D4B630 /* DbccTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DbccTests.swift; sourceTree = "<group>"; };
 		63CE822524D7A3510065EE11 /* LineHighlightingTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineHighlightingTextView.swift; sourceTree = "<group>"; };
 		63E0A07624C38D27000348D7 /* ATrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ATrap.swift; sourceTree = "<group>"; };
 		63EBB8D124CA558D006165DC /* MemoryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryViewController.swift; sourceTree = "<group>"; };
@@ -197,6 +199,7 @@
 				63EE011224FC8C9F00398DE2 /* BccTests.swift */,
 				63EE011424FC8EF400398DE2 /* BsetTests.swift */,
 				63CA1BEC2500698800D4B630 /* CmpiTests.swift */,
+				63CA1BEE2500881000D4B630 /* DbccTests.swift */,
 			);
 			path = InstructionTests;
 			sourceTree = "<group>";
@@ -403,6 +406,7 @@
 				63827F0624AAB0B0003DB88F /* DisassemblerTests.swift in Sources */,
 				63EE011124FC80DB00398DE2 /* BraTests.swift in Sources */,
 				63CA1BED2500698800D4B630 /* CmpiTests.swift in Sources */,
+				63CA1BEF2500881000D4B630 /* DbccTests.swift in Sources */,
 				63EE011524FC8EF400398DE2 /* BsetTests.swift in Sources */,
 				6332244124E0AA3900157207 /* TestMachine.swift in Sources */,
 				6332243F24E09DD500157207 /* ConditionCodeTests.swift in Sources */,
