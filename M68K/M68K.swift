@@ -808,16 +808,10 @@ public struct CPU {
                 let source = UInt8(truncatingIfNeeded: source)
                 let res = destination &- source
                 
-                var cc = cpu.ccr.intersection(.x)
-                
-                let overflow = vsub(source, destination, res)
-                            
-                if res >= 0x80          { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if source > destination { cc.insert(.c) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(source, destination, res)
+                cpu.c = source > destination
             }
         case let .cmpi(.w, source, destination):
             return { cpu in
@@ -825,16 +819,10 @@ public struct CPU {
                 let source = UInt16(truncatingIfNeeded: source)
                 let res = destination &- source
                 
-                var cc = cpu.ccr.intersection(.x)
-                
-                let overflow = vsub(source, destination, res)
-                            
-                if res >= 0x8000        { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if source > destination { cc.insert(.c) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(source, destination, res)
+                cpu.c = source > destination
             }
         case let .cmpi(.l, source, destination):
             return { cpu in
@@ -842,16 +830,10 @@ public struct CPU {
                 let source = UInt32(bitPattern: source)
                 let res = destination &- source
                 
-                var cc = cpu.ccr.intersection(.x)
-                
-                let overflow = vsub(source, destination, res)
-                            
-                if res >= 0x80000000    { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if source > destination { cc.insert(.c) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(source, destination, res)
+                cpu.c = source > destination
             }
         case let .dbcc(condition, Dn, pc, displacement):
             return { cpu in
