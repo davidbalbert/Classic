@@ -864,12 +864,10 @@ public struct CPU {
                 let data = cpu.read(src, UInt8.self)
                 cpu.writeReg8(Dn, value: data)
                 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if data >= 0x80 { cc.insert(.n) }
-                if data == 0    { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(data)
+                cpu.z = data == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .move(.b, src, .m(ea)):
             return { cpu in
@@ -878,24 +876,20 @@ public struct CPU {
                 let addr = cpu.address(for: ea, size: .b)
                 cpu.write8(addr, value: data)
                 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if data >= 0x80 { cc.insert(.n) }
-                if data == 0    { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(data)
+                cpu.z = data == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .move(.w, src, .dd(Dn)):
             return { cpu in
                 let data = cpu.read(src, UInt16.self)
                 cpu.writeReg16(Dn, value: data)
                 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if data >= 0x8000 { cc.insert(.n) }
-                if data == 0      { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(data)
+                cpu.z = data == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .move(.w, src, .m(ea)):
             return { cpu in
@@ -904,12 +898,10 @@ public struct CPU {
                 let addr = cpu.address(for: ea, size: .w)
                 cpu.write16(addr, value: data)
                 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if data >= 0x8000 { cc.insert(.n) }
-                if data == 0      { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(data)
+                cpu.z = data == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .move(.l, src, .dd(Dn)):
             return { cpu in
