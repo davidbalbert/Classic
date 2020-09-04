@@ -908,12 +908,10 @@ public struct CPU {
                 let data = cpu.read(src, UInt32.self)
                 cpu.writeReg32(Dn, value: data)
 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if data >= 0x8000_0000 { cc.insert(.n) }
-                if data == 0           { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(data)
+                cpu.z = data == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .move(.l, src, .m(ea)):
             return { cpu in
@@ -922,13 +920,10 @@ public struct CPU {
                 let addr = cpu.address(for: ea, size: .l)
                 cpu.write32(addr, value: data)
 
-                var cc = cpu.ccr.intersection(.x)
-                
-                if data >= 0x8000_0000 { cc.insert(.n) }
-                if data == 0           { cc.insert(.z) }
-
-                cpu.ccr = cc
-
+                cpu.n = neg(data)
+                cpu.z = data == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .movea(.w, src, An):
             return { cpu in

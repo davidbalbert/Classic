@@ -160,4 +160,75 @@ class MoveTests: XCTestCase {
         XCTAssertEqual(m.cpu.ccr, .z)
     }
 
+    
+    func testMoveLongDn() throws {
+        m.cpu.ccr = [.x, .v, .c]
+        m.cpu.d1 = 0x7afe_beef
+        m.cpu.d0 = 0xaaaa_bbbb
+        
+        m.cpu.execute(.move(.l, .dd(.d1), .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x7afe_beef)
+        XCTAssertEqual(m.cpu.ccr, .x)
+    }
+    
+    func testMoveLongDnNeg() throws {
+        m.cpu.ccr = []
+        m.cpu.d1 = 0xcafe_beef
+        m.cpu.d0 = 0xaaaa_bbbb
+
+        m.cpu.execute(.move(.l, .dd(.d1), .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xcafe_beef)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testMoveLongDnZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d1 = 0x0000_0000
+        m.cpu.d0 = 0xaaaa_bbbb
+        
+        m.cpu.execute(.move(.l, .dd(.d1), .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x0000_0000)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+
+    
+    func testMoveLongEa() throws {
+        m.cpu.ccr = [.x, .v, .c]
+        m.cpu.d1 = 0x7afe_beef
+        m.cpu.a0 = 2
+        m.cpu.write32(2, value: 0xaaaa_aaaa)
+        
+        m.cpu.execute(.move(.l, .dd(.d1), .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0x7afe_beef)
+        XCTAssertEqual(m.cpu.ccr, .x)
+    }
+    
+    func testMoveLongEaNeg() throws {
+        m.cpu.ccr = []
+        m.cpu.d1 = 0xcafe_beef
+        m.cpu.a0 = 2
+        m.cpu.write32(2, value: 0)
+
+        m.cpu.execute(.move(.l, .dd(.d1), .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0xcafe_beef)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testMoveLongEaZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d1 = 0x0000_0000
+        m.cpu.a0 = 2
+        m.cpu.write32(2, value: 0xaaaa_aaaa)
+
+        m.cpu.execute(.move(.l, .dd(.d1), .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+
 }
