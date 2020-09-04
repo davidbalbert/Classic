@@ -944,11 +944,21 @@ public struct CPU {
         case let .movemMR(.l, .c(ea), regList):
             return nil
         case let .movemRM(.w, regList, .preDec(An)):
-            // TODO: deal with writing the address register in question to memory
             return { cpu in
+                let initialAddr = cpu.readReg16(An)
+                
                 for Rn in regList.registers.reversed() {
                     let addr = cpu.address(for: MemoryAddress.preDec(An), size: .w)
-                    cpu.write16(addr, value: cpu.readReg16(Rn))
+                    
+                    let value: UInt16
+                    if Rn == .a(An) {
+                        // TODO: 68020, 68030, 68040, value should be initialAddr - 2
+                        value = initialAddr
+                    } else {
+                        value = cpu.readReg16(Rn)
+                    }
+                    
+                    cpu.write16(addr, value: value)
                 }
             }
         case let .movemRM(.w, regList, .c(ea)):
@@ -961,11 +971,21 @@ public struct CPU {
                 }
             }
         case let .movemRM(.l, regList, .preDec(An)):
-            // TODO: deal with writing the address register in question to memory
             return { cpu in
+                let initialAddr = cpu.readReg32(An)
+                
                 for Rn in regList.registers.reversed() {
                     let addr = cpu.address(for: MemoryAddress.preDec(An), size: .l)
-                    cpu.write32(addr, value: cpu.readReg32(Rn))
+                    
+                    let value: UInt32
+                    if Rn == .a(An) {
+                        // TODO: 68020, 68030, 68040, value should be initialAddr - 4
+                        value = initialAddr
+                    } else {
+                        value = cpu.readReg32(Rn)
+                    }
+                    
+                    cpu.write32(addr, value: value)
                 }
             }
         case let .movemRM(.l, regList, .c(ea)):

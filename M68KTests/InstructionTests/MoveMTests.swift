@@ -53,6 +53,20 @@ class MoveMTests: XCTestCase {
         XCTAssertEqual(m.cpu.a6, 0)
     }
     
+    func testMoveRMWordPreDecStoreAddressRegister() throws {
+        m.cpu.write32(0, value: 0)
+        m.cpu.write32(4, value: 0)
+        
+        m.cpu.d0 = 0xffff_aaaa
+        m.cpu.d1 = 0xffff_bbbb
+        m.cpu.a0 = 0x0000_0008
+        m.cpu.a1 = 0xffff_dddd
+        
+        m.cpu.execute(.movemRM(.w, [.d0, .d1, .a0, .a1], .preDec(.a0)), length: 0)
+        
+        XCTAssertEqual(m.ram, Data([0xaa, 0xaa, 0xbb, 0xbb, 0x00, 0x08, 0xdd, 0xdd]))
+    }
+    
     func testMovemRMLongControl() throws {
         m.cpu.write32(0, value: 0)
         m.cpu.write32(4, value: 0)
@@ -81,6 +95,19 @@ class MoveMTests: XCTestCase {
         XCTAssertEqual(m.ram, Data([0xaa, 0xaa, 0xbb, 0xbb, 0xcc, 0xcc, 0xdd, 0xdd]))
         XCTAssertEqual(m.cpu.a6, 0)
     }
+    
+    func testMoveRMLongPreDecStoreAddressRegister() throws {
+        m.cpu.write32(0, value: 0)
+        m.cpu.write32(4, value: 0)
+        
+        m.cpu.d0 = 0xaaaa_bbbb
+        m.cpu.a0 = 0x0000_0008
+
+        m.cpu.execute(.movemRM(.l, [.d0, .a0], .preDec(.a0)), length: 0)
+
+        XCTAssertEqual(m.ram, Data([0xaa, 0xaa, 0xbb, 0xbb, 0x00, 0x00, 0x00, 0x08]))
+    }
+
     
     // TODO: MoveA tests
 
