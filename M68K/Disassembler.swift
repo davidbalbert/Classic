@@ -159,21 +159,9 @@ enum MemoryAddress: Equatable, CustomStringConvertible {
         }
     }
     
-    init(_ ea: ControlAlterableOrPostIncrementAddress) {
+    init(_ ea: ControlAlterableAddress) {
         switch ea {
         case let .ind(An):                 self = .ind(An)
-        case let .postInc(An):             self = .postInc(An)
-        case let .d16An(d, An):            self = .d16An(d, An)
-        case let .d8AnXn(d, An, Xn, size): self = .d8AnXn(d, An, Xn, size)
-        case let .XXXw(address):           self = .XXXw(address)
-        case let .XXXl(address):           self = .XXXl(address)
-        }
-    }
-
-    init(_ ea: ControlAlterableOrPreDecrementAddress) {
-        switch ea {
-        case let .ind(An):                 self = .ind(An)
-        case let .preDec(An):              self = .preDec(An)
         case let .d16An(d, An):            self = .d16An(d, An)
         case let .d8AnXn(d, An, Xn, size): self = .d8AnXn(d, An, Xn, size)
         case let .XXXw(address):           self = .XXXw(address)
@@ -224,9 +212,8 @@ enum ControlAddress: Equatable, CustomStringConvertible {
     }
 }
 
-enum ControlAlterableOrPostIncrementAddress: Equatable, CustomStringConvertible {
+enum ControlAlterableAddress: Equatable, CustomStringConvertible {
     case ind(AddressRegister)
-    case postInc(AddressRegister)
     case d16An(Int16, AddressRegister)
     case d8AnXn(Int8, AddressRegister, Register, Size)
     case XXXw(UInt32)
@@ -237,16 +224,28 @@ enum ControlAlterableOrPostIncrementAddress: Equatable, CustomStringConvertible 
     }
 }
 
-enum ControlAlterableOrPreDecrementAddress: Equatable, CustomStringConvertible {
-    case ind(AddressRegister)
-    case preDec(AddressRegister)
-    case d16An(Int16, AddressRegister)
-    case d8AnXn(Int8, AddressRegister, Register, Size)
-    case XXXw(UInt32)
-    case XXXl(UInt32)
+enum ControlOrPostIncrementAddress: Equatable, CustomStringConvertible {
+    case c(ControlAddress)
+    case postInc(AddressRegister)
 
     var description: String {
-        String(describing: MemoryAddress(self))
+        switch self {
+        case let .c(ea):       return "\(MemoryAddress(ea))"
+        case let .postInc(An): return "(\(An))+"
+        }
+    }
+}
+
+enum ControlAlterableOrPreDecrementAddress: Equatable, CustomStringConvertible {
+    case c(ControlAlterableAddress)
+    case preDec(AddressRegister)
+
+    var description: String {
+        switch self {
+        case let .c(ea):      return "\(MemoryAddress(ea))"
+        case let .preDec(An): return "-(\(An))"
+
+        }
     }
 }
 
@@ -667,7 +666,7 @@ enum Operation: Equatable {
     case moveFromSR(DataAlterableAddress)
     case moveToSR(DataAddress)
     case movea(SizeWL, EffectiveAddress, AddressRegister)
-    case movemMR(SizeWL, ControlAlterableOrPostIncrementAddress, RegisterList)
+    case movemMR(SizeWL, ControlOrPostIncrementAddress, RegisterList)
     case movemRM(SizeWL, RegisterList, ControlAlterableOrPreDecrementAddress)
     case moveq(Int8, DataRegister)
     case mulu(DataAddress, DataRegister)
@@ -1839,7 +1838,7 @@ public struct Disassembler {
             let registers0 = state.readWord()
             
             if direction == 1 {
-                guard let address = readControlAlterableOrPostIncrementAddress(state, eaMode, Int(eaReg), size: Size(size)) else {
+                guard let address = readControlOrPostIncrementAddress(state, eaMode, Int(eaReg), size: Size(size)) else {
                     op = .unknown(instructionWord)
                     break
                 }
@@ -2641,24 +2640,24 @@ public struct Disassembler {
 
     func readControlAlterableOrPreDecrementAddress(_ state: DisassemblyState, _ mode: AddressingMode, _ reg: Int, size: Size) -> ControlAlterableOrPreDecrementAddress? {
         switch readAddress(state, mode, reg, size: size) {
-        case let .m(.ind(An)):                 return .ind(An)
+        case let .m(.ind(An)):                 return .c(.ind(An))
+        case let .m(.d16An(d, An)):            return .c(.d16An(d, An))
+        case let .m(.d8AnXn(d, An, Xn, size)): return .c(.d8AnXn(d, An, Xn, size))
+        case let .m(.XXXw(address)):           return .c(.XXXw(address))
+        case let .m(.XXXl(address)):           return .c(.XXXl(address))
         case let .m(.preDec(An)):              return .preDec(An)
-        case let .m(.d16An(d, An)):            return .d16An(d, An)
-        case let .m(.d8AnXn(d, An, Xn, size)): return .d8AnXn(d, An, Xn, size)
-        case let .m(.XXXw(address)):           return .XXXw(address)
-        case let .m(.XXXl(address)):           return .XXXl(address)
         default:                               return nil
         }
     }
     
-    func readControlAlterableOrPostIncrementAddress(_ state: DisassemblyState, _ mode: AddressingMode, _ reg: Int, size: Size) -> ControlAlterableOrPostIncrementAddress? {
+    func readControlOrPostIncrementAddress(_ state: DisassemblyState, _ mode: AddressingMode, _ reg: Int, size: Size) -> ControlOrPostIncrementAddress? {
         switch readAddress(state, mode, reg, size: size) {
-        case let .m(.ind(An)):                 return .ind(An)
+        case let .m(.ind(An)):                 return .c(.ind(An))
+        case let .m(.d16An(d, An)):            return .c(.d16An(d, An))
+        case let .m(.d8AnXn(d, An, Xn, size)): return .c(.d8AnXn(d, An, Xn, size))
+        case let .m(.XXXw(address)):           return .c(.XXXw(address))
+        case let .m(.XXXl(address)):           return .c(.XXXl(address))
         case let .m(.postInc(An)):             return .postInc(An)
-        case let .m(.d16An(d, An)):            return .d16An(d, An)
-        case let .m(.d8AnXn(d, An, Xn, size)): return .d8AnXn(d, An, Xn, size)
-        case let .m(.XXXw(address)):           return .XXXw(address)
-        case let .m(.XXXl(address)):           return .XXXl(address)
         default:                               return nil
         }
     }

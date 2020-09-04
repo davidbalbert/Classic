@@ -271,7 +271,7 @@ class DisassemblerTests: XCTestCase {
         let storage = TestInstructionStorage([0x4c, 0xf9, 0x01, 0x01, 0x00, 0xf8, 0x00, 0x00])
         let op = d.instruction(at: 0, storage: storage).op
 
-        XCTAssertEqual(op, Operation.movemMR(.l, .XXXl(0xf80000), [.d0, .a0]))
+        XCTAssertEqual(op, Operation.movemMR(.l, .c(.XXXl(0xf80000)), [.d0, .a0]))
     }
     
     func testLea() throws {
