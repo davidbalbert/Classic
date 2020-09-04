@@ -504,10 +504,10 @@ public struct CPU {
         case let .addMR(.b, address, Dn):
             return { cpu in
                 let v1 = cpu.read(address, UInt8.self)
-                let v2 = cpu.readD8(Dn)
+                let v2 = cpu.readReg8(Dn)
                                 
                 let res = v1 &+ v2
-                cpu.writeD8(Dn, value: res)
+                cpu.writeReg8(Dn, value: res)
                 
                 cpu.n = neg(res)
                 cpu.z = res == 0
@@ -518,10 +518,10 @@ public struct CPU {
         case let .addMR(.w, address, Dn):
             return { cpu in
                 let v1 = cpu.read(address, UInt16.self)
-                let v2 = cpu.readD16(Dn)
+                let v2 = cpu.readReg16(Dn)
 
                 let res = v1 &+ v2
-                cpu.writeD16(Dn, value: res)
+                cpu.writeReg16(Dn, value: res)
                 
                 cpu.n = neg(res)
                 cpu.z = res == 0
@@ -532,10 +532,10 @@ public struct CPU {
         case let .addMR(.l, address, Dn):
             return { cpu in
                 let v1 = cpu.read(address, UInt32.self)
-                let v2 = cpu.readD32(Dn)
+                let v2 = cpu.readReg32(Dn)
 
                 let res = v1 &+ v2
-                cpu.writeD32(Dn, value: res)
+                cpu.writeReg32(Dn, value: res)
                 
                 cpu.n = neg(res)
                 cpu.z = res == 0
@@ -547,7 +547,7 @@ public struct CPU {
             return { cpu in
                 let addr = cpu.address(for: ea, size: .b)
                 let v1 = cpu.read8(addr)
-                let v2 = cpu.readD8(Dn)
+                let v2 = cpu.readReg8(Dn)
                 
                 let res = v1 &+ v2
                 cpu.write8(addr, value: res)
@@ -562,7 +562,7 @@ public struct CPU {
             return { cpu in
                 let addr = cpu.address(for: ea, size: .w)
                 let v1 = cpu.read16(addr)
-                let v2 = cpu.readD16(Dn)
+                let v2 = cpu.readReg16(Dn)
                 
                 let res = v1 &+ v2
                 cpu.write16(addr, value: res)
@@ -577,7 +577,7 @@ public struct CPU {
             return { cpu in
                 let addr = cpu.address(for: ea, size: .l)
                 let v1 = cpu.read32(addr)
-                let v2 = cpu.readD32(Dn)
+                let v2 = cpu.readReg32(Dn)
                 
                 let res = v1 &+ v2
                 cpu.write32(addr, value: res)
@@ -591,10 +591,10 @@ public struct CPU {
         case let .andMR(.b, ea, Dn):
             return { cpu in
                 let v1 = cpu.read(EffectiveAddress(ea), UInt8.self)
-                let v2 = cpu.readD8(Dn)
+                let v2 = cpu.readReg8(Dn)
                                 
                 let res = v1 & v2
-                cpu.writeD8(Dn, value: res)
+                cpu.writeReg8(Dn, value: res)
                 
                 cpu.n = neg(res)
                 cpu.z = res == 0
@@ -604,10 +604,10 @@ public struct CPU {
         case let .andMR(.w, ea, Dn):
             return { cpu in
                 let v1 = cpu.read(EffectiveAddress(ea), UInt16.self)
-                let v2 = cpu.readD16(Dn)
+                let v2 = cpu.readReg16(Dn)
 
                 let res = v1 & v2
-                cpu.writeD16(Dn, value: res)
+                cpu.writeReg16(Dn, value: res)
 
                 cpu.n = neg(res)
                 cpu.z = res == 0
@@ -617,10 +617,10 @@ public struct CPU {
         case let .andMR(.l, ea, Dn):
             return { cpu in
                 let v1 = cpu.read(EffectiveAddress(ea), UInt32.self)
-                let v2 = cpu.readD32(Dn)
+                let v2 = cpu.readReg32(Dn)
 
                 let res = v1 & v2
-                cpu.writeD32(Dn, value: res)
+                cpu.writeReg32(Dn, value: res)
 
                 cpu.n = neg(res)
                 cpu.z = res == 0
@@ -629,7 +629,7 @@ public struct CPU {
             }
         case let .andRM(.b, Dn, ea):
             return { cpu in
-                let v1 = cpu.readD8(Dn)
+                let v1 = cpu.readReg8(Dn)
                 let addr = cpu.address(for: ea, size: .b)
                 let v2 = cpu.read8(addr)
                 
@@ -643,7 +643,7 @@ public struct CPU {
             }
         case let .andRM(.w, Dn, ea):
             return { cpu in
-                let v1 = cpu.readD16(Dn)
+                let v1 = cpu.readReg16(Dn)
                 let addr = cpu.address(for: ea, size: .w)
                 let v2 = cpu.read16(addr)
                 
@@ -657,7 +657,7 @@ public struct CPU {
             }
         case let .andRM(.l, Dn, ea):
             return { cpu in
-                let v1 = cpu.readD32(Dn)
+                let v1 = cpu.readReg32(Dn)
                 let addr = cpu.address(for: ea, size: .l)
                 let v2 = cpu.read32(addr)
                 
@@ -671,11 +671,11 @@ public struct CPU {
             }
         case let .andi(.b, data, .dd(Dn)):
             return { cpu in
-                let current = cpu.readD8(Dn)
+                let current = cpu.readReg8(Dn)
                 let data = UInt8(truncatingIfNeeded: data)
 
                 let res = current & data
-                cpu.writeD8(Dn, value: res)
+                cpu.writeReg8(Dn, value: res)
                 
                 cpu.n = neg(res)
                 cpu.z = res == 0
@@ -698,11 +698,11 @@ public struct CPU {
             }
         case let .andi(.w, data, .dd(Dn)):
             return { cpu in
-                let current = cpu.readD16(Dn)
+                let current = cpu.readReg16(Dn)
                 let data = UInt16(truncatingIfNeeded: data)
 
                 let res = current & data
-                cpu.writeD16(Dn, value: res)
+                cpu.writeReg16(Dn, value: res)
 
                 cpu.n = neg(res)
                 cpu.z = res == 0
@@ -725,11 +725,11 @@ public struct CPU {
             }
         case let .andi(.l, data, .dd(Dn)):
             return { cpu in
-                let current = cpu.readD32(Dn)
+                let current = cpu.readReg32(Dn)
                 let data = UInt32(bitPattern: data)
 
                 let res = current & data
-                cpu.writeD32(Dn, value: res)
+                cpu.writeReg32(Dn, value: res)
 
                 cpu.n = neg(res)
                 cpu.z = res == 0
@@ -764,8 +764,8 @@ public struct CPU {
             return { cpu in
                 let bit: UInt32 = 1 << (UInt32(n) % 32)
                 
-                let v = cpu.readD32(Dn)
-                cpu.writeD32(Dn, value: v | bit)
+                let v = cpu.readReg32(Dn)
+                cpu.writeReg32(Dn, value: v | bit)
                 
                 cpu.z = v & bit == 0
             }
@@ -781,12 +781,12 @@ public struct CPU {
             }
         case let .bset(.r(bitNumberRegister), .dd(Dn)):
             return { cpu in
-                let n = cpu.readD32(bitNumberRegister)
+                let n = cpu.readReg32(bitNumberRegister)
                 
                 let bit = 1 << (n%32)
                 
-                let v = cpu.readD32(Dn)
-                cpu.writeD32(Dn, value: v | bit)
+                let v = cpu.readReg32(Dn)
+                cpu.writeReg32(Dn, value: v | bit)
                 
                 cpu.z = v & bit == 0
             }
@@ -841,9 +841,9 @@ public struct CPU {
                     return
                 }
                 
-                var count = cpu.readD16(Dn)
+                var count = cpu.readReg16(Dn)
                 count = count &- 1
-                cpu.writeD16(Dn, value: count)
+                cpu.writeReg16(Dn, value: count)
                 
                 if count != UInt16(bitPattern: -1) {
                     cpu.pc = UInt32(Int64(pc) + Int64(displacement))
@@ -857,12 +857,12 @@ public struct CPU {
             return { cpu in
                 let address = cpu.address(for: ea)
                 
-                cpu.writeA32(An, value: address)
+                cpu.writeReg32(An, value: address)
             }
         case let .move(.b, src, .dd(Dn)):
             return { cpu in
                 let data = cpu.read(src, UInt8.self)
-                cpu.writeD8(Dn, value: data)
+                cpu.writeReg8(Dn, value: data)
                 
                 cpu.n = neg(data)
                 cpu.z = data == 0
@@ -884,7 +884,7 @@ public struct CPU {
         case let .move(.w, src, .dd(Dn)):
             return { cpu in
                 let data = cpu.read(src, UInt16.self)
-                cpu.writeD16(Dn, value: data)
+                cpu.writeReg16(Dn, value: data)
                 
                 cpu.n = neg(data)
                 cpu.z = data == 0
@@ -906,7 +906,7 @@ public struct CPU {
         case let .move(.l, src, .dd(Dn)):
             return { cpu in
                 let data = cpu.read(src, UInt32.self)
-                cpu.writeD32(Dn, value: data)
+                cpu.writeReg32(Dn, value: data)
 
                 cpu.n = neg(data)
                 cpu.z = data == 0
@@ -928,12 +928,12 @@ public struct CPU {
         case let .movea(.w, src, An):
             return { cpu in
                 let data = cpu.read(src, UInt16.self)
-                cpu.writeA16(An, value: data)
+                cpu.writeReg16(An, value: data)
             }
         case let .movea(.l, src, An):
             return { cpu in
                 let data = cpu.read(src, UInt32.self)
-                cpu.writeA32(An, value: data)
+                cpu.writeReg32(An, value: data)
             }
         case let .movemMR(.w, .postInc(An), registers):
             return nil
@@ -948,7 +948,7 @@ public struct CPU {
             return { cpu in
                 for Rn in registers.registers.reversed() {
                     let addr = cpu.address(for: MemoryAddress.preDec(An), size: .w)
-                    cpu.write16(addr, value: cpu.readR16(Rn))
+                    cpu.write16(addr, value: cpu.readReg16(Rn))
                 }
             }
         case let .movemRM(.w, registers, .c(ea)):
@@ -956,7 +956,7 @@ public struct CPU {
                 var addr = cpu.address(for: ea)
                 
                 for Rn in registers.registers {
-                    cpu.write16(addr, value: cpu.readR16(Rn))
+                    cpu.write16(addr, value: cpu.readReg16(Rn))
                     addr += 2
                 }
             }
@@ -965,7 +965,7 @@ public struct CPU {
             return { cpu in
                 for Rn in registers.registers.reversed() {
                     let addr = cpu.address(for: MemoryAddress.preDec(An), size: .l)
-                    cpu.write32(addr, value: cpu.readR32(Rn))
+                    cpu.write32(addr, value: cpu.readReg32(Rn))
                 }
             }
         case let .movemRM(.l, registers, .c(ea)):
@@ -973,7 +973,7 @@ public struct CPU {
                 var addr = cpu.address(for: ea)
                 
                 for Rn in registers.registers {
-                    cpu.write32(addr, value: cpu.readR32(Rn))
+                    cpu.write32(addr, value: cpu.readReg32(Rn))
                     addr += 4
                 }
             }
@@ -1173,9 +1173,9 @@ public struct CPU {
             }
         case let .subqB(data, .dd(Dn)):
             return { cpu in
-                let v = cpu.readD8(Dn)
+                let v = cpu.readReg8(Dn)
                 let res = v &- data
-                cpu.writeD8(Dn, value: res)
+                cpu.writeReg8(Dn, value: res)
                 
                 let overflow = vsub(data, v, res)
                 var cc = StatusRegister()
@@ -1207,11 +1207,11 @@ public struct CPU {
             }
         case let .subqWL(.w, data, .dd(Dn)):
             return { cpu in
-                let v = cpu.readD16(Dn)
+                let v = cpu.readReg16(Dn)
                 let data = UInt16(data)
                 let res = v &- data
                 
-                cpu.writeD16(Dn, value: res)
+                cpu.writeReg16(Dn, value: res)
                 
                 let overflow = vsub(data, v, res)
                 var cc = StatusRegister()
@@ -1225,11 +1225,11 @@ public struct CPU {
             }
         case let .subqWL(.w, data, .ad(An)):
             return { cpu in
-                let v = cpu.readA16(An)
+                let v = cpu.readReg16(An)
                 let data = UInt16(data)
                 let res = v &- data
                 
-                cpu.writeA16(An, value: res)
+                cpu.writeReg16(An, value: res)
             }
         case let .subqWL(.w, data, .m(ea)):
             return { cpu in
@@ -1252,11 +1252,11 @@ public struct CPU {
             }
         case let .subqWL(.l, data, .dd(Dn)):
             return { cpu in
-                let v = cpu.readD32(Dn)
+                let v = cpu.readReg32(Dn)
                 let data = UInt32(data)
                 let res = v &- data
                 
-                cpu.writeD32(Dn, value: res)
+                cpu.writeReg32(Dn, value: res)
                 
                 let overflow = vsub(data, v, res)
                 var cc = StatusRegister()
@@ -1476,19 +1476,19 @@ public struct CPU {
     mutating func address(for ea: MemoryAddress, size: Size) -> UInt32 {
         switch ea {
         case let .ind(An):
-            return readA32(An)
+            return readReg32(An)
         case let .postInc(An):
-            let address = readA32(An)
-            writeA32(An, value: address &+ size.byteCount)
+            let address = readReg32(An)
+            writeReg32(An, value: address &+ size.byteCount)
             
             return address
         case let .preDec(An):
-            let address = readA32(An) &- size.byteCount
-            writeA32(An, value: address)
+            let address = readReg32(An) &- size.byteCount
+            writeReg32(An, value: address)
             
             return address
         case let .d16An(d, An):
-            return UInt32(truncatingIfNeeded: Int64(readA32(An)) + Int64(d))
+            return UInt32(truncatingIfNeeded: Int64(readReg32(An)) + Int64(d))
         case .d8AnXn(_, _, _, _):
             fatalError("d8AnXn not implemented")
         case let .XXXw(address):
@@ -1505,9 +1505,9 @@ public struct CPU {
     mutating func read(_ ea: EffectiveAddress, _ size: UInt8.Type) -> UInt8 {
         switch ea {
         case let .dd(Dn):
-            return readD8(Dn)
+            return readReg8(Dn)
         case let .ad(An):
-            return readA8(An)
+            return readReg8(An)
         case let .m(mem):
             let addr = address(for: mem, size: .b)
             
@@ -1520,9 +1520,9 @@ public struct CPU {
     mutating func read(_ ea: EffectiveAddress, _ size: UInt16.Type) -> UInt16 {
         switch ea {
         case let .dd(Dn):
-            return readD16(Dn)
+            return readReg16(Dn)
         case let .ad(An):
-            return readA16(An)
+            return readReg16(An)
         case let .m(mem):
             let addr = address(for: mem, size: .w)
             
@@ -1535,9 +1535,9 @@ public struct CPU {
     mutating func read(_ ea: EffectiveAddress, _ size: UInt32.Type) -> UInt32 {
         switch ea {
         case let .dd(Dn):
-            return readD32(Dn)
+            return readReg32(Dn)
         case let .ad(An):
-            return readA32(An)
+            return readReg32(An)
         case let .m(mem):
             let addr = address(for: mem, size: .l)
             
@@ -1547,81 +1547,81 @@ public struct CPU {
         }
     }
 
-    func readA8(_ An: AddressRegister) -> UInt8 {
+    func readReg8(_ An: AddressRegister) -> UInt8 {
         UInt8(truncatingIfNeeded: self[keyPath: An.keyPath])
     }
     
-    func readA16(_ An: AddressRegister) -> UInt16 {
+    func readReg16(_ An: AddressRegister) -> UInt16 {
         UInt16(truncatingIfNeeded: self[keyPath: An.keyPath])
     }
     
-    func readA32(_ An: AddressRegister) -> UInt32 {
+    func readReg32(_ An: AddressRegister) -> UInt32 {
         self[keyPath: An.keyPath]
     }
     
-    func readD8(_ Dn: DataRegister) -> UInt8 {
+    func readReg8(_ Dn: DataRegister) -> UInt8 {
         UInt8(truncatingIfNeeded: self[keyPath: Dn.keyPath])
     }
     
-    func readD16(_ Dn: DataRegister) -> UInt16 {
+    func readReg16(_ Dn: DataRegister) -> UInt16 {
         UInt16(truncatingIfNeeded: self[keyPath: Dn.keyPath])
     }
 
-    func readD32(_ Dn: DataRegister) -> UInt32 {
+    func readReg32(_ Dn: DataRegister) -> UInt32 {
         self[keyPath: Dn.keyPath]
     }
     
-    func readR16(_ Rn: Register) -> UInt16 {
+    func readReg16(_ Rn: Register) -> UInt16 {
         switch Rn {
-        case let .a(An): return readA16(An)
-        case let .d(Dn): return readD16(Dn)
+        case let .a(An): return readReg16(An)
+        case let .d(Dn): return readReg16(Dn)
         }
     }
     
-    func readR32(_ Rn: Register) -> UInt32 {
+    func readReg32(_ Rn: Register) -> UInt32 {
         switch Rn {
-        case let .a(An): return readA32(An)
-        case let .d(Dn): return readD32(Dn)
+        case let .a(An): return readReg32(An)
+        case let .d(Dn): return readReg32(Dn)
         }
     }
     
-    mutating func writeA16(_ An: AddressRegister, value: UInt16) {
+    mutating func writeReg16(_ An: AddressRegister, value: UInt16) {
         self[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: value)
     }
     
-    mutating func writeA32(_ An: AddressRegister, value: UInt32) {
+    mutating func writeReg32(_ An: AddressRegister, value: UInt32) {
         self[keyPath: An.keyPath] = value
     }
     
-    mutating func writeD8(_ Dn: DataRegister, value: UInt8) {
+    mutating func writeReg8(_ Dn: DataRegister, value: UInt8) {
         let mask: UInt32 = 0xffffff00
-        let existing = readD32(Dn)
+        let existing = readReg32(Dn)
 
         self[keyPath: Dn.keyPath] = (existing & mask) | UInt32(value)
     }
     
-    mutating func writeD16(_ Dn: DataRegister, value: UInt16) {
+    mutating func writeReg16(_ Dn: DataRegister, value: UInt16) {
         let mask: UInt32 = 0xffff0000
-        let existing = readD32(Dn)
+        let existing = readReg32(Dn)
 
         self[keyPath: Dn.keyPath] = (existing & mask) | UInt32(value)
     }
     
-    mutating func writeD32(_ Dn: DataRegister, value: UInt32) {
+    mutating func writeReg32(_ Dn: DataRegister, value: UInt32) {
         self[keyPath: Dn.keyPath] = value
     }
     
-    mutating func writeR16(_ Rn: Register, value: UInt16) {
+    mutating func writeReg16(_ Rn: Register, value: UInt16) {
         switch Rn {
-        case let .a(An): writeA16(An, value: value)
-        case let .d(Dn): writeD16(Dn, value: value)
+        case let .a(An): writeReg16(An, value: value)
+        case let .d(Dn): writeReg16(Dn, value: value)
         }
     }
 
-    mutating func writeR32(_ Rn: Register, value: UInt32) {
+    mutating func writeReg32(_ Rn: Register, value: UInt32) {
         switch Rn {
-        case let .a(An): writeA32(An, value: value)
-        case let .d(Dn): writeD32(Dn, value: value)
+        case let .a(An): writeReg32(An, value: value)
+        case let .d(Dn): writeReg32(Dn, value: value)
         }
     }
     
