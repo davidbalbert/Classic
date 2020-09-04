@@ -449,30 +449,6 @@ struct RegisterList: OptionSet, CustomStringConvertible {
         }
     }
     
-    var keyPaths: [WritableKeyPath<CPU, UInt32>] {
-        var res: [WritableKeyPath<CPU, UInt32>] = []
-        
-        if contains(.d0) { res.append(\CPU.d0) }
-        if contains(.d1) { res.append(\CPU.d1) }
-        if contains(.d2) { res.append(\CPU.d2) }
-        if contains(.d3) { res.append(\CPU.d3) }
-        if contains(.d4) { res.append(\CPU.d4) }
-        if contains(.d5) { res.append(\CPU.d5) }
-        if contains(.d6) { res.append(\CPU.d6) }
-        if contains(.d7) { res.append(\CPU.d7) }
-        
-        if contains(.a0) { res.append(\CPU.a0) }
-        if contains(.a1) { res.append(\CPU.a1) }
-        if contains(.a2) { res.append(\CPU.a2) }
-        if contains(.a3) { res.append(\CPU.a3) }
-        if contains(.a4) { res.append(\CPU.a4) }
-        if contains(.a5) { res.append(\CPU.a5) }
-        if contains(.a6) { res.append(\CPU.a6) }
-        if contains(.a7) { res.append(\CPU.a7) }
-
-        return res
-    }
-    
     var registers: [Register] {
         var res: [Register] = []
     
