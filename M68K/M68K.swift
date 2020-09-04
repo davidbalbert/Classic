@@ -935,44 +935,44 @@ public struct CPU {
                 let data = cpu.read(src, UInt32.self)
                 cpu.writeReg32(An, value: data)
             }
-        case let .movemMR(.w, .postInc(An), registers):
+        case let .movemMR(.w, .postInc(An), regList):
             return nil
-        case let .movemMR(.w, .c(ea), registers):
+        case let .movemMR(.w, .c(ea), regList):
             return nil
-        case let .movemMR(.l, .postInc(An), registers):
+        case let .movemMR(.l, .postInc(An), regList):
             return nil
-        case let .movemMR(.l, .c(ea), registers):
+        case let .movemMR(.l, .c(ea), regList):
             return nil
-        case let .movemRM(.w, registers, .preDec(An)):
+        case let .movemRM(.w, regList, .preDec(An)):
             // TODO: deal with writing the address register in question to memory
             return { cpu in
-                for Rn in registers.registers.reversed() {
+                for Rn in regList.registers.reversed() {
                     let addr = cpu.address(for: MemoryAddress.preDec(An), size: .w)
                     cpu.write16(addr, value: cpu.readReg16(Rn))
                 }
             }
-        case let .movemRM(.w, registers, .c(ea)):
+        case let .movemRM(.w, regList, .c(ea)):
             return { cpu in
                 var addr = cpu.address(for: ea)
                 
-                for Rn in registers.registers {
+                for Rn in regList.registers {
                     cpu.write16(addr, value: cpu.readReg16(Rn))
                     addr += 2
                 }
             }
-        case let .movemRM(.l, registers, .preDec(An)):
+        case let .movemRM(.l, regList, .preDec(An)):
             // TODO: deal with writing the address register in question to memory
             return { cpu in
-                for Rn in registers.registers.reversed() {
+                for Rn in regList.registers.reversed() {
                     let addr = cpu.address(for: MemoryAddress.preDec(An), size: .l)
                     cpu.write32(addr, value: cpu.readReg32(Rn))
                 }
             }
-        case let .movemRM(.l, registers, .c(ea)):
+        case let .movemRM(.l, regList, .c(ea)):
             return { cpu in
                 var addr = cpu.address(for: ea)
                 
-                for Rn in registers.registers {
+                for Rn in regList.registers {
                     cpu.write32(addr, value: cpu.readReg32(Rn))
                     addr += 4
                 }
