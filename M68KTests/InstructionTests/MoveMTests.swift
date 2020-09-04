@@ -24,10 +24,10 @@ class MoveMTests: XCTestCase {
         m.cpu.write32(0, value: 0)
         m.cpu.write32(4, value: 0)
         
-        m.cpu.d0 = 0xaaaa
-        m.cpu.d1 = 0xbbbb
-        m.cpu.a0 = 0xcccc
-        m.cpu.a1 = 0xdddd
+        m.cpu.d0 = 0xffff_aaaa
+        m.cpu.d1 = 0xffff_bbbb
+        m.cpu.a0 = 0xffff_cccc
+        m.cpu.a1 = 0xffff_dddd
         
         m.cpu.a6 = 0
         
@@ -40,11 +40,11 @@ class MoveMTests: XCTestCase {
         m.cpu.write32(0, value: 0)
         m.cpu.write32(4, value: 0)
 
-        m.cpu.d0 = 0xaaaa
-        m.cpu.d1 = 0xbbbb
-        m.cpu.a0 = 0xcccc
-        m.cpu.a1 = 0xdddd
-        
+        m.cpu.d0 = 0xffff_aaaa
+        m.cpu.d1 = 0xffff_bbbb
+        m.cpu.a0 = 0xffff_cccc
+        m.cpu.a1 = 0xffff_dddd
+
         m.cpu.a6 = 8
         
         m.cpu.execute(.movemRM(.w, [.d0, .d1, .a0, .a1], .preDec(.a6)), length: 0)
@@ -52,4 +52,36 @@ class MoveMTests: XCTestCase {
         XCTAssertEqual(m.ram, Data([0xaa, 0xaa, 0xbb, 0xbb, 0xcc, 0xcc, 0xdd, 0xdd]))
         XCTAssertEqual(m.cpu.a6, 0)
     }
+    
+    func testMovemRMLongControl() throws {
+        m.cpu.write32(0, value: 0)
+        m.cpu.write32(4, value: 0)
+        
+        m.cpu.d0 = 0xaaaa_bbbb
+        m.cpu.a0 = 0xcccc_dddd
+        
+        m.cpu.a6 = 0
+        
+        m.cpu.execute(.movemRM(.l, [.d0, .a0], .c(.ind(.a6))), length: 0)
+        
+        XCTAssertEqual(m.ram, Data([0xaa, 0xaa, 0xbb, 0xbb, 0xcc, 0xcc, 0xdd, 0xdd]))
+    }
+    
+    func testMovemRMLongPreDec() throws {
+        m.cpu.write32(0, value: 0)
+        m.cpu.write32(4, value: 0)
+
+        m.cpu.d0 = 0xaaaa_bbbb
+        m.cpu.a0 = 0xcccc_dddd
+
+        m.cpu.a6 = 8
+        
+        m.cpu.execute(.movemRM(.l, [.d0, .a0], .preDec(.a6)), length: 0)
+        
+        XCTAssertEqual(m.ram, Data([0xaa, 0xaa, 0xbb, 0xbb, 0xcc, 0xcc, 0xdd, 0xdd]))
+        XCTAssertEqual(m.cpu.a6, 0)
+    }
+    
+    // TODO: MoveA tests
+
 }

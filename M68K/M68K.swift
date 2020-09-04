@@ -944,6 +944,7 @@ public struct CPU {
         case let .movemMR(.l, .c(ea), registers):
             return nil
         case let .movemRM(.w, registers, .preDec(An)):
+            // TODO: deal with writing the address register in question to memory
             return { cpu in
                 for Rn in registers.registers.reversed() {
                     let addr = cpu.address(for: MemoryAddress.preDec(An), size: .w)
@@ -960,9 +961,22 @@ public struct CPU {
                 }
             }
         case let .movemRM(.l, registers, .preDec(An)):
-            return nil
+            // TODO: deal with writing the address register in question to memory
+            return { cpu in
+                for Rn in registers.registers.reversed() {
+                    let addr = cpu.address(for: MemoryAddress.preDec(An), size: .l)
+                    cpu.write32(addr, value: cpu.readR32(Rn))
+                }
+            }
         case let .movemRM(.l, registers, .c(ea)):
-            return nil
+            return { cpu in
+                var addr = cpu.address(for: ea)
+                
+                for Rn in registers.registers {
+                    cpu.write32(addr, value: cpu.readR32(Rn))
+                    addr += 4
+                }
+            }
 //        case let .movemMR(size, address, registers):
 //            return { cpu in
 //                let inc = Size(size).byteCount

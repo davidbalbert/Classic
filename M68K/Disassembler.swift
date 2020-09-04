@@ -353,7 +353,7 @@ enum Size: Equatable {
         switch self {
         case .b: return 1
         case .w: return 2
-        case .l: return 3
+        case .l: return 4
         }
     }
 }
