@@ -938,7 +938,14 @@ public struct CPU {
         case let .movemMR(.w, .postInc(An), regList):
             return nil
         case let .movemMR(.w, .c(ea), regList):
-            return nil
+            return { cpu in
+                var addr = cpu.address(for: ea)
+                
+                for Rn in regList.registers {
+                    cpu.writeReg16(Rn, value: cpu.read16(addr))
+                    addr += 2
+                }
+            }
         case let .movemMR(.l, .postInc(An), regList):
             return nil
         case let .movemMR(.l, .c(ea), regList):
@@ -1606,7 +1613,7 @@ public struct CPU {
     }
     
     mutating func writeReg16(_ An: AddressRegister, value: UInt16) {
-        self[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: value)
+        self[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: Int16(bitPattern: value))
     }
     
     mutating func writeReg32(_ An: AddressRegister, value: UInt32) {
