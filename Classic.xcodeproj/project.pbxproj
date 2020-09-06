@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		6301354B2501CB3A009CD706 /* MoveMTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6301354A2501CB3A009CD706 /* MoveMTests.swift */; };
 		6301354D25055F39009CD706 /* MoveATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6301354C25055F39009CD706 /* MoveATests.swift */; };
+		6301354F25056699009CD706 /* MoveQTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6301354E25056699009CD706 /* MoveQTests.swift */; };
 		631736A3245FA1B900154425 /* Content.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631736A2245FA1B900154425 /* Content.swift */; };
 		6321D9BB245F61DA00C73B5F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6321D9BA245F61DA00C73B5F /* AppDelegate.swift */; };
 		6321D9BD245F61DA00C73B5F /* AssemblyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6321D9BC245F61DA00C73B5F /* AssemblyViewController.swift */; };
@@ -87,6 +88,7 @@
 /* Begin PBXFileReference section */
 		6301354A2501CB3A009CD706 /* MoveMTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveMTests.swift; sourceTree = "<group>"; };
 		6301354C25055F39009CD706 /* MoveATests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveATests.swift; sourceTree = "<group>"; };
+		6301354E25056699009CD706 /* MoveQTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveQTests.swift; sourceTree = "<group>"; };
 		631736A2245FA1B900154425 /* Content.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Content.swift; sourceTree = "<group>"; };
 		6321D9B7245F61DA00C73B5F /* Classic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Classic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6321D9BA245F61DA00C73B5F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -203,18 +205,19 @@
 			isa = PBXGroup;
 			children = (
 				6329F3BA24FC0FB30038A1D1 /* AddTests.swift */,
-				6329F3BD24FC2F4E0038A1D1 /* AndTests.swift */,
 				6329F3C024FC75520038A1D1 /* AndiTests.swift */,
-				63EE011024FC80DB00398DE2 /* BraTests.swift */,
+				6329F3BD24FC2F4E0038A1D1 /* AndTests.swift */,
 				63EE011224FC8C9F00398DE2 /* BccTests.swift */,
+				63EE011024FC80DB00398DE2 /* BraTests.swift */,
 				63EE011424FC8EF400398DE2 /* BsetTests.swift */,
 				63CA1BEC2500698800D4B630 /* CmpiTests.swift */,
 				63CA1BEE2500881000D4B630 /* DbccTests.swift */,
 				63CA1BF02500925B00D4B630 /* JmpTests.swift */,
 				63CA1BF225011E0D00D4B630 /* LeaTests.swift */,
-				63CA1BF425011EDC00D4B630 /* MoveTests.swift */,
 				6301354C25055F39009CD706 /* MoveATests.swift */,
 				6301354A2501CB3A009CD706 /* MoveMTests.swift */,
+				6301354E25056699009CD706 /* MoveQTests.swift */,
+				63CA1BF425011EDC00D4B630 /* MoveTests.swift */,
 			);
 			path = InstructionTests;
 			sourceTree = "<group>";
@@ -422,6 +425,7 @@
 				6329F3B924EC11440038A1D1 /* CCRTests.swift in Sources */,
 				63CA1BF525011EDC00D4B630 /* MoveTests.swift in Sources */,
 				63827F0624AAB0B0003DB88F /* DisassemblerTests.swift in Sources */,
+				6301354F25056699009CD706 /* MoveQTests.swift in Sources */,
 				63EE011124FC80DB00398DE2 /* BraTests.swift in Sources */,
 				63CA1BED2500698800D4B630 /* CmpiTests.swift in Sources */,
 				63CA1BEF2500881000D4B630 /* DbccTests.swift in Sources */,

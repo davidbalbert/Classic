@@ -1023,31 +1023,14 @@ public struct CPU {
                     addr += 4
                 }
             }
-//        case let .movemMR(size, address, registers):
-//            return { cpu in
-//                let inc = Size(size).byteCount
-//
-//                switch address {
-//                case let .XXXl(addr):
-//                    var a = addr
-//                    for path in registers.keyPaths {
-//                        cpu[keyPath: path] = cpu.read32(a)
-//                        a += inc
-//                    }
-//                default:
-//                    fatalError("movem: unsupported address type")
-//                }
-//            }
         case let .moveq(data, Dn):
             return { cpu in
-                cpu[keyPath: Dn.keyPath] = UInt32(truncatingIfNeeded: data)
+                cpu.writeReg32(Dn, value: UInt32(truncatingIfNeeded: data))
                 
-                var cc = cpu.ccr.intersection(.x)
-
-                if data < 0             { cc.insert(.n) }
-                if data == 0            { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = data < 0
+                cpu.z = data == 0
+                cpu.v = false
+                cpu.c = false
             }
         case let .moveToSR(address):
             return { cpu in
