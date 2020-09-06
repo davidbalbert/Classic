@@ -953,9 +953,22 @@ public struct CPU {
                 }
             }
         case let .movemMR(.l, .postInc(An), regList):
-            return nil
+            return { cpu in
+                for Rn in regList.registers {
+                    let addr = cpu.address(for: MemoryAddress.postInc(An), size: .l)
+                    
+                    cpu.writeReg32(Rn, value: cpu.read32(addr))
+                }
+            }
         case let .movemMR(.l, .c(ea), regList):
-            return nil
+            return { cpu in
+                var addr = cpu.address(for: ea)
+                
+                for Rn in regList.registers {
+                    cpu.writeReg32(Rn, value: cpu.read32(addr))
+                    addr += 4
+                }
+            }
         case let .movemRM(.w, regList, .preDec(An)):
             return { cpu in
                 let initialAddr = cpu.readReg16(An)
