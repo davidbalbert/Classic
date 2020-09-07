@@ -11,6 +11,8 @@
 		6301354D25055F39009CD706 /* MoveATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6301354C25055F39009CD706 /* MoveATests.swift */; };
 		6301354F25056699009CD706 /* MoveQTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6301354E25056699009CD706 /* MoveQTests.swift */; };
 		630135512505695F009CD706 /* MoveToSRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630135502505695F009CD706 /* MoveToSRTests.swift */; };
+		630135532506C6DC009CD706 /* OriToSRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630135522506C6DC009CD706 /* OriToSRTests.swift */; };
+		630135552506CB2C009CD706 /* CustomAssertions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630135542506CB2C009CD706 /* CustomAssertions.swift */; };
 		631736A3245FA1B900154425 /* Content.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631736A2245FA1B900154425 /* Content.swift */; };
 		6321D9BB245F61DA00C73B5F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6321D9BA245F61DA00C73B5F /* AppDelegate.swift */; };
 		6321D9BD245F61DA00C73B5F /* AssemblyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6321D9BC245F61DA00C73B5F /* AssemblyViewController.swift */; };
@@ -91,6 +93,8 @@
 		6301354C25055F39009CD706 /* MoveATests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveATests.swift; sourceTree = "<group>"; };
 		6301354E25056699009CD706 /* MoveQTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveQTests.swift; sourceTree = "<group>"; };
 		630135502505695F009CD706 /* MoveToSRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveToSRTests.swift; sourceTree = "<group>"; };
+		630135522506C6DC009CD706 /* OriToSRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriToSRTests.swift; sourceTree = "<group>"; };
+		630135542506CB2C009CD706 /* CustomAssertions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomAssertions.swift; sourceTree = "<group>"; };
 		631736A2245FA1B900154425 /* Content.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Content.swift; sourceTree = "<group>"; };
 		6321D9B7245F61DA00C73B5F /* Classic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Classic.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6321D9BA245F61DA00C73B5F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -221,6 +225,7 @@
 				6301354E25056699009CD706 /* MoveQTests.swift */,
 				63CA1BF425011EDC00D4B630 /* MoveTests.swift */,
 				630135502505695F009CD706 /* MoveToSRTests.swift */,
+				630135522506C6DC009CD706 /* OriToSRTests.swift */,
 			);
 			path = InstructionTests;
 			sourceTree = "<group>";
@@ -244,6 +249,7 @@
 				6329F3B824EC11440038A1D1 /* CCRTests.swift */,
 				6332244024E0AA3900157207 /* TestMachine.swift */,
 				63827F0524AAB0B0003DB88F /* DisassemblerTests.swift */,
+				630135542506CB2C009CD706 /* CustomAssertions.swift */,
 				6376279324CE0631005FFC5D /* DataExtensionTests.swift */,
 				63827F0724AAB0B0003DB88F /* Info.plist */,
 			);
@@ -420,6 +426,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				630135552506CB2C009CD706 /* CustomAssertions.swift in Sources */,
+				630135532506C6DC009CD706 /* OriToSRTests.swift in Sources */,
 				6301354D25055F39009CD706 /* MoveATests.swift in Sources */,
 				6329F3BE24FC2F4E0038A1D1 /* AndTests.swift in Sources */,
 				6301354B2501CB3A009CD706 /* MoveMTests.swift in Sources */,

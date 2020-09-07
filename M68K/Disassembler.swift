@@ -650,7 +650,7 @@ enum Operation: Equatable {
     case not(Size, DataAlterableAddress)
     case orMR(Size, DataAddress, DataRegister)
     case orRM(Size, DataRegister, MemoryAlterableAddress)
-    case oriToSR(Int16)
+    case oriToSR(UInt16)
     case pea(ControlAddress)
     case rol(Size, RotateCount, DataRegister)
     case rolm(MemoryAlterableAddress)
@@ -2092,7 +2092,7 @@ public struct Disassembler {
         case .oriToSR:
             let w = state.readWord()
             
-            op = .oriToSR(Int16(bitPattern: w))
+            op = .oriToSR(w)
         case .lslr:
             let countOrRegister = (instructionWord >> 9) & 7
             let direction = (instructionWord >> 8) & 1

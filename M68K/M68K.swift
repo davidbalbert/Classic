@@ -1060,7 +1060,8 @@ public struct CPU {
         case let .oriToSR(value):
             return { cpu in
                 if !cpu.s {
-                    fatalError("moveToSR but not supervisor, should trap here")
+                    cpu.privilegeViolation()
+                    return
                 }
 
                 let value = UInt16(truncatingIfNeeded: value)
