@@ -343,8 +343,28 @@ public struct CPU {
         }
     }
     
-    var inSupervisorMode: Bool {
-        sr.contains(.s)
+    var s: Bool {
+        get { sr.contains(.s) }
+        
+        set {
+            if newValue {
+                sr.insert(.s)
+            } else {
+                sr.remove(.s)
+            }
+        }
+    }
+    
+    var t0: Bool {
+        get { sr.contains(.t0) }
+        
+        set {
+            if newValue {
+                sr.insert(.t0)
+            } else {
+                sr.remove(.t0)
+            }
+        }
     }
     
     var c: Bool {
@@ -420,19 +440,13 @@ public struct CPU {
 
     public var a7: UInt32 {
         get {
-            switch sr.intersection(.stackSelectionMask) {
-            case .isp:
-                return isp
-            default:
-                return usp
-            }
+            s ? isp : usp
         }
 
         set {
-            switch sr.intersection(.stackSelectionMask) {
-            case .isp:
+            if s {
                 isp = newValue
-            default:
+            } else {
                 usp = newValue
             }
         }
@@ -1034,8 +1048,9 @@ public struct CPU {
             }
         case let .moveToSR(address):
             return { cpu in
-                if !cpu.inSupervisorMode {
-                    fatalError("moveToSR but not supervisor, should trap here")
+                if !cpu.s {
+                    cpu.privilegeViolation()
+                    return
                 }
                     
                 let value = cpu.read(EffectiveAddress(address), UInt16.self)
@@ -1044,7 +1059,7 @@ public struct CPU {
             }
         case let .oriToSR(value):
             return { cpu in
-                if !cpu.inSupervisorMode {
+                if !cpu.s {
                     fatalError("moveToSR but not supervisor, should trap here")
                 }
 
@@ -1387,6 +1402,22 @@ public struct CPU {
         }
     }
     
+    mutating func privilegeViolation() {
+        let tmp = sr
+        
+        t0 = false
+        s = true
+        
+        // TODO: for other exception types, mask interrupt levels if this is an interrupt
+        
+        let vectorAddr = ExceptionVector.privilegeViolation.address
+        
+        push32(pc)
+        push16(tmp.rawValue)
+        
+        pc = read32(vectorAddr)
+    }
+    
     mutating func read(from effectiveAddress: EffectiveAddress, size: Size) -> UInt32 {
         switch effectiveAddress {
         case let .dd(Dn):
@@ -1693,6 +1724,16 @@ public struct CPU {
     func write32(_ address: UInt32, value: UInt32) {
         bus?.write32(address, value: value)
     }
+    
+    mutating func push16(_ value: UInt16) {
+        a7 -= 2
+        write16(a7, value: value)
+    }
+    
+    mutating func push32(_ value: UInt32) {
+        a7 -= 4
+        write32(a7, value: value)
+    }
 }
 
 
@@ -1729,8 +1770,31 @@ public struct StatusRegister: OptionSet, Hashable {
     public static let t0 = StatusRegister(rawValue: 1 << 14)
 
     static let all: StatusRegister = [t0, s, i2, i1, i0, x, n, z, v, c]
+}
 
-    // stack selection
-    public static let stackSelectionMask: StatusRegister = s
-    public static let isp: StatusRegister = s
+enum ExceptionVector: UInt8 {
+    case reset = 0
+    case busError = 2
+    case addressError = 3
+    case illegalInstruction = 4
+    case zeroDivide = 5
+    case chk = 6
+    case trapv = 7
+    case privilegeViolation = 8
+    case trace = 9
+    case line1010 = 10
+    case line1111 = 11
+    case uninitializedInterrupt = 15
+    case spuriousInterrupt = 24
+    case l1Autovector = 25
+    case l2Autovector = 26
+    case l3Autovector = 27
+    case l4Autovector = 28
+    case l5Autovector = 29
+    case l6Autovector = 30
+    case l7Autovector = 31
+    
+    var address: UInt32 {
+        UInt32(rawValue) << 2
+    }
 }

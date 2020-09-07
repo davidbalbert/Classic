@@ -137,8 +137,8 @@ struct StackPointerItem: Register, NameValueConvertible, Hashable {
     var nameDescription: String {
         guard let vc = viewController, let cpu = vc.cpu else { return "A7" }
         
-        switch cpu.sr.intersection(.stackSelectionMask) {
-        case .isp:
+        switch cpu.sr.intersection(.s) {
+        case .s:
             return "A7 (ISP)"
         default:
             return "A7 (USP)"
