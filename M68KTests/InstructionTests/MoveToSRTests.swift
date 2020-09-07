@@ -33,9 +33,10 @@ class MoveToSRTests: XCTestCase {
     func testUserModeTraps() throws {
         m.cpu.sr = [.x, .c, .v, .t0]
         m.cpu.d0 = UInt32(StatusRegister.all.rawValue)
-        m.cpu.isp = 2048
         
-        m.cpu.pc = 0x1000_0000
+        // exception setup
+        m.cpu.pc = 0
+        m.cpu.isp = 2048
         m.write32(ExceptionVector.privilegeViolation.address, value: 0xcafe_beef)
         
         let oldCpu = m.cpu

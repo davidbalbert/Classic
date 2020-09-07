@@ -32,11 +32,10 @@ class OriToSRTests: XCTestCase {
     
     func testUserModeTraps() throws {
         m.cpu.sr = [.c, .v, .t0]
-        
-        m.cpu.d0 = UInt32(StatusRegister.all.rawValue)
+
+        // exception setup
+        m.cpu.pc = 0
         m.cpu.isp = 2048
-        
-        m.cpu.pc = 0x1000_0000
         m.write32(ExceptionVector.privilegeViolation.address, value: 0xcafe_beef)
         
         let tmp: StatusRegister = [.n, .z]
