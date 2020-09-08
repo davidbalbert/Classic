@@ -21,7 +21,7 @@ class MoveToSRTests: XCTestCase {
     }
     
     func testSupervisorMode() throws {
-        m.cpu.sr = []
+        m.cpu.sr = .s
         m.cpu.d0 = UInt32(StatusRegister.all.rawValue)
         
         m.cpu.execute(.moveToSR(.dd(.d0)), length: 0)
