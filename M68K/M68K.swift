@@ -1068,27 +1068,18 @@ public struct CPU {
                 let current = cpu.sr.rawValue
                 cpu.sr = StatusRegister(rawValue: value | current)
             }
-        case let .ror(.b, .imm(count), Dn):
+        case let .ror(.b, .imm(n), Dn):
             return { cpu in
-                var v = UInt8(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                var v = cpu.readReg8(Dn)
                 
-                // starting carry at 0 clears the carry bit if count == 0
-                var carry: UInt8 = 0
+                v = v>>n | v<<(8-n)
                 
-                for _ in 0..<count {
-                    carry = v & 1
-                    v >>= 1
-                }
-                
-                cpu.writeEffectiveAddress(.dd(Dn), value: UInt32(truncatingIfNeeded: v), size: .b)
-                
-                var cc = cpu.ccr.intersection(.x)
-                
-                if v >= 0x80     { cc.insert(.n) }
-                if v == 0        { cc.insert(.z) }
-                if carry == 1    { cc.insert(.c) }
-                
-                cpu.ccr = cc
+                cpu.writeReg8(Dn, value: v)
+
+                cpu.n = neg(v)
+                cpu.z = v == 0
+                cpu.v = false
+                cpu.c = neg(v) && n > 0
             }
         case let .ror(.w, .imm(count), Dn):
             return { cpu in
