@@ -98,4 +98,42 @@ class RorTests: XCTestCase {
         XCTAssertEqual(m.cpu.ccr, .n)
     }
 
+    func testRorLongImmediate() throws {
+        m.cpu.ccr = [.v, .x]
+        m.cpu.d0 = 0b1100_1010_1100_1010_1100_1010_1100_1010
+        
+        m.cpu.execute(.ror(.l, .imm(2), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b1011_0010_1011_0010_1011_0010_1011_0010)
+        XCTAssertEqual(m.cpu.ccr, [.x, .n, .c])
+    }
+    
+    func testRorLongImmediatePositive() throws {
+        m.cpu.ccr = .v
+        m.cpu.d0 = 0b1100_1010_1100_1010_1100_1010_1100_1010
+        
+        m.cpu.execute(.ror(.l, .imm(1), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b0110_0101_0110_0101_0110_0101_0110_0101)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testRorLongImmediateZero() throws {
+        m.cpu.ccr = .v
+        m.cpu.d0 = 0
+        
+        m.cpu.execute(.ror(.w, .imm(5), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+    
+    func testRorLongImmediateCountZero() throws {
+        m.cpu.ccr = .v
+        m.cpu.d0 = 0b1100_1010_1100_1010_1100_1010_1100_1010
+
+        m.cpu.execute(.ror(.l, .imm(0), .d0), length: 0)
+        XCTAssertEqual(m.cpu.d0, 0b1100_1010_1100_1010_1100_1010_1100_1010)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
 }
