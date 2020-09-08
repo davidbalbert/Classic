@@ -1081,27 +1081,18 @@ public struct CPU {
                 cpu.v = false
                 cpu.c = neg(v) && n > 0
             }
-        case let .ror(.w, .imm(count), Dn):
+        case let .ror(.w, .imm(n), Dn):
             return { cpu in
-                var v = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                var v = cpu.readReg16(Dn)
                 
-                // starting carry at 0 clears the carry bit if count == 0
-                var carry: UInt16 = 0
+                v = v>>n | v<<(16-n)
+
+                cpu.writeReg16(Dn, value: v)
                 
-                for _ in 0..<count {
-                    carry = v & 1
-                    v >>= 1
-                }
-                
-                cpu.writeEffectiveAddress(.dd(Dn), value: UInt32(truncatingIfNeeded: v), size: .b)
-                
-                var cc = cpu.ccr.intersection(.x)
-                
-                if v >= 0x8000   { cc.insert(.n) }
-                if v == 0        { cc.insert(.z) }
-                if carry == 1    { cc.insert(.c) }
-                
-                cpu.ccr = cc
+                cpu.n = neg(v)
+                cpu.z = v == 0
+                cpu.v = false
+                cpu.c = neg(v) && n > 0
             }
         case let .ror(.l, .imm(count), Dn):
             return { cpu in
