@@ -1126,49 +1126,43 @@ public struct CPU {
                 cpu.v = false
                 cpu.c = cpu.x
             }
-        case let .roxl(.w, .imm(count), Dn):
+        case let .roxl(.w, .imm(n), Dn):
             return { cpu in
-                var v = UInt16(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                var v = UInt32(cpu.readReg16(Dn))
                 
-                var extend: UInt16 = cpu.ccr.contains(.x) ? 1 : 0
+                let xb: UInt32 = cpu.x ? 1 : 0
                 
-                for _ in 0..<count {
-                    let prevExtend = extend
-                    extend = v >> 15
-                    v = (v << 1) | prevExtend
-                }
+                v = xb<<16 | v
+                v = v<<n | v>>(17-n)
                 
-                cpu.writeEffectiveAddress(.dd(Dn), value: UInt32(truncatingIfNeeded: v), size: .w)
+                let res = UInt16(truncatingIfNeeded: v)
                 
-                var cc = StatusRegister()
+                cpu.writeReg16(Dn, value: res)
                 
-                if v >= 0x8000     { cc.insert(.n) }
-                if v == 0          { cc.insert(.z) }
-                if extend == 1     { cc.insert(.x); cc.insert(.c) }
-                
-                cpu.ccr = cc
+                if n > 0 { cpu.x = (v>>16) & 1 == 1}
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = cpu.x
             }
-        case let .roxl(.l, .imm(count), Dn):
+        case let .roxl(.l, .imm(n), Dn):
             return { cpu in
-                var v = cpu[keyPath: Dn.keyPath]
+                var v = UInt64(cpu.readReg32(Dn))
                 
-                var extend: UInt32 = cpu.ccr.contains(.x) ? 1 : 0
+                let xb: UInt64 = cpu.x ? 1 : 0
                 
-                for _ in 0..<count {
-                    let prevExtend = extend
-                    extend = v >> 15
-                    v = (v << 1) | prevExtend
-                }
+                v = xb<<32 | v
+                v = v<<n | v>>(33-n)
                 
-                cpu.writeEffectiveAddress(.dd(Dn), value: UInt32(truncatingIfNeeded: v), size: .l)
+                let res = UInt32(truncatingIfNeeded: v)
                 
-                var cc = StatusRegister()
+                cpu.writeReg32(Dn, value: res)
                 
-                if v >= 0x8000_0000 { cc.insert(.n) }
-                if v == 0           { cc.insert(.z) }
-                if extend == 1      { cc.insert(.x); cc.insert(.c) }
-                
-                cpu.ccr = cc
+                if n > 0 { cpu.x = (v>>32) & 1 == 1}
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = cpu.x
             }
         case let .suba(.w, sourceAddress, An):
             return { cpu in

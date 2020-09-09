@@ -59,4 +59,84 @@ class RoxlTests: XCTestCase {
         XCTAssertEqual(m.cpu.d0, 0b0110_1001)
         XCTAssertEqual(m.cpu.ccr, [])
     }
+    
+    func testRoxlWordImmediate() throws {
+        m.cpu.d0 = 0b1010_1010_1010_1010
+        m.cpu.ccr = .v
+        
+        m.cpu.execute(.roxl(.w, .imm(1), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b0101_0101_0101_0100)
+        XCTAssertEqual(m.cpu.ccr, [.x, .c])
+    }
+    
+    func testRoxlWordImmediateNegative() throws {
+        m.cpu.d0 = 0b1010_1010_1010_1010
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.roxl(.w, .imm(2), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b1010_1010_1010_1001)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testRoxlWordImmediateZero() {
+        m.cpu.d0 = 0b0100_0000_0000_0000
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.roxl(.w, .imm(2), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0)
+        XCTAssertEqual(m.cpu.ccr, [.z, .x, .c])
+    }
+    
+    func testRoxlWordImmediateCountZero() {
+        m.cpu.d0 = 0b0101_0101_0110_1001
+        m.cpu.ccr = .c
+        
+        m.cpu.execute(.roxl(.w, .imm(0), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b0101_0101_0110_1001)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+
+    func testRoxlLongImmediate() throws {
+        m.cpu.d0 = 0b1010_1010_1010_1010_1010_1010_1010_1010
+        m.cpu.ccr = .v
+        
+        m.cpu.execute(.roxl(.l, .imm(1), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b0101_0101_0101_0101_0101_0101_0101_0100)
+        XCTAssertEqual(m.cpu.ccr, [.x, .c])
+    }
+    
+    func testRoxlLongImmediateNegative() throws {
+        m.cpu.d0 = 0b1010_1010_1010_1010_1010_1010_1010_1010
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.roxl(.l, .imm(2), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b1010_1010_1010_1010_1010_1010_1010_1001)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testRoxlLongImmediateZero() {
+        m.cpu.d0 = 0b0100_0000_0000_0000_0000_0000_0000_0000
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.roxl(.l, .imm(2), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0)
+        XCTAssertEqual(m.cpu.ccr, [.z, .x, .c])
+    }
+    
+    func testRoxlLongImmediateCountZero() {
+        m.cpu.d0 = 0b0101_0101_0110_1001_0101_0101_0110_1001
+        m.cpu.ccr = .c
+        
+        m.cpu.execute(.roxl(.l, .imm(0), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0b0101_0101_0110_1001_0101_0101_0110_1001)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
 }
