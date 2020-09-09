@@ -49,6 +49,7 @@
 		63EE011124FC80DB00398DE2 /* BraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EE011024FC80DB00398DE2 /* BraTests.swift */; };
 		63EE011324FC8C9F00398DE2 /* BccTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EE011224FC8C9F00398DE2 /* BccTests.swift */; };
 		63EE011524FC8EF400398DE2 /* BsetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EE011424FC8EF400398DE2 /* BsetTests.swift */; };
+		63F62B4A25086973007CE7AB /* RoxlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F62B4925086973007CE7AB /* RoxlTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -137,6 +138,7 @@
 		63EE011024FC80DB00398DE2 /* BraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BraTests.swift; sourceTree = "<group>"; };
 		63EE011224FC8C9F00398DE2 /* BccTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BccTests.swift; sourceTree = "<group>"; };
 		63EE011424FC8EF400398DE2 /* BsetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BsetTests.swift; sourceTree = "<group>"; };
+		63F62B4925086973007CE7AB /* RoxlTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoxlTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -229,6 +231,7 @@
 				630135502505695F009CD706 /* MoveToSRTests.swift */,
 				630135522506C6DC009CD706 /* OriToSRTests.swift */,
 				638863C8250714EF006F4276 /* RorTests.swift */,
+				63F62B4925086973007CE7AB /* RoxlTests.swift */,
 			);
 			path = InstructionTests;
 			sourceTree = "<group>";
@@ -431,6 +434,7 @@
 			files = (
 				630135552506CB2C009CD706 /* CustomAssertions.swift in Sources */,
 				630135532506C6DC009CD706 /* OriToSRTests.swift in Sources */,
+				63F62B4A25086973007CE7AB /* RoxlTests.swift in Sources */,
 				6301354D25055F39009CD706 /* MoveATests.swift in Sources */,
 				6329F3BE24FC2F4E0038A1D1 /* AndTests.swift in Sources */,
 				6301354B2501CB3A009CD706 /* MoveMTests.swift in Sources */,

@@ -1107,27 +1107,24 @@ public struct CPU {
                 cpu.v = false
                 cpu.c = neg(v) && n > 0
             }
-        case let .roxl(.b, .imm(count), Dn):
+        case let .roxl(.b, .imm(n), Dn):
             return { cpu in
-                var v = UInt8(truncatingIfNeeded: cpu[keyPath: Dn.keyPath])
+                var v = UInt16(cpu.readReg8(Dn))
                 
-                var extend: UInt8 = cpu.ccr.contains(.x) ? 1 : 0
+                let xb: UInt16 = cpu.x ? 1 : 0
                 
-                for _ in 0..<count {
-                    let prevExtend = extend
-                    extend = v >> 7
-                    v = (v << 1) | prevExtend
-                }
+                v = xb<<8 | v
+                v = v<<n | v>>(9-n)
                 
-                cpu.writeEffectiveAddress(.dd(Dn), value: UInt32(truncatingIfNeeded: v), size: .b)
+                let res = UInt8(truncatingIfNeeded: v)
                 
-                var cc = StatusRegister()
+                cpu.writeReg8(Dn, value: res)
                 
-                if v >= 0x80     { cc.insert(.n) }
-                if v == 0        { cc.insert(.z) }
-                if extend == 1   { cc.insert(.x); cc.insert(.c) }
-                
-                cpu.ccr = cc
+                if n > 0 { cpu.x = (v>>8) & 1 == 1}
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = cpu.x
             }
         case let .roxl(.w, .imm(count), Dn):
             return { cpu in
