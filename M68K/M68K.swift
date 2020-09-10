@@ -1179,21 +1179,17 @@ public struct CPU {
                 
                 cpu.writeReg32(An, value: dst &- src)
             }
-        case let .subqB(data, .dd(Dn)):
+        case let .subqB(src, .dd(Dn)):
             return { cpu in
-                let v = cpu.readReg8(Dn)
-                let res = v &- data
+                let dst = cpu.readReg8(Dn)
+                let res = dst &- src
                 cpu.writeReg8(Dn, value: res)
                 
-                let overflow = vsub(data, v, res)
-                var cc = StatusRegister()
-
-                if res >= 0x80          { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if data > v             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.x = src > dst
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(src, dst, res)
+                cpu.c = src > dst
             }
         case let .subqB(data, .m(ea)):
             return { cpu in
@@ -1701,7 +1697,7 @@ public struct CPU {
 }
 
 
-public struct StatusRegister: OptionSet, Hashable {
+public struct StatusRegister: OptionSet, Hashable, CustomStringConvertible {
     public let rawValue: UInt16
 
     public init(rawValue: RawValue) {
@@ -1734,6 +1730,33 @@ public struct StatusRegister: OptionSet, Hashable {
     public static let t0 = StatusRegister(rawValue: 1 << 14)
 
     static let all: StatusRegister = [t0, s, i2, i1, i0, x, n, z, v, c]
+    
+    var labels: [StatusRegister: String] {
+        [
+            .t0: "t0",
+            .s: "s",
+            .i2: "i2",
+            .i1: "i1",
+            .i0: "i0",
+            .x: "x",
+            .n: "n",
+            .z: "z",
+            .v: "v",
+            .c: "c",
+        ]
+    }
+    
+    public var description: String {
+        var res: [String] = []
+        
+        for k in labels.keys {
+            if contains(k), let label = labels[k] {
+                res.append(label)
+            }
+        }
+        
+        return "StatusRegister(rawValue: \(rawValue)) \(res)"
+    }
 }
 
 enum ExceptionVector: UInt8 {
