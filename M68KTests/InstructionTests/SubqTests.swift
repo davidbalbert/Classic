@@ -69,4 +69,59 @@ class SubqTests: XCTestCase {
         XCTAssertEqual(m.cpu.d0, 0xff)
         XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
     }
+    
+    func testSubqByteMem() throws {
+        m.cpu.write8(3, value: 0x7f)
+        m.cpu.a0 = 3
+        m.cpu.ccr = [.x, .n, .z, .v, .c]
+        
+        m.cpu.execute(.subqB(5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(3), 0x7a)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testSubqByteMemNegative() throws {
+        m.cpu.write8(3, value: 0xff)
+        m.cpu.a0 = 3
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqB(5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(3), 0xfa)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testSubqByteMemZero() throws {
+        m.cpu.write8(3, value: 0x05)
+        m.cpu.a0 = 3
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqB(5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(3), 0)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+    
+    func testSubqByteMemOverflow() throws {
+        m.cpu.write8(3, value: 0x80)
+        m.cpu.a0 = 3
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqB(1, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(3), 0x7f)
+        XCTAssertEqual(m.cpu.ccr, .v)
+    }
+    
+    func testSubqByteMemBorrow() throws {
+        m.cpu.write8(3, value: 0x04)
+        m.cpu.a0 = 3
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqB(5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(3), 0xff)
+        XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
+    }
 }

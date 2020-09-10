@@ -1191,23 +1191,19 @@ public struct CPU {
                 cpu.v = vsub(src, dst, res)
                 cpu.c = src > dst
             }
-        case let .subqB(data, .m(ea)):
+        case let .subqB(src, .m(ea)):
             return { cpu in
                 let addr = cpu.address(for: ea, size: .b)
-                let v = cpu.read8(addr)
+                let dst = cpu.read8(addr)
                 
-                let res = v &- data
+                let res = dst &- src
                 cpu.write8(addr, value: res)
                                 
-                let overflow = vsub(data, v, res)
-                var cc = StatusRegister()
-
-                if res >= 0x80          { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if data > v             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.x = src > dst
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(src, dst, res)
+                cpu.c = src > dst
             }
         case let .subqWL(.w, data, .dd(Dn)):
             return { cpu in
