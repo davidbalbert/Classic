@@ -27,6 +27,7 @@
 		6332243D24DF14EE00157207 /* DebugWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6332243C24DF14EE00157207 /* DebugWindowController.swift */; };
 		6332243F24E09DD500157207 /* ConditionCodeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6332243E24E09DD500157207 /* ConditionCodeTests.swift */; };
 		6332244124E0AA3900157207 /* TestMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6332244024E0AA3900157207 /* TestMachine.swift */; };
+		633825B52509B531009A4A0F /* SubaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 633825B42509B531009A4A0F /* SubaTests.swift */; };
 		635385D324C71E4A009E147C /* SplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635385D224C71E4A009E147C /* SplitViewController.swift */; };
 		635385D524C723D7009E147C /* RegisterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635385D424C723D7009E147C /* RegisterViewController.swift */; };
 		6376279224CDFE71005FFC5D /* Disassembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6376279124CDFE71005FFC5D /* Disassembler.swift */; };
@@ -116,6 +117,7 @@
 		6332243C24DF14EE00157207 /* DebugWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugWindowController.swift; sourceTree = "<group>"; };
 		6332243E24E09DD500157207 /* ConditionCodeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionCodeTests.swift; sourceTree = "<group>"; };
 		6332244024E0AA3900157207 /* TestMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestMachine.swift; sourceTree = "<group>"; };
+		633825B42509B531009A4A0F /* SubaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubaTests.swift; sourceTree = "<group>"; };
 		635385D224C71E4A009E147C /* SplitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitViewController.swift; sourceTree = "<group>"; };
 		635385D424C723D7009E147C /* RegisterViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterViewController.swift; sourceTree = "<group>"; };
 		6376279124CDFE71005FFC5D /* Disassembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Disassembler.swift; sourceTree = "<group>"; };
@@ -232,6 +234,7 @@
 				630135522506C6DC009CD706 /* OriToSRTests.swift */,
 				638863C8250714EF006F4276 /* RorTests.swift */,
 				63F62B4925086973007CE7AB /* RoxlTests.swift */,
+				633825B42509B531009A4A0F /* SubaTests.swift */,
 			);
 			path = InstructionTests;
 			sourceTree = "<group>";
@@ -442,6 +445,7 @@
 				63EE011324FC8C9F00398DE2 /* BccTests.swift in Sources */,
 				6329F3B924EC11440038A1D1 /* CCRTests.swift in Sources */,
 				63CA1BF525011EDC00D4B630 /* MoveTests.swift in Sources */,
+				633825B52509B531009A4A0F /* SubaTests.swift in Sources */,
 				63827F0624AAB0B0003DB88F /* DisassemblerTests.swift in Sources */,
 				6301354F25056699009CD706 /* MoveQTests.swift in Sources */,
 				63EE011124FC80DB00398DE2 /* BraTests.swift in Sources */,

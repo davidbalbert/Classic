@@ -1164,21 +1164,20 @@ public struct CPU {
                 cpu.v = false
                 cpu.c = cpu.x
             }
-        case let .suba(.w, sourceAddress, An):
+        case let .suba(.w, ea, An):
             return { cpu in
-                let destination = UInt16(truncatingIfNeeded: cpu[keyPath: An.keyPath])
-                let source = UInt16(truncatingIfNeeded: cpu.read(from: sourceAddress, size: .w))
-                let res = destination &- source
+                let src = UInt32(truncatingIfNeeded: Int16(bitPattern: cpu.read(ea, UInt16.self)))
                 
-                cpu[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: res)
+                let dst = cpu.readReg32(An)
+                
+                cpu.writeReg32(An, value: dst &- src)
             }
-        case let .suba(.l, sourceAddress, An):
+        case let .suba(.l, ea, An):
             return { cpu in
-                let destination = cpu[keyPath: An.keyPath]
-                let source = cpu.read(from: sourceAddress, size: .l)
-                let res = destination &- source
+                let src = cpu.read(ea, UInt32.self)
+                let dst = cpu.readReg32(An)
                 
-                cpu[keyPath: An.keyPath] = res
+                cpu.writeReg32(An, value: dst &- src)
             }
         case let .subqB(data, .dd(Dn)):
             return { cpu in
