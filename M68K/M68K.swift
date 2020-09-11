@@ -844,8 +844,7 @@ public struct CPU {
             }
         case let .bset(.r(bitNumberRegister), .m(ea)):
             return { cpu in
-                let n = UInt8(cpu[keyPath: bitNumberRegister.keyPath])
-
+                let n = cpu.readReg8(bitNumberRegister)
                 let bit = 1 << (n%8)
                 let address = cpu.address(for: ea, size: .b)
 
