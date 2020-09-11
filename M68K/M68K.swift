@@ -1345,106 +1345,7 @@ public struct CPU {
         
         pc = read32(vectorAddr)
     }
-    
-    mutating func read(from effectiveAddress: EffectiveAddress, size: Size) -> UInt32 {
-        switch effectiveAddress {
-        case let .dd(Dn):
-            return self[keyPath: Dn.keyPath]
-        case let .ad(An):
-            return self[keyPath: An.keyPath]
-        case let .m(.ind(An)):
-            let address = self[keyPath: An.keyPath]
-            
-            return read(address, size: size)
-        case let .m(.postInc(An)):
-            let address = self[keyPath: An.keyPath]
-            self[keyPath: An.keyPath] += size.byteCount
-            
-            return read(address, size: size)
-        case let .m(.preDec(An)):
-            self[keyPath: An.keyPath] -= size.byteCount
-            let address = self[keyPath: An.keyPath]
-            
-            return read(address, size: size)
-        case let .m(.d16An(d, An)):
-            let address = UInt32(truncatingIfNeeded: Int64(self[keyPath: An.keyPath]) + Int64(d))
-            
-            return read(address, size: size)
-        case .m(.d8AnXn(_, _, _, _)):
-            fatalError("d8AnXn not implemented")
-        case let .m(.XXXw(address)):
-            return read(address, size: size)
-        case let .m(.XXXl(address)):
-            return read(address, size: size)
-        case let .m(.d16PC(pc, displacement)):
-            let address = UInt32(Int64(pc) + Int64(displacement))
-            
-            return read(address, size: size)
-        case .m(.d8PCXn(_, _, _, _)):
-            fatalError("d8PCXn not implemented yet")
-        case let .imm(value):
-            return UInt32(truncatingIfNeeded: value)
-        }
-    }
-    
-    mutating func writeEffectiveAddress(_ effectiveAddress: EffectiveAddress, value: UInt32, size: Size) {
-        switch effectiveAddress {
-        case let .dd(Dn):
-            let existingMask: UInt32
-            let newMask: UInt32
-            switch size {
-            case .b:
-                existingMask = 0xffffff00
-                newMask      = 0x000000ff
-            case .w:
-                existingMask = 0xffff0000
-                newMask      = 0x0000ffff
-            case .l:
-                existingMask = 0x00000000
-                newMask      = 0xffffffff
-            }
-            
-            let existing = self[keyPath: Dn.keyPath]
-            
-            self[keyPath: Dn.keyPath] = (existing & existingMask) | (value & newMask)
-        case let .ad(An):
-            self[keyPath: An.keyPath] = UInt32(truncatingIfNeeded: value)
-        case let .m(.ind(An)):
-            let address = self[keyPath: An.keyPath]
-            
-            write(address, value, size: size)
-        case let .m(.postInc(An)):
-            let address = self[keyPath: An.keyPath]
-            self[keyPath: An.keyPath] += 2
-            
-            write(address, value, size: size)
-        case let .m(.preDec(An)):
-            self[keyPath: An.keyPath] -= 2
-            let address = self[keyPath: An.keyPath]
-            
-            write(address, value, size: size)
-        case let .m(.d16An(d, An)):
-            let address = UInt32(Int64(self[keyPath: An.keyPath]) + Int64(d))
-            
-            write(address, value, size: size)
-        case .m(.d8AnXn(_, _, _, _)):
-            fatalError("d8AnXn not implemented")
-        case let .m(.XXXw(address)):
-            write(address, value, size: size)
-        case let .m(.XXXl(address)):
-            write(address, value, size: size)
-        case let .m(.d16PC(pc, d)):
-            let address = UInt32(Int64(pc) + Int64(d))
 
-            write(address, value, size: size)
-        case .m(.d8PCXn(_, _, _, _)):
-            fatalError("d8PCXn not implemented")
-        case .imm(_):
-            fatalError("can't write to an immediate value")
-        }
-    }
-    
-    
     mutating func address(for ea: ControlAddress) -> UInt32 {
         // Control addressing modes don't require size to evaluate
         // the address. The .b is unused.
@@ -1610,22 +1511,6 @@ public struct CPU {
         switch Rn {
         case let .a(An): writeReg32(An, value: value)
         case let .d(Dn): writeReg32(Dn, value: value)
-        }
-    }
-    
-    func read(_ address: UInt32, size: Size) -> UInt32 {
-        switch size {
-        case .b: return UInt32(read8(address))
-        case .w: return UInt32(read16(address))
-        case .l: return read32(address)
-        }
-    }
-    
-    func write(_ address: UInt32, _ value: UInt32, size: Size) {
-        switch size {
-        case .b: write8(address, value: UInt8(truncatingIfNeeded: value))
-        case .w: write16(address, value: UInt16(truncatingIfNeeded: value))
-        case .l: write32(address, value: value)
         }
     }
     
