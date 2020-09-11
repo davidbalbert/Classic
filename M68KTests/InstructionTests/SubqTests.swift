@@ -175,6 +175,64 @@ class SubqTests: XCTestCase {
         XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
     }
     
+    
+    func testSubqWordMem() throws {
+        m.cpu.write16(2, value: 0x7afe)
+        m.cpu.a0 = 2
+        m.cpu.ccr = [.x, .n, .z, .v, .c]
+        
+        m.cpu.execute(.subqWL(.w, 5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(2), 0x7af9)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testSubqWordMemNegative() throws {
+        m.cpu.write16(2, value: 0xcafe)
+        m.cpu.a0 = 2
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.w, 5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(2), 0xcaf9)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testSubqWordMemZero() throws {
+        m.cpu.write16(2, value: 0x05)
+        m.cpu.a0 = 2
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.w, 5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(2), 0)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+    
+    func testSubqWordMemOverflow() throws {
+        m.cpu.write16(2, value: 0x8000)
+        m.cpu.a0 = 2
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.w, 1, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(2), 0x7fff)
+        XCTAssertEqual(m.cpu.ccr, .v)
+    }
+    
+    func testSubqWordMemBorrow() throws {
+        m.cpu.write16(2, value: 0x0004)
+        m.cpu.a0 = 2
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.w, 5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(2), 0xffff)
+        XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
+    }
+
+    
+    
     func testSubqWordAddressDirect() throws {
         m.cpu.a0 = 0xcafe
         m.cpu.ccr = []
@@ -194,6 +252,4 @@ class SubqTests: XCTestCase {
         XCTAssertEqual(m.cpu.a0, 0xcafd)
         XCTAssertEqual(m.cpu.ccr, [])
     }
-
-
 }

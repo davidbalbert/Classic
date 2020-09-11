@@ -1219,24 +1219,20 @@ public struct CPU {
                 cpu.v = vsub(src, dst, res)
                 cpu.c = src > dst
             }
-        case let .subqWL(.w, data, .m(ea)):
+        case let .subqWL(.w, src, .m(ea)):
             return { cpu in
                 let addr = cpu.address(for: ea, size: .w)
-                let v = cpu.read16(addr)
-                let data = UInt16(data)
+                let dst = cpu.read16(addr)
+                let src = UInt16(src)
                 
-                let res = v &- data
+                let res = dst &- src
                 cpu.write16(addr, value: res)
                                 
-                let overflow = vsub(data, v, res)
-                var cc = StatusRegister()
-
-                if res >= 0x8000        { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if data > v             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.x = src > dst
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(src, dst, res)
+                cpu.c = src > dst
             }
         case let .subqWL(.l, data, .dd(Dn)):
             return { cpu in
