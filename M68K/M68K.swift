@@ -770,6 +770,44 @@ public struct CPU {
                     cpu.pc = UInt32(Int64(pc) + Int64(displacement))
                 }
             }
+        case let .bclr(.imm(n), .dd(Dn)):
+            return { cpu in
+                let bit: UInt32 = 1 << (UInt32(n) % 32)
+                let v = cpu.readReg32(Dn)
+                cpu.writeReg32(Dn, value: v & ~bit)
+                
+                cpu.z = v & bit == 0
+            }
+        case let .bclr(.imm(n), .m(ea)):
+            return { cpu in
+                let bit = 1 << (n%8)
+                let addr = cpu.address(for: ea, size: .b)
+                
+                let v = cpu.read8(addr)
+                cpu.write8(addr, value: v & ~bit)
+                
+                cpu.z = v & bit == 0
+            }
+        case let .bclr(.r(bitNumberRegister), .dd(Dn)):
+            return { cpu in
+                let n = cpu.readReg32(bitNumberRegister)
+                let bit = 1 << (n%32)
+                let v = cpu.readReg32(Dn)
+                cpu.writeReg32(Dn, value: v & ~bit)
+                
+                cpu.z = v & bit == 0
+            }
+        case let .bclr(.r(bitNumberRegister), .m(ea)):
+            return { cpu in
+                let n = cpu.readReg8(bitNumberRegister)
+                let bit = 1 << (n%8)
+                let addr = cpu.address(for: ea, size: .b)
+                
+                let v = cpu.read8(addr)
+                cpu.write8(addr, value: v & ~bit)
+                
+                cpu.z = v & bit == 0
+            }
         case let .bra(_, pc, displacement):
             return { cpu in
                 cpu.pc = UInt32(Int64(pc) + Int64(displacement))
