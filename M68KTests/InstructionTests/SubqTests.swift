@@ -174,5 +174,26 @@ class SubqTests: XCTestCase {
         XCTAssertEqual(m.cpu.d0, 0xffff)
         XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
     }
+    
+    func testSubqWordAddressDirect() throws {
+        m.cpu.a0 = 0xcafe
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.w, 1, .ad(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.a0, 0xcafd)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testSubqLongAddressDirect() throws {
+        m.cpu.a0 = 0xcafe
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.l, 1, .ad(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.a0, 0xcafd)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+
 
 }

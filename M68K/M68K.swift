@@ -1219,14 +1219,6 @@ public struct CPU {
                 cpu.v = vsub(src, dst, res)
                 cpu.c = src > dst
             }
-        case let .subqWL(.w, data, .ad(An)):
-            return { cpu in
-                let v = cpu.readReg16(An)
-                let data = UInt16(data)
-                let res = v &- data
-                
-                cpu.writeReg16(An, value: res)
-            }
         case let .subqWL(.w, data, .m(ea)):
             return { cpu in
                 let addr = cpu.address(for: ea, size: .w)
@@ -1264,14 +1256,6 @@ public struct CPU {
                 
                 cpu.ccr = cc
             }
-        case let .subqWL(.l, data, .ad(An)):
-            return { cpu in
-                let v = cpu.read(from: .ad(An), size: .l)
-                let data = UInt32(data)
-                let res = v &- data
-
-                cpu.writeEffectiveAddress(.ad(An), value: UInt32(truncatingIfNeeded: res), size: .l)
-            }
         case let .subqWL(.l, data, .m(ea)):
             return { cpu in
                 let addr = cpu.address(for: ea, size: .l)
@@ -1290,6 +1274,16 @@ public struct CPU {
                 if data > v             { cc.insert(.c); cc.insert(.x) }
                 
                 cpu.ccr = cc
+            }
+        // From everything I can find, address direct subq.w
+        // and subq.l behave the same.
+        case let .subqWL(_, src, .ad(An)):
+            return { cpu in
+                let dst = cpu.readReg32(An)
+                let src = UInt32(src)
+                let res = dst &- src
+
+                cpu.writeReg32(An, value: res)
             }
         case let .tst(.b, destination):
             return { cpu in
