@@ -1273,38 +1273,32 @@ public struct CPU {
 
                 cpu.writeReg32(An, value: res)
             }
-        case let .tst(.b, destination):
+        case let .tst(.b, ea):
             return { cpu in
-                let destination = UInt8(truncatingIfNeeded: cpu.read(from: destination, size: .b))
-                
-                var cc = cpu.ccr.intersection(.x)
+                let dst = cpu.read(ea, UInt8.self)
 
-                if destination > 0x80   { cc.insert(.n) }
-                if destination == 0     { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(dst)
+                cpu.z = dst == 0
+                cpu.v = false
+                cpu.c = false
             }
-        case let .tst(.w, destination):
+        case let .tst(.w, ea):
             return { cpu in
-                let destination = UInt16(truncatingIfNeeded: cpu.read(from: destination, size: .b))
-                
-                var cc = cpu.ccr.intersection(.x)
+                let dst = cpu.read(ea, UInt16.self)
 
-                if destination > 0x8000 { cc.insert(.n) }
-                if destination == 0     { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(dst)
+                cpu.z = dst == 0
+                cpu.v = false
+                cpu.c = false
             }
-        case let .tst(.l, destination):
+        case let .tst(.l, ea):
             return { cpu in
-                let destination = cpu.read(from: destination, size: .b)
-                
-                var cc = cpu.ccr.intersection(.x)
+                let dst = cpu.read(ea, UInt32.self)
 
-                if destination > 0x80000000 { cc.insert(.n) }
-                if destination == 0         { cc.insert(.z) }
-
-                cpu.ccr = cc
+                cpu.n = neg(dst)
+                cpu.z = dst == 0
+                cpu.v = false
+                cpu.c = false
             }
         default:
             return nil
