@@ -1234,42 +1234,34 @@ public struct CPU {
                 cpu.v = vsub(src, dst, res)
                 cpu.c = src > dst
             }
-        case let .subqWL(.l, data, .dd(Dn)):
+        case let .subqWL(.l, src, .dd(Dn)):
             return { cpu in
-                let v = cpu.readReg32(Dn)
-                let data = UInt32(data)
-                let res = v &- data
+                let dst = cpu.readReg32(Dn)
+                let src = UInt32(src)
+                let res = dst &- src
                 
                 cpu.writeReg32(Dn, value: res)
                 
-                let overflow = vsub(data, v, res)
-                var cc = StatusRegister()
-
-                if res >= 0x8000_0000   { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if data > v             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.x = src > dst
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(src, dst, res)
+                cpu.c = src > dst
             }
-        case let .subqWL(.l, data, .m(ea)):
+        case let .subqWL(.l, src, .m(ea)):
             return { cpu in
                 let addr = cpu.address(for: ea, size: .l)
-                let v = cpu.read32(addr)
-                let data = UInt32(data)
+                let dst = cpu.read32(addr)
+                let src = UInt32(src)
                 
-                let res = v &- data
-                cpu.write32(addr, value: data)
+                let res = dst &- src
+                cpu.write32(addr, value: res)
                                                 
-                let overflow = vsub(data, v, res)
-                var cc = StatusRegister()
-
-                if res >= 0x8000_0000   { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if data > v             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.x = src > dst
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(src, dst, res)
+                cpu.c = src > dst
             }
         // From everything I can find, address direct subq.w
         // and subq.l behave the same.

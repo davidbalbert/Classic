@@ -231,7 +231,111 @@ class SubqTests: XCTestCase {
         XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
     }
 
+    func testSubqLongDataDirect() throws {
+        m.cpu.d0 = 0x7afe_7afe
+        m.cpu.ccr = [.x, .n, .z, .v, .c]
+        
+        m.cpu.execute(.subqWL(.l, 5, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x7afe_7af9)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
     
+    func testSubqLongDataDirectNegative() throws {
+        m.cpu.d0 = 0xcafe_cafe
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.l, 5, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xcafe_caf9)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testSubqLongDataDirectZero() throws {
+        m.cpu.d0 = 0x0000_0005
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.l, 5, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+    
+    func testSubqLongDataDirectOverflow() throws {
+        m.cpu.d0 = 0x8000_0000
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.l, 1, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x7fff_ffff)
+        XCTAssertEqual(m.cpu.ccr, .v)
+    }
+    
+    func testSubqLongDataDirectBorrow() throws {
+        m.cpu.d0 = 0x0000_0004
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.l, 5, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xffff_ffff)
+        XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
+    }
+    
+    
+    func testSubqLongMem() throws {
+        m.cpu.write32(2, value: 0x7afe_7afe)
+        m.cpu.a0 = 2
+        m.cpu.ccr = [.x, .n, .z, .v, .c]
+        
+        m.cpu.execute(.subqWL(.l, 5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0x7afe_7af9)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testSubqLongMemNegative() throws {
+        m.cpu.write32(2, value: 0xcafe_cafe)
+        m.cpu.a0 = 2
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.l, 5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0xcafe_caf9)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testSubqLongMemZero() throws {
+        m.cpu.write32(2, value: 0x05)
+        m.cpu.a0 = 2
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.l, 5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+    
+    func testSubqLongMemOverflow() throws {
+        m.cpu.write32(2, value: 0x8000_0000)
+        m.cpu.a0 = 2
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.l, 1, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0x7fff_ffff)
+        XCTAssertEqual(m.cpu.ccr, .v)
+    }
+    
+    func testSubqLongMemBorrow() throws {
+        m.cpu.write32(2, value: 0x0000_0004)
+        m.cpu.a0 = 2
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.l, 5, .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0xffff_ffff)
+        XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
+    }
     
     func testSubqWordAddressDirect() throws {
         m.cpu.a0 = 0xcafe
