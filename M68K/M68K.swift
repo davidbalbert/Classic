@@ -1195,8 +1195,8 @@ public struct CPU {
             return { cpu in
                 let addr = cpu.address(for: ea, size: .b)
                 let dst = cpu.read8(addr)
-                
                 let res = dst &- src
+                
                 cpu.write8(addr, value: res)
                                 
                 cpu.x = src > dst
@@ -1205,23 +1205,19 @@ public struct CPU {
                 cpu.v = vsub(src, dst, res)
                 cpu.c = src > dst
             }
-        case let .subqWL(.w, data, .dd(Dn)):
+        case let .subqWL(.w, src, .dd(Dn)):
             return { cpu in
-                let v = cpu.readReg16(Dn)
-                let data = UInt16(data)
-                let res = v &- data
+                let dst = cpu.readReg16(Dn)
+                let src = UInt16(src)
+                let res = dst &- src
                 
                 cpu.writeReg16(Dn, value: res)
-                
-                let overflow = vsub(data, v, res)
-                var cc = StatusRegister()
 
-                if res >= 0x8000        { cc.insert(.n) }
-                if res == 0             { cc.insert(.z) }
-                if overflow             { cc.insert(.v) }
-                if data > v             { cc.insert(.c); cc.insert(.x) }
-                
-                cpu.ccr = cc
+                cpu.x = src > dst
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(src, dst, res)
+                cpu.c = src > dst
             }
         case let .subqWL(.w, data, .ad(An)):
             return { cpu in

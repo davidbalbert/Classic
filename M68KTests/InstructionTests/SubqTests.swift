@@ -124,4 +124,55 @@ class SubqTests: XCTestCase {
         XCTAssertEqual(m.cpu.read8(3), 0xff)
         XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
     }
+    
+    func testSubqWordDataDirect() throws {
+        m.cpu.d0 = 0x7afe
+        m.cpu.ccr = [.x, .n, .z, .v, .c]
+        
+        m.cpu.execute(.subqWL(.w, 5, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x7af9)
+        XCTAssertEqual(m.cpu.ccr, [])
+    }
+    
+    func testSubqWordDataDirectNegative() throws {
+        m.cpu.d0 = 0xcafe
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.w, 5, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xcaf9)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testSubqWordDataDirectZero() throws {
+        m.cpu.d0 = 0x0005
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.w, 5, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+    
+    func testSubqWordDataDirectOverflow() throws {
+        m.cpu.d0 = 0x8000
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.w, 1, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0x7fff)
+        XCTAssertEqual(m.cpu.ccr, .v)
+    }
+    
+    func testSubqWordDataDirectBorrow() throws {
+        m.cpu.d0 = 0x0004
+        m.cpu.ccr = []
+        
+        m.cpu.execute(.subqWL(.w, 5, .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.d0, 0xffff)
+        XCTAssertEqual(m.cpu.ccr, [.c, .x, .n])
+    }
+
 }
