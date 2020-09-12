@@ -1182,6 +1182,48 @@ public struct CPU {
 
                 cpu.sr = StatusRegister(rawValue: value)
             }
+        case let .orMR(.b, ea, Dn):
+            return { cpu in
+                let src = cpu.read(EffectiveAddress(ea), UInt8.self)
+                let dst = cpu.readReg8(Dn)
+                let res = src | dst
+                cpu.writeReg8(Dn, value: res)
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
+            }
+        case let .orMR(.w, ea, Dn):
+            return { cpu in
+                let src = cpu.read(EffectiveAddress(ea), UInt16.self)
+                let dst = cpu.readReg16(Dn)
+                let res = src | dst
+                cpu.writeReg16(Dn, value: res)
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
+            }
+        case let .orMR(.l, ea, Dn):
+            return { cpu in
+                let src = cpu.read(EffectiveAddress(ea), UInt32.self)
+                let dst = cpu.readReg32(Dn)
+                let res = src | dst
+                cpu.writeReg32(Dn, value: res)
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
+            }
+        case let .orRM(.b, Dn, ea):
+            return nil
+        case let .orRM(.w, Dn, ea):
+            return nil
+        case let .orRM(.l, Dn, ea):
+            return nil
         case let .oriToSR(value):
             return { cpu in
                 if !cpu.s {
