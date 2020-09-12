@@ -788,18 +788,18 @@ public struct CPU {
                 
                 cpu.z = v & bit == 0
             }
-        case let .bclr(.r(bitNumberRegister), .dd(Dn)):
+        case let .bclr(.r(Dnum), .dd(Dn)):
             return { cpu in
-                let n = cpu.readReg32(bitNumberRegister)
+                let n = cpu.readReg32(Dnum)
                 let bit = 1 << (n%32)
                 let v = cpu.readReg32(Dn)
                 cpu.writeReg32(Dn, value: v & ~bit)
                 
                 cpu.z = v & bit == 0
             }
-        case let .bclr(.r(bitNumberRegister), .m(ea)):
+        case let .bclr(.r(Dnum), .m(ea)):
             return { cpu in
-                let n = cpu.readReg8(bitNumberRegister)
+                let n = cpu.readReg8(Dnum)
                 let bit = 1 << (n%8)
                 let addr = cpu.address(for: ea, size: .b)
                 
@@ -831,9 +831,9 @@ public struct CPU {
                 
                 cpu.z = v & bit == 0
             }
-        case let .bset(.r(bitNumberRegister), .dd(Dn)):
+        case let .bset(.r(Dnum), .dd(Dn)):
             return { cpu in
-                let n = cpu.readReg32(bitNumberRegister)
+                let n = cpu.readReg32(Dnum)
                 
                 let bit = 1 << (n%32)
                 
@@ -842,9 +842,9 @@ public struct CPU {
                 
                 cpu.z = v & bit == 0
             }
-        case let .bset(.r(bitNumberRegister), .m(ea)):
+        case let .bset(.r(Dnum), .m(ea)):
             return { cpu in
-                let n = cpu.readReg8(bitNumberRegister)
+                let n = cpu.readReg8(Dnum)
                 let bit = 1 << (n%8)
                 let address = cpu.address(for: ea, size: .b)
 
