@@ -910,6 +910,48 @@ public struct CPU {
                 
                 cpu.writeReg32(An, value: address)
             }
+        case let .lsr(.b, .imm(n), Dn):
+            return { cpu in
+                let mask: UInt8 = 1 << (n-1)
+                let v = cpu.readReg8(Dn)
+                let res = v >> n
+                
+                cpu.writeReg8(Dn, value: res)
+                
+                cpu.c = v & mask > 0
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.x = v & mask > 0
+            }
+        case let .lsr(.w, .imm(n), Dn):
+            return { cpu in
+                let mask: UInt16 = 1 << (UInt16(n)-1)
+                let v = cpu.readReg16(Dn)
+                let res = v >> n
+                
+                cpu.writeReg16(Dn, value: res)
+                
+                cpu.c = v & mask > 0
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.x = v & mask > 0
+            }
+        case let .lsr(.l, .imm(n), Dn):
+            return { cpu in
+                let mask: UInt32 = 1 << (UInt32(n)-1)
+                let v = cpu.readReg32(Dn)
+                let res = v >> n
+                
+                cpu.writeReg32(Dn, value: res)
+                
+                cpu.c = v & mask > 0
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.x = v & mask > 0
+            }
         case let .move(.b, src, .dd(Dn)):
             return { cpu in
                 let data = cpu.read(src, UInt8.self)
@@ -1157,7 +1199,7 @@ public struct CPU {
                 
                 cpu.writeReg8(Dn, value: res)
                 
-                if n > 0 { cpu.x = (v>>8) & 1 == 1}
+                if n > 0 { cpu.x = (v>>8) & 1 == 1 }
                 cpu.n = neg(res)
                 cpu.z = res == 0
                 cpu.v = false
