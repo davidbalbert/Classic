@@ -855,8 +855,8 @@ public struct CPU {
             }
         case let .btst(.imm(n), .dd(Dn)):
             return { cpu in
-                let bit: UInt8 = 1 << (n%32)
-                let v = cpu.readReg8(Dn)
+                let bit: UInt32 = 1 << (UInt32(n)%32)
+                let v = cpu.readReg32(Dn)
                 
                 cpu.z = v & bit == 0
             }

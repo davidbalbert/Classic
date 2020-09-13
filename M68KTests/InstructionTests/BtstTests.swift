@@ -22,9 +22,9 @@ class BtstTests: XCTestCase {
     
     func testBtstByteImmDd() throws {
         m.cpu.ccr = [.x, .n, .z, .v, .c]
-        m.cpu.d0 = 1 << 3
+        m.cpu.d0 = 1 << 27
         
-        m.cpu.execute(.btst(.imm(32+3), .dd(.d0)), length: 0)
+        m.cpu.execute(.btst(.imm(32+27), .dd(.d0)), length: 0)
         
         XCTAssertEqual(m.cpu.ccr, [.x, .n, .v, .c])
     }
@@ -33,7 +33,7 @@ class BtstTests: XCTestCase {
         m.cpu.ccr = []
         m.cpu.d0 = 1 << 5
         
-        m.cpu.execute(.btst(.imm(32+3), .dd(.d0)), length: 0)
+        m.cpu.execute(.btst(.imm(32+27), .dd(.d0)), length: 0)
 
         XCTAssertEqual(m.cpu.ccr, .z)
     }
