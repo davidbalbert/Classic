@@ -875,11 +875,29 @@ public struct CPU {
                 cpu.z = v & bit == 0
             }
         case let .btst(.r(Dnum), .dd(Dn)):
-            return nil
+            return { cpu in
+                let n = cpu.readReg32(Dnum)
+                let bit: UInt32 = 1 << (n%32)
+                let v = cpu.readReg32(Dn)
+                
+                cpu.z = v & bit == 0
+            }
         case let .btst(.r(Dnum), .imm(v)):
-            return nil
+            return { cpu in
+                let n = cpu.readReg8(Dnum)
+                let bit: UInt8 = 1 << (n%8)
+                let v = UInt8(truncatingIfNeeded: v)
+                
+                cpu.z = v & bit == 0
+            }
         case let .btst(.r(Dnum), .m(ea)):
-            return nil
+            return { cpu in
+                let n = cpu.readReg8(Dnum)
+                let bit: UInt8 = 1 << (n%8)
+                let v = cpu.read(EffectiveAddress(ea), UInt8.self)
+                
+                cpu.z = v & bit == 0
+            }
         case let .clr(.b, .dd(Dn)):
             return { cpu in
                 cpu.writeReg8(Dn, value: 0)

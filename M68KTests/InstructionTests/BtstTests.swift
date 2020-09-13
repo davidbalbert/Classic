@@ -41,7 +41,7 @@ class BtstTests: XCTestCase {
     func testBtstByteImmImm() throws {
         m.cpu.ccr = [.x, .n, .z, .v, .c]
         
-        m.cpu.execute(.btst(.imm(32+3), .imm(1 << 3)), length: 0)
+        m.cpu.execute(.btst(.imm(8+3), .imm(1 << 3)), length: 0)
         
         XCTAssertEqual(m.cpu.ccr, [.x, .n, .v, .c])
     }
@@ -49,7 +49,7 @@ class BtstTests: XCTestCase {
     func testBtstByteImmImmZero() throws {
         m.cpu.ccr = []
         
-        m.cpu.execute(.btst(.imm(32+3), .imm(1 << 5)), length: 0)
+        m.cpu.execute(.btst(.imm(8+3), .imm(1 << 5)), length: 0)
 
         XCTAssertEqual(m.cpu.ccr, .z)
     }
@@ -59,7 +59,7 @@ class BtstTests: XCTestCase {
         m.cpu.a0 = 2
         m.cpu.write8(2, value: 1 << 3)
         
-        m.cpu.execute(.btst(.imm(32+3), .m(.ind(.a0))), length: 0)
+        m.cpu.execute(.btst(.imm(8+3), .m(.ind(.a0))), length: 0)
         
         XCTAssertEqual(m.cpu.ccr, [.x, .n, .v, .c])
     }
@@ -70,7 +70,67 @@ class BtstTests: XCTestCase {
         m.cpu.write8(2, value: 1 << 5)
 
         
-        m.cpu.execute(.btst(.imm(32+3), .m(.ind(.a0))), length: 0)
+        m.cpu.execute(.btst(.imm(8+3), .m(.ind(.a0))), length: 0)
+
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+
+    func testBtstByteRegDd() throws {
+        m.cpu.ccr = [.x, .n, .z, .v, .c]
+        m.cpu.d0 = 1 << 27
+        m.cpu.d1 = 32 + 27
+        
+        m.cpu.execute(.btst(.r(.d1), .dd(.d0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.ccr, [.x, .n, .v, .c])
+    }
+    
+    func testBtstByteRegDdZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 1 << 5
+        m.cpu.d1 = 32 + 27
+        
+        m.cpu.execute(.btst(.r(.d1), .dd(.d0)), length: 0)
+
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+    
+    func testBtstByteRegImm() throws {
+        m.cpu.ccr = [.x, .n, .z, .v, .c]
+        m.cpu.d1 = 8+3
+        
+        m.cpu.execute(.btst(.r(.d1), .imm(1 << 3)), length: 0)
+        
+        XCTAssertEqual(m.cpu.ccr, [.x, .n, .v, .c])
+    }
+    
+    func testBtstByteRegImmZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d1 = 8+3
+        
+        m.cpu.execute(.btst(.r(.d1), .imm(1 << 5)), length: 0)
+
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+
+    func testBtstByteRegMem() throws {
+        m.cpu.ccr = [.x, .n, .z, .v, .c]
+        m.cpu.a0 = 2
+        m.cpu.write8(2, value: 1 << 3)
+        m.cpu.d1 = 8+3
+        
+        m.cpu.execute(.btst(.r(.d1), .m(.ind(.a0))), length: 0)
+        
+        XCTAssertEqual(m.cpu.ccr, [.x, .n, .v, .c])
+    }
+    
+    func testBtstByteImmRegZero() throws {
+        m.cpu.ccr = []
+        m.cpu.a0 = 2
+        m.cpu.write8(2, value: 1 << 5)
+        m.cpu.d1 = 8+3
+
+        m.cpu.execute(.btst(.r(.d1), .m(.ind(.a0))), length: 0)
 
         XCTAssertEqual(m.cpu.ccr, .z)
     }
