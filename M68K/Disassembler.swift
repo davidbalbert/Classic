@@ -268,6 +268,10 @@ enum EffectiveAddress: Equatable, CustomStringConvertible {
         }
     }
     
+    init(_ ea: MemoryAddress) {
+        self = .m(ea)
+    }
+    
     var description: String {
         switch self {
         case let .dd(Dn):             return "\(Dn)"
