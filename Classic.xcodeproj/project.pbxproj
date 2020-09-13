@@ -56,6 +56,7 @@
 		63EE011524FC8EF400398DE2 /* BsetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EE011424FC8EF400398DE2 /* BsetTests.swift */; };
 		63F5C7D8250D73E100FC476C /* OrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7D7250D73E100FC476C /* OrTests.swift */; };
 		63F5C7DA250D998D00FC476C /* LslTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7D9250D998D00FC476C /* LslTests.swift */; };
+		63F5C7DC250E793200FC476C /* ClrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7DB250E793200FC476C /* ClrTests.swift */; };
 		63F62B4A25086973007CE7AB /* RoxlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F62B4925086973007CE7AB /* RoxlTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -152,6 +153,7 @@
 		63EE011424FC8EF400398DE2 /* BsetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BsetTests.swift; sourceTree = "<group>"; };
 		63F5C7D7250D73E100FC476C /* OrTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrTests.swift; sourceTree = "<group>"; };
 		63F5C7D9250D998D00FC476C /* LslTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LslTests.swift; sourceTree = "<group>"; };
+		63F5C7DB250E793200FC476C /* ClrTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClrTests.swift; sourceTree = "<group>"; };
 		63F62B4925086973007CE7AB /* RoxlTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoxlTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -235,6 +237,7 @@
 				63B1E25F250B1B6600337418 /* BclrTests.swift */,
 				63EE011024FC80DB00398DE2 /* BraTests.swift */,
 				63EE011424FC8EF400398DE2 /* BsetTests.swift */,
+				63F5C7DB250E793200FC476C /* ClrTests.swift */,
 				63CA1BEC2500698800D4B630 /* CmpiTests.swift */,
 				63CA1BEE2500881000D4B630 /* DbccTests.swift */,
 				63CA1BF02500925B00D4B630 /* JmpTests.swift */,
@@ -482,6 +485,7 @@
 				63B1E25E250B164F00337418 /* TstTests.swift in Sources */,
 				6329F3BF24FC30560038A1D1 /* AddTests.swift in Sources */,
 				6376279424CE0631005FFC5D /* DataExtensionTests.swift in Sources */,
+				63F5C7DC250E793200FC476C /* ClrTests.swift in Sources */,
 				63F5C7D8250D73E100FC476C /* OrTests.swift in Sources */,
 				63B1E262250B243100337418 /* LsrTests.swift in Sources */,
 			);

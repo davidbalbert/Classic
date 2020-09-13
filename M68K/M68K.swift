@@ -853,6 +853,72 @@ public struct CPU {
                 
                 cpu.z = v & bit == 0
             }
+        case let .clr(.b, .dd(Dn)):
+            return { cpu in
+                cpu.writeReg8(Dn, value: 0)
+                
+                cpu.n = false
+                cpu.z = true
+                cpu.v = false
+                cpu.c = false
+            }
+        case let .clr(.b, .m(ea)):
+            return { cpu in
+                let addr = cpu.address(for: ea, size: .b)
+                
+                // TODO: 68010, 68020, 68030, 68040 don't read before clear. This should be wrapped in a conditional
+                _ = cpu.read8(addr)
+                cpu.write8(addr, value: 0)
+                                
+                cpu.n = false
+                cpu.z = true
+                cpu.v = false
+                cpu.c = false
+            }
+        case let .clr(.w, .dd(Dn)):
+            return { cpu in
+                cpu.writeReg16(Dn, value: 0)
+                
+                cpu.n = false
+                cpu.z = true
+                cpu.v = false
+                cpu.c = false
+            }
+        case let .clr(.w, .m(ea)):
+            return { cpu in
+                let addr = cpu.address(for: ea, size: .w)
+                
+                // TODO: 68010, 68020, 68030, 68040 don't read before clear. This should be wrapped in a conditional
+                _ = cpu.read16(addr)
+                cpu.write16(addr, value: 0)
+                                
+                cpu.n = false
+                cpu.z = true
+                cpu.v = false
+                cpu.c = false
+            }
+        case let .clr(.l, .dd(Dn)):
+            return { cpu in
+                cpu.writeReg32(Dn, value: 0)
+                
+                cpu.n = false
+                cpu.z = true
+                cpu.v = false
+                cpu.c = false
+            }
+        case let .clr(.l, .m(ea)):
+            return { cpu in
+                let addr = cpu.address(for: ea, size: .l)
+                
+                // TODO: 68010, 68020, 68030, 68040 don't read before clear. This should be wrapped in a conditional
+                _ = cpu.read32(addr)
+                cpu.write32(addr, value: 0)
+                                
+                cpu.n = false
+                cpu.z = true
+                cpu.v = false
+                cpu.c = false
+            }
         case let .cmpi(.b, source, destination):
             return { cpu in
                 let destination = cpu.read(EffectiveAddress(destination), UInt8.self)
