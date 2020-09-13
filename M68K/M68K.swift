@@ -1219,11 +1219,47 @@ public struct CPU {
                 cpu.c = false
             }
         case let .orRM(.b, Dn, ea):
-            return nil
+            return { cpu in
+                let src = cpu.readReg8(Dn)
+                let addr = cpu.address(for: ea, size: .b)
+                let dst = cpu.read8(addr)
+                let res = src | dst
+                
+                cpu.write8(addr, value: res)
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
+            }
         case let .orRM(.w, Dn, ea):
-            return nil
+            return { cpu in
+                let src = cpu.readReg16(Dn)
+                let addr = cpu.address(for: ea, size: .w)
+                let dst = cpu.read16(addr)
+                let res = src | dst
+                
+                cpu.write16(addr, value: res)
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
+            }
         case let .orRM(.l, Dn, ea):
-            return nil
+            return { cpu in
+                let src = cpu.readReg32(Dn)
+                let addr = cpu.address(for: ea, size: .l)
+                let dst = cpu.read32(addr)
+                let res = src | dst
+                
+                cpu.write32(addr, value: res)
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
+            }
         case let .oriToSR(value):
             return { cpu in
                 if !cpu.s {

@@ -119,4 +119,112 @@ class OrTests: XCTestCase {
         XCTAssertEqual(m.cpu.d0, 0)
         XCTAssertEqual(m.cpu.ccr, .z)
     }
+    
+    func testOrRMByte() throws {
+        m.cpu.ccr = [.x, .v, .c]
+        m.cpu.d0 = 0x00
+        m.cpu.a0 = 2
+        m.cpu.write8(2, value: 0x55)
+        
+        m.cpu.execute(.orRM(.b, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(2), 0x55)
+        XCTAssertEqual(m.cpu.ccr, .x)
+    }
+    
+    func testOrRMByteNegative() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0x55
+        m.cpu.a0 = 2
+        m.cpu.write8(2, value: 0xaa)
+        
+        m.cpu.execute(.orRM(.b, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(2), 0xff)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testOrRMByteZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0x00
+        m.cpu.a0 = 2
+        m.cpu.write8(2, value: 0x00)
+
+        m.cpu.execute(.orMR(.b, .dd(.d1), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.read8(2), 0x00)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+    
+    func testOrRMWord() throws {
+        m.cpu.ccr = [.x, .v, .c]
+        m.cpu.d0 = 0x0000
+        m.cpu.a0 = 2
+        m.cpu.write16(2, value: 0x5555)
+        
+        m.cpu.execute(.orRM(.w, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(2), 0x5555)
+        XCTAssertEqual(m.cpu.ccr, .x)
+    }
+    
+    func testOrRMWordNegative() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0x5555
+        m.cpu.a0 = 2
+        m.cpu.write16(2, value: 0xaaaa)
+        
+        m.cpu.execute(.orRM(.w, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(2), 0xffff)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testOrRMWordZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0x0000
+        m.cpu.a0 = 2
+        m.cpu.write16(2, value: 0x0000)
+
+        m.cpu.execute(.orMR(.w, .dd(.d1), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.read16(2), 0x0000)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
+    
+    func testOrRMLong() throws {
+        m.cpu.ccr = [.x, .v, .c]
+        m.cpu.d0 = 0x0000_0000
+        m.cpu.a0 = 2
+        m.cpu.write32(2, value: 0x5555_5555)
+        
+        m.cpu.execute(.orRM(.l, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0x5555_5555)
+        XCTAssertEqual(m.cpu.ccr, .x)
+    }
+    
+    func testOrRMLongNegative() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0x5555_5555
+        m.cpu.a0 = 2
+        m.cpu.write32(2, value: 0xaaaa_aaaa)
+        
+        m.cpu.execute(.orRM(.l, .d0, .ind(.a0)), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0xffff_ffff)
+        XCTAssertEqual(m.cpu.ccr, .n)
+    }
+    
+    func testOrRMLongZero() throws {
+        m.cpu.ccr = []
+        m.cpu.d0 = 0x0000_0000
+        m.cpu.a0 = 2
+        m.cpu.write32(2, value: 0x0000_0000)
+
+        m.cpu.execute(.orMR(.l, .dd(.d1), .d0), length: 0)
+        
+        XCTAssertEqual(m.cpu.read32(2), 0x0000_0000)
+        XCTAssertEqual(m.cpu.ccr, .z)
+    }
 }
