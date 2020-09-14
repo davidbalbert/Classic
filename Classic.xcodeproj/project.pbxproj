@@ -59,6 +59,7 @@
 		63F5C7DC250E793200FC476C /* ClrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7DB250E793200FC476C /* ClrTests.swift */; };
 		63F5C7DE250E7E9500FC476C /* BtstTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7DD250E7E9500FC476C /* BtstTests.swift */; };
 		63F5C7E0250E861A00FC476C /* CmpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7DF250E861A00FC476C /* CmpTests.swift */; };
+		63F5C7E2250FA0AC00FC476C /* SwapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7E1250FA0AC00FC476C /* SwapTests.swift */; };
 		63F62B4A25086973007CE7AB /* RoxlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F62B4925086973007CE7AB /* RoxlTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -158,6 +159,7 @@
 		63F5C7DB250E793200FC476C /* ClrTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClrTests.swift; sourceTree = "<group>"; };
 		63F5C7DD250E7E9500FC476C /* BtstTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BtstTests.swift; sourceTree = "<group>"; };
 		63F5C7DF250E861A00FC476C /* CmpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmpTests.swift; sourceTree = "<group>"; };
+		63F5C7E1250FA0AC00FC476C /* SwapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapTests.swift; sourceTree = "<group>"; };
 		63F62B4925086973007CE7AB /* RoxlTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoxlTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -261,6 +263,7 @@
 				63F62B4925086973007CE7AB /* RoxlTests.swift */,
 				633825B42509B531009A4A0F /* SubaTests.swift */,
 				633825B62509BBC1009A4A0F /* SubqTests.swift */,
+				63F5C7E1250FA0AC00FC476C /* SwapTests.swift */,
 				63B1E25D250B164F00337418 /* TstTests.swift */,
 			);
 			path = InstructionTests;
@@ -484,6 +487,7 @@
 				638863C9250714EF006F4276 /* RorTests.swift in Sources */,
 				63CA1BED2500698800D4B630 /* CmpiTests.swift in Sources */,
 				63CA1BEF2500881000D4B630 /* DbccTests.swift in Sources */,
+				63F5C7E2250FA0AC00FC476C /* SwapTests.swift in Sources */,
 				63EE011524FC8EF400398DE2 /* BsetTests.swift in Sources */,
 				6332244124E0AA3900157207 /* TestMachine.swift in Sources */,
 				6332243F24E09DD500157207 /* ConditionCodeTests.swift in Sources */,

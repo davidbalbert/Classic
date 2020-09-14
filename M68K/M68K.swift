@@ -1715,6 +1715,17 @@ public struct CPU {
                 cpu.v = false
                 cpu.c = false
             }
+        case let .swap(Dn):
+            return { cpu in
+                let dst = cpu.readReg32(Dn)
+                let res = (dst<<16) | (dst>>16)
+                cpu.writeReg32(Dn, value: res)
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = false
+                cpu.c = false
+            }
         case let .tst(.w, ea):
             return { cpu in
                 let dst = cpu.read(ea, UInt16.self)
