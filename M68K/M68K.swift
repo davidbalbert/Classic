@@ -964,6 +964,39 @@ public struct CPU {
                 cpu.v = false
                 cpu.c = false
             }
+        case let .cmp(.b, ea, Dn):
+            return { cpu in
+                let src = cpu.read(ea, UInt8.self)
+                let dst = cpu.readReg8(Dn)
+                let res = dst &- src
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(src, dst, res)
+                cpu.c = src > dst
+            }
+        case let .cmp(.w, ea, Dn):
+            return { cpu in
+                let src = cpu.read(ea, UInt16.self)
+                let dst = cpu.readReg16(Dn)
+                let res = dst &- src
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(src, dst, res)
+                cpu.c = src > dst
+            }
+        case let .cmp(.l, ea, Dn):
+            return { cpu in
+                let src = cpu.read(ea, UInt32.self)
+                let dst = cpu.readReg32(Dn)
+                let res = dst &- src
+                
+                cpu.n = neg(res)
+                cpu.z = res == 0
+                cpu.v = vsub(src, dst, res)
+                cpu.c = src > dst
+            }
         case let .cmpi(.b, source, destination):
             return { cpu in
                 let destination = cpu.read(EffectiveAddress(destination), UInt8.self)

@@ -58,6 +58,7 @@
 		63F5C7DA250D998D00FC476C /* LslTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7D9250D998D00FC476C /* LslTests.swift */; };
 		63F5C7DC250E793200FC476C /* ClrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7DB250E793200FC476C /* ClrTests.swift */; };
 		63F5C7DE250E7E9500FC476C /* BtstTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7DD250E7E9500FC476C /* BtstTests.swift */; };
+		63F5C7E0250E861A00FC476C /* CmpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F5C7DF250E861A00FC476C /* CmpTests.swift */; };
 		63F62B4A25086973007CE7AB /* RoxlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F62B4925086973007CE7AB /* RoxlTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -156,6 +157,7 @@
 		63F5C7D9250D998D00FC476C /* LslTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LslTests.swift; sourceTree = "<group>"; };
 		63F5C7DB250E793200FC476C /* ClrTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClrTests.swift; sourceTree = "<group>"; };
 		63F5C7DD250E7E9500FC476C /* BtstTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BtstTests.swift; sourceTree = "<group>"; };
+		63F5C7DF250E861A00FC476C /* CmpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmpTests.swift; sourceTree = "<group>"; };
 		63F62B4925086973007CE7AB /* RoxlTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoxlTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -242,6 +244,7 @@
 				63F5C7DD250E7E9500FC476C /* BtstTests.swift */,
 				63F5C7DB250E793200FC476C /* ClrTests.swift */,
 				63CA1BEC2500698800D4B630 /* CmpiTests.swift */,
+				63F5C7DF250E861A00FC476C /* CmpTests.swift */,
 				63CA1BEE2500881000D4B630 /* DbccTests.swift */,
 				63CA1BF02500925B00D4B630 /* JmpTests.swift */,
 				63CA1BF225011E0D00D4B630 /* LeaTests.swift */,
@@ -459,6 +462,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63F5C7E0250E861A00FC476C /* CmpTests.swift in Sources */,
 				63B1E260250B1B6600337418 /* BclrTests.swift in Sources */,
 				630135552506CB2C009CD706 /* CustomAssertions.swift in Sources */,
 				630135532506C6DC009CD706 /* OriToSRTests.swift in Sources */,
